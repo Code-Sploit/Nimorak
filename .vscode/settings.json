@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "string.h": "c",
+        "stdbool.h": "c",
+        "constants.h": "c",
+        "stdio.h": "c",
+        "movegen.h": "c"
+    }
+}
