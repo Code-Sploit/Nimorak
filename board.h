@@ -3,16 +3,18 @@
 
 #include "nimorak.h"
 
-void load_fen(GameState *game, const char *fen);
+void board_load_fen(GameState *game, const char *fen);
 
-void clear_move_list(GameState *game);
+void board_movelist_clear(GameState *game);
 
-void add_move(GameState *game, Move move);
+void board_movelist_add(GameState *game, Move move);
 
-void clone_game_state(GameState *dest, const GameState *src);
+void board_make_move(GameState *game, Move move);
 
-void make_move(GameState *game, Move move);
+void board_make_move_str(GameState* game, const char* move_str);
 
-void make_move_str(GameState* game, const char* move_str);
+void board_clear(GameState *game);
+
+void board_print(GameState *game);
 
 #endif

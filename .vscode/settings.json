@@ -4,6 +4,7 @@
         "stdbool.h": "c",
         "constants.h": "c",
         "stdio.h": "c",
-        "movegen.h": "c"
+        "movegen.h": "c",
+        "stdlib.h": "c"
     }
 }

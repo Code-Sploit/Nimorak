@@ -5,7 +5,8 @@
 
 #include "helper.h"
 
-char *translate_square_to_string(int square) {
+char *translate_square_to_string(int square)
+{
     static char buffers[8][3];  // Up to 8 simultaneous calls
     static int index = 0;
 
@@ -40,7 +41,7 @@ int piece_from_char(char c)
     }
 }
 
-int is_color(int color, int turn)
+int is_same_color(int color, int turn)
 {
     if (color == 0) return false;
     if (turn == WHITE && color > 0) return true;
@@ -52,7 +53,7 @@ int is_color(int color, int turn)
 int is_enemy_piece(int color, int turn)
 {
     if (color == 0) return false;
-    if (is_color(color, turn) == true) return false;
+    if (is_same_color(color, turn) == true) return false;
 
     return true;
 }
@@ -118,17 +119,18 @@ int is_square_attacked_by(GameState *game, int square, int color)
 
     if (color == WHITE)
     {
-        return (game->white_controlled_squares[square] == true) ? true : false;
+        return (game->attack_table_white[square] == true) ? true : false;
     }
     else if (color == BLACK)
     {
-        return (game->black_controlled_squares[square] == true) ? true : false;
+        return (game->attack_table_black[square] == true) ? true : false;
     }
 
     return -1;
 }
 
-const char* piece_to_char(int piece) {
+const char* piece_to_char(int piece)
+{
     switch (piece) {
         case W_PAWN:   return "P";
         case W_KNIGHT: return "N";
@@ -150,41 +152,53 @@ int can_king_castle(GameState *game, int color, int side)
 {
     if (!game) return -1;
 
-    if (is_king_in_check(game, color)) return false;
+    if (color == WHITE && game->permalock_white_castle) return false;
+    if (color == BLACK && game->permalock_black_castle) return false;
+
+    if (is_king_in_check(game, color)) return -100;
 
     if (side == QUEEN_SIDE && color == WHITE)
     {
+        if (game->can_white_castle_queenside == false) return false;
         if (is_square_attacked_by(game, 2, BLACK) || is_square_attacked_by(game, 3, BLACK)) return false;
         if (get_square(game, 1) != 0 || get_square(game, 2) != 0 || get_square(game, 3) != 0) return false;
         if (get_square(game, 0) != W_ROOK) return false;
+
+        return true;
     }
     else if (side == QUEEN_SIDE && color == BLACK)
     {
+        if (game->can_black_castle_queenside == false) return false;
         if (is_square_attacked_by(game, 58, WHITE) || is_square_attacked_by(game, 59, WHITE)) return false;
         if (get_square(game, 57) != 0 || get_square(game, 58) != 0 || get_square(game, 59) != 0) return false;
         if (get_square(game, 56) != B_ROOK) return false;
+
+        return true;
     }
     else if (side == KING_SIDE && color == BLACK)
     {
+        if (game->can_black_castle_kingside == false) return false;
         if (is_square_attacked_by(game, 61, WHITE) || is_square_attacked_by(game, 62, WHITE)) return false;
         if (get_square(game, 61) != 0 || get_square(game, 62) != 0) return false;
         if (get_square(game, 63) != B_ROOK) return false;
+
+        return true;
     }
     else if (side == KING_SIDE && color == WHITE)
     {
+        if (game->can_white_castle_kingside == false) return false;
         if (is_square_attacked_by(game, 5, BLACK) || is_square_attacked_by(game, 6, BLACK)) return false;
         if (get_square(game, 5) != 0 || get_square(game, 6) != 0) return false;
         if (get_square(game, 7) != W_ROOK) return false;
-    }
-    else
-    {
-        return -1;
+
+        return true;
     }
 
     return -1;
 }
 
-int square_from_coords(const char* coords) {
+int square_from_coords(const char* coords)
+{
     if (coords[0] < 'a' || coords[0] > 'h') return -1;
     if (coords[1] < '1' || coords[1] > '8') return -1;
     int file = coords[0] - 'a';
@@ -212,21 +226,8 @@ char get_promotion_piece(Move move)
     return ' ';
 }
 
-void print_board(GameState *game)
+int piece_value(int piece)
 {
-    printf("  +---+---+---+---+---+---+---+---+\n");
-    for (int rank = 7; rank >= 0; rank--) {
-        printf("%d |", rank + 1);
-        for (int file = 0; file < 8; file++) {
-            int sq = rank * 8 + file;
-            printf(" %s |", piece_to_char(game->board[sq]));
-        }
-        printf("\n  +---+---+---+---+---+---+---+---+\n");
-    }
-    printf("    a   b   c   d   e   f   g   h\n");
-}
-
-int piece_value(int piece) {
     switch (piece) {
         case W_PAWN: case B_PAWN: return 100;
         case W_KNIGHT: case B_KNIGHT: return 300;
@@ -235,15 +236,5 @@ int piece_value(int piece) {
         case W_QUEEN: case B_QUEEN: return 900;
         case W_KING: case B_KING: return 100000;
         default: return 0;
-    }
-}
-
-void clear_board(GameState *game)
-{
-    if (!game) return;
-
-    for (int i = 0; i < 64; i++)
-    {
-        game->board[i] = EMPTY;
     }
 }

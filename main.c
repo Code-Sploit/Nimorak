@@ -1,7 +1,6 @@
 #include "nimorak.h"
 #include "board.h"
 #include "constants.h"
-#include "evaluation.h"
 #include "search.h"
 #include "movegen.h"
 #include "helper.h"
@@ -12,13 +11,20 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <time.h>
+
+#define POSITION_STARTPOS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+int get_random(int min, int max) {
+    return rand() % (max - min + 1) + min;
+}
 
 void uci_loop(GameState *game)
 {
     if (!game) return;
 
-    char line[512];
+    char line[4096];
 
     while (1)
     {
@@ -30,18 +36,20 @@ void uci_loop(GameState *game)
 
         if (strncmp(line, "ucinewgame", 10) == 0)
         {
-            clear_board(game);
+            board_clear(game);
         }
         else if (strcmp(line, "uci") == 0)
         {
             printf("id name Nimorak\n");
             printf("id author Samuel 't Hart\n");
             printf("uciok\n");
+
             fflush(stdout);
         }
         else if (strcmp(line, "isready") == 0)
         {
             printf("readyok\n");
+
             fflush(stdout);
         }
         else if (strncmp(line, "position", 8) == 0)
@@ -50,93 +58,114 @@ void uci_loop(GameState *game)
 
             if (strncmp(ptr, "startpos", 8) == 0)
             {
-                load_fen(game, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+                board_load_fen(game, POSITION_STARTPOS_FEN);
                 ptr += 8;
+            }
+            else if (strncmp(ptr, "fen", 3) == 0)
+            {
+                ptr += 3;
 
-                if (strncmp(ptr, " moves", 6) == 0)
+                while (*ptr && isspace(*ptr)) ptr++;
+
+                char fen[128] = {0};
+                int i = 0;
+                int spaces = 0;
+
+                // FEN has exactly 6 space-separated fields
+                while (*ptr && spaces < 6 && i < (int)(sizeof(fen) - 1))
                 {
-                    ptr += 6;
+                    if (isspace(*ptr))
+                        spaces++;
 
-                    while (*ptr)
+                    fen[i++] = *ptr++;
+                }
+
+                fen[i] = '\0';
+                board_load_fen(game, fen);
+            }
+
+            // Now parse optional moves
+            while (*ptr && isspace(*ptr)) ptr++;
+
+            if (strncmp(ptr, "moves", 5) == 0)
+            {
+                ptr += 5;
+
+                while (*ptr)
+                {
+                    while (*ptr && isspace(*ptr)) ptr++;
+
+                    if (!*ptr) break;
+
+                    char move_str[6] = {0};
+                    int j = 0;
+
+                    while (*ptr && !isspace(*ptr) && j < 5)
                     {
-                        while (*ptr && isspace(*ptr)) ptr++;
-
-                        if (!*ptr) break;
-
-                        char move_str[6] = {0};
-
-                        int j = 0;
-
-                        while (*ptr && !isspace(*ptr) && j < 5)
-                        {
-                            move_str[j++] = *ptr++;
-                        }
-
-                        move_str[j] = '\0';
-
-                        make_move_str(game, move_str);
+                        move_str[j++] = *ptr++;
                     }
+
+                    move_str[j] = '\0';
+
+                    board_make_move_str(game, move_str);
                 }
             }
 
-            generate_attack_tables(game, WHITE);
-            generate_attack_tables(game, BLACK);
+            attack_generate_table(game, WHITE);
+            attack_generate_table(game, BLACK);
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            generate_legal_moves(game);
+            movegen_generate_legal_moves(game);
 
-            int depth = 5;
+            int index = get_random(0, game->move_count);
 
-            clock_t start_time = clock();
+            Move move = game->movelist[get_random(0, game->move_count - 1)];
 
-            Move best_move = find_best_move(game, depth);
-            
-            clock_t end_time = clock();
+            char *promotion_string = (move.promotion) ? piece_to_char(move.promotion_piece) : " ";
 
-            double time_spent = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-
-            printf("info depth %d eval %f\n", depth, best_move.eval);
-            printf("bestmove %s%s%c\n", translate_square_to_string(best_move.from), translate_square_to_string(best_move.to), get_promotion_piece(best_move));
-            printf("info time %.3f seconds\n", time_spent);
+            printf("bestmove %s%s%s\n", translate_square_to_string(move.from), translate_square_to_string(move.to), promotion_string);
 
             fflush(stdout);
         }
+        else if (strncmp(line, "perft_tp", 8) == 0)
+        {
+            perft_run_test_positions(game);
+        }
         else if (strncmp(line, "perft", 5) == 0)
         {
-            perft_print_breakdown(game, 1);
-            perft_print_breakdown(game, 2);
-            perft_print_breakdown(game, 3);
-            perft_print_breakdown(game, 4);
-            perft_print_breakdown(game, 5);
-            perft_print_breakdown(game, 6);
+            int depth = 1;
+            char *ptr = line + 5;
+
+            // Skip whitespace after "perft"
+            while (*ptr && isspace(*ptr)) ptr++;
+
+            // If there's a number, parse it
+            if (*ptr)
+                depth = atoi(ptr);
+
+            perft_divide(game, depth, true);
         }
         else if (strncmp(line, "atw", 3) == 0)
         {
-            print_attack_tables(game, WHITE);
+            attack_print_table(game, WHITE);
         }
         else if (strncmp(line, "atb", 3) == 0)
         {
-            print_attack_tables(game, BLACK);
+            attack_print_table(game, BLACK);
         }
         else if (strncmp(line, "d", 1) == 0)
         {
-            print_board(game);
+            board_print(game);
         }
     }
 }
 
 int main(int argc, char** argv)
 {
-    GameState *game = new_game(WHITE, "2rr4/7p/8/3p1k2/pb3P2/7P/8/5RK1 w - - 1 34");
+    GameState *game = game_new();
 
-    //for (int rank = 7; rank >= 0; rank--) {
-      //  for (int file = 0; file < 8; file++) {
-        //    int sq = rank * 8 + file;
-          //  printf("%2d ", game->board[sq]);
-        //}
-        //printf("\n");
-//    }
+    nimorak_startup();
 
     uci_loop(game);
 

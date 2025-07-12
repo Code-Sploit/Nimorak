@@ -7,7 +7,7 @@ char *translate_square_to_string(int square);
 
 int piece_from_char(char c);
 
-int is_color(int color, int turn);
+int is_same_color(int color, int turn);
 
 int is_enemy_piece(int color, int turn);
 
@@ -36,9 +36,5 @@ int square_from_coords(const char* coords);
 char get_promotion_piece(Move move);
 
 int piece_value(int piece);
-
-void print_board(GameState *game);
-
-void clear_board(GameState *game);
 
 #endif

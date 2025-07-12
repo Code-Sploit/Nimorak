@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int KNIGHT_OFFSETS[] = {-17, -10, 6, 15, 17, 10, -6, -15};
 int BISHOP_OFFSETS[] = {7, 9, -7, -9};
@@ -83,26 +84,58 @@ int king_pst[64] = {
      20, 30, 10,  0,  0, 10, 30, 20
 };
 
-void load_fen(GameState *game, const char *fen)
+void board_load_fen(GameState *game, const char *fen)
 {
     if (!game || !fen) return;
 
+    board_clear(game);
+
     int idx = 56;
 
+    // Parse piece placement
     for (; *fen && *fen != ' '; fen++) {
-        if (*fen == '/') {
+        if (*fen == '/')
+        {
             idx -= 16;
-        } else if (isdigit(*fen)) {
+        }
+        else if (isdigit(*fen))
+        {
             idx += *fen - '0';
-        } else {
+        }
+        else
+        {
             game->board[idx++] = piece_from_char(*fen);
         }
     }
 
-    game->turn = (*++fen == 'b') ? BLACK : WHITE;
+    // Skip space and parse turn
+    if (*fen == ' ') fen++;
+    game->turn = (*fen == 'w') ? WHITE : BLACK;
+
+    // Skip turn char and space
+    while (*fen && *fen != ' ') fen++;
+    if (*fen == ' ') fen++;
+
+    // Parse castling rights
+    bool has_white_castle = false;
+    bool has_black_castle = false;
+
+    for (; *fen && *fen != ' '; fen++) {
+        switch (*fen) {
+            case 'K': has_white_castle = true; game->can_white_castle_kingside = true; break; // White kingside
+            case 'Q': has_white_castle = true; game->can_white_castle_queenside = true; break; // White queenside
+            case 'k': has_black_castle = true; game->can_black_castle_kingside = true; break; // Black kingside
+            case 'q': has_black_castle = true; game->can_black_castle_queenside = true; break; // Black queenside
+            case '-': break;
+            default: break;
+        }
+    }
+
+    game->permalock_white_castle = !has_white_castle;
+    game->permalock_black_castle = !has_black_castle;
 }
 
-void clear_move_list(GameState *game)
+void board_movelist_clear(GameState *game)
 {
     if (!game) return;
 
@@ -111,46 +144,56 @@ void clear_move_list(GameState *game)
     game->move_count = 0;
 }
 
-void add_move(GameState *game, Move move)
+void board_movelist_add(GameState *game, Move move)
 {
     if (!game || game->move_count >= MAX_LEGAL_MOVES) return;
+    
     game->movelist[game->move_count++] = move;
 }
 
-void clone_game_state(GameState *dest, const GameState *src)
-{
-    if (!dest || !src) return;
-    memcpy(dest, src, sizeof(GameState));
-}
-
-void make_move(GameState *game, Move move)
+void board_make_move(GameState *game, Move move)
 {
     if (!game) return;
 
     int from = move.from, to = move.to;
+    
     if ((unsigned)from > 63 || (unsigned)to > 63) return;
 
     int piece = game->board[from];
+
+    if (move.is_en_passant)
+    {
+        int offset = (piece == W_PAWN) ? -8 : 8;
+
+        game->board[game->en_passant_square + offset] = EMPTY;
+    }
 
     switch (piece) {
         case W_ROOK:
             if (from == 0) game->can_white_castle_queenside = false;
             if (from == 7) game->can_white_castle_kingside = false;
+            
             break;
         case W_KING:
-            if (from == 4) {
+            if (from == 4)
+            {
                 game->can_white_castle_kingside = false;
                 game->can_white_castle_queenside = false;
+                game->permalock_white_castle = true;
             }
+            
             break;
         case B_ROOK:
             if (from == 56) game->can_black_castle_queenside = false;
             if (from == 63) game->can_black_castle_kingside = false;
+
             break;
         case B_KING:
-            if (from == 60) {
+            if (from == 60)
+            {
                 game->can_black_castle_kingside = false;
                 game->can_black_castle_queenside = false;
+                game->permalock_black_castle = true;
             }
             break;
     }
@@ -174,16 +217,6 @@ void make_move(GameState *game, Move move)
                 move.is_castle_queen_side = true;
         }
     }
-
-    // Revalidate castling rights
-    if (game->can_white_castle_kingside)
-        game->can_white_castle_kingside = can_king_castle(game, WHITE, KING_SIDE);
-    if (game->can_white_castle_queenside)
-        game->can_white_castle_queenside = can_king_castle(game, WHITE, QUEEN_SIDE);
-    if (game->can_black_castle_kingside)
-        game->can_black_castle_kingside = can_king_castle(game, BLACK, KING_SIDE);
-    if (game->can_black_castle_queenside)
-        game->can_black_castle_queenside = can_king_castle(game, BLACK, QUEEN_SIDE);
 
     if (piece == W_PAWN || piece == B_PAWN)
     {
@@ -214,12 +247,7 @@ void make_move(GameState *game, Move move)
     game->board[to] = (move.promotion) ? move.promotion_piece : piece;
     game->board[from] = EMPTY;
 
-    if (move.is_en_passant)
-    {
-        int offset = (game->turn == WHITE) ? 8 : -8;
-
-        game->board[game->en_passant_square + offset] = EMPTY;
-    }
+    //printf("From %d To %d EP %d\n", move.from, move.to, move.is_en_passant);
 
     if (move.is_castle_king_side)
     {
@@ -256,13 +284,13 @@ void make_move(GameState *game, Move move)
         }
     }
 
-    generate_attack_tables(game, WHITE);
-    generate_attack_tables(game, BLACK);
+    attack_generate_table(game, WHITE);
+    attack_generate_table(game, BLACK);
 
     game->turn ^= 1;  // toggle between WHITE (0) and BLACK (1)
 }
 
-void make_move_str(GameState *game, const char *move_str)
+void board_make_move_str(GameState *game, const char *move_str)
 {
     if (!game || !move_str || strlen(move_str) < 4) return;
 
@@ -282,13 +310,44 @@ void make_move_str(GameState *game, const char *move_str)
         move.promotion = true;
         char p = tolower(move_str[4]);
         switch (p) {
-            case 'q': move.promotion_piece = W_QUEEN; break;
-            case 'r': move.promotion_piece = W_ROOK; break;
-            case 'b': move.promotion_piece = W_BISHOP; break;
-            case 'n': move.promotion_piece = W_KNIGHT; break;
+            case 'q': move.promotion_piece = (game->turn == WHITE) ? W_QUEEN : B_QUEEN; break;
+            case 'r': move.promotion_piece = (game->turn == WHITE) ? W_ROOK : B_ROOK; break;
+            case 'b': move.promotion_piece = (game->turn == WHITE) ? W_BISHOP : B_BISHOP; break;
+            case 'n': move.promotion_piece = (game->turn == WHITE) ? W_KNIGHT : B_KNIGHT; break;
             default: return; // Invalid promotion
         }
     }
 
-    make_move(game, move);
+    board_make_move(game, move);
+}
+
+void board_clear(GameState *game)
+{
+    if (!game) return;
+
+    for (int i = 0; i < 64; i++)
+    {
+        game->board[i] = EMPTY;
+    }
+}
+
+void board_print(GameState *game)
+{
+    printf("  +---+---+---+---+---+---+---+---+\n");
+
+    for (int rank = 7; rank >= 0; rank--)
+    {
+        printf("%d |", rank + 1);
+
+        for (int file = 0; file < 8; file++)
+        {
+            int sq = rank * 8 + file;
+
+            printf(" %s |", piece_to_char(game->board[sq]));
+        }
+
+        printf("\n  +---+---+---+---+---+---+---+---+\n");
+    }
+
+    printf("    a   b   c   d   e   f   g   h\n");
 }

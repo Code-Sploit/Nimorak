@@ -44,14 +44,21 @@ typedef struct
 
     int en_passant_square;
 
-    int black_controlled_squares[64];
-    int white_controlled_squares[64];
+    int attack_table_white[64];
+    int attack_table_black[64];
+
+    int permalock_white_castle;
+    int permalock_black_castle;
 
     int new_game_starting;
 } GameState;
 
-GameState *new_game(int turn, const char *startpos);
+GameState *game_new();
 
-void del_game(GameState *game);
+void game_del(GameState *game);
+
+void game_clone(GameState *dest, const GameState *src);
+
+void nimorak_startup();
 
 #endif

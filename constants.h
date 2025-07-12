@@ -9,7 +9,7 @@
 #define WHITE 0
 #define BLACK 1
 
-#define MAX_LEGAL_MOVES 64
+#define MAX_LEGAL_MOVES 256
 
 enum {
     W_PAWN = 1, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,

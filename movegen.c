@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void generate_legal_moves(GameState *game)
+void movegen_generate_legal_moves(GameState *game)
 {
-    generate_pseudo_moves(game);
+    movegen_generate_pseudo_legal_moves(game);
 
-    generate_attack_tables(game, WHITE);
-    generate_attack_tables(game, BLACK);
+    attack_generate_table(game, WHITE);
+    attack_generate_table(game, BLACK);
 
     Move legal_moves[MAX_LEGAL_MOVES];
 
@@ -22,19 +22,14 @@ void generate_legal_moves(GameState *game)
     {
         GameState copy;
 
-        clone_game_state(&copy, game);
+        game_clone(&copy, game);
 
-        make_move(&copy, game->movelist[i]);
+        board_make_move(&copy, game->movelist[i]);
 
         if (!is_king_in_check(&copy, game->turn))
         {
             legal_moves[legal_move_count] = game->movelist[i];
             legal_move_count++;
-        }
-        else
-        {
-            //printf("King is in check after move %s%s\n", translate_square_to_string(game->movelist[i].from), translate_square_to_string(game->movelist[i].to));
-            //printf("illegal %s%s\n", translate_square_to_string(game->movelist[i].from), translate_square_to_string(game->movelist[i].to));
         }
     }
 
@@ -46,12 +41,12 @@ void generate_legal_moves(GameState *game)
     game->move_count = legal_move_count;
 }
 
-void generate_pseudo_moves(GameState *game)
+void movegen_generate_pseudo_legal_moves(GameState *game)
 {
     if (!game) return;
 
-    clear_move_list(game);
-    clear_attack_tables(game, game->turn);
+    board_movelist_clear(game);
+    attack_clear_table(game, game->turn);
 
     for (int i = 0; i < 64; i++)
     {
@@ -60,7 +55,7 @@ void generate_pseudo_moves(GameState *game)
         int file = i % 8;
         int rank = i / 8;
 
-        if (is_color(piece, game->turn) == false) continue;
+        if (is_same_color(piece, game->turn) == false) continue;
 
         switch (piece) {
             case W_PAWN:
@@ -85,17 +80,17 @@ void generate_pseudo_moves(GameState *game)
                 // Normal move
                 if (valid_one_step && game->board[target_one_step] == EMPTY) {
                     if (is_on_seventh_rank) {
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_QUEEN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_ROOK});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_BISHOP});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
                     } else {
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = W_PAWN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = W_PAWN});
                     }
 
                     // Double push only if first step free & on second rank
                     if (valid_two_step && is_on_second_rank && game->board[target_two_step] == EMPTY) {
-                        add_move(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = W_PAWN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = W_PAWN});
                     }
                 }
 
@@ -104,12 +99,12 @@ void generate_pseudo_moves(GameState *game)
                     int target_file = target_capture_right % 8;
                     if (target_file == start_file + 1 && is_enemy_piece(game->board[target_capture_right], game->turn)) {
                         if (is_on_seventh_rank) {
-                            add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                            add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                            add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                            add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
                         } else {
-                            add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = W_PAWN});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = W_PAWN});
                         }
                     }
                 }
@@ -119,12 +114,12 @@ void generate_pseudo_moves(GameState *game)
                     int target_file = target_capture_left % 8;
                     if (target_file == start_file - 1 && is_enemy_piece(game->board[target_capture_left], game->turn)) {
                         if (is_on_seventh_rank) {
-                            add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                            add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                            add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                            add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
                         } else {
-                            add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = W_PAWN});
+                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = W_PAWN});
                         }
                     }
                 }
@@ -144,7 +139,7 @@ void generate_pseudo_moves(GameState *game)
 
                             // En passant capture to the left
                             if (ep_square == target_capture_left && ep_file == start_file - 1) {
-                                add_move(game, (Move){
+                                board_movelist_add(game, (Move){
                                     .from = i,
                                     .to = ep_square,
                                     .promotion = false,
@@ -155,7 +150,7 @@ void generate_pseudo_moves(GameState *game)
                             }
                             // En passant capture to the right
                             else if (ep_square == target_capture_right && ep_file == start_file + 1) {
-                                add_move(game, (Move){
+                                board_movelist_add(game, (Move){
                                     .from = i,
                                     .to = ep_square,
                                     .promotion = false,
@@ -184,7 +179,7 @@ void generate_pseudo_moves(GameState *game)
                     // Prevent wraparound (e.g. jumping from file H to file A)
                     if (abs(new_file - file) > 2 || abs(new_rank - rank) > 2) continue;
 
-                    if (is_color(game->board[new_square], game->turn)) continue;
+                    if (is_same_color(game->board[new_square], game->turn)) continue;
 
                     Move move = {
                         .from = i,
@@ -194,7 +189,7 @@ void generate_pseudo_moves(GameState *game)
                         .piece = W_KNIGHT
                     };
 
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 break;
@@ -219,7 +214,7 @@ void generate_pseudo_moves(GameState *game)
                         // If not moving diagonally or wrapped around file boundary, stop
                         if (abs(target_file - prev_file) != 1 || abs(target_rank - prev_rank) != 1) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -229,7 +224,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = W_BISHOP
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -257,7 +252,7 @@ void generate_pseudo_moves(GameState *game)
                         // Prevent wrapping in horizontal directions
                         if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -267,7 +262,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = W_ROOK
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -297,7 +292,7 @@ void generate_pseudo_moves(GameState *game)
                         if ((offset == 7 || offset == -7 || offset == 9 || offset == -9) &&
                             abs(target_file - prev_file) != 1) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -307,7 +302,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = W_QUEEN
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -331,7 +326,7 @@ void generate_pseudo_moves(GameState *game)
                     // Prevent wraparounds
                     if (abs(from_file - to_file) > 1 || abs(from_rank - to_rank) > 1) continue;
 
-                    if (is_color(game->board[target], game->turn)) continue;
+                    if (is_same_color(game->board[target], game->turn)) continue;
 
                     Move move = {
                         .from = i,
@@ -341,13 +336,18 @@ void generate_pseudo_moves(GameState *game)
                         .piece = W_KING
                     };
 
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 // === Castling ===
                 // Note: You must also check if the squares between are empty and not under attack externally
-                game->can_white_castle_kingside = can_king_castle(game, WHITE, KING_SIDE);
-                game->can_white_castle_queenside = can_king_castle(game, WHITE, QUEEN_SIDE);
+                int wck = can_king_castle(game, WHITE, KING_SIDE);
+                int wcq = can_king_castle(game, WHITE, QUEEN_SIDE);
+
+                if (wck == -100 || wcq == -100) break;
+
+                game->can_white_castle_kingside = wck;
+                game->can_white_castle_queenside = wcq;
 
                 if (game->can_white_castle_kingside) {
                     Move move = {
@@ -356,7 +356,7 @@ void generate_pseudo_moves(GameState *game)
                         .piece = W_KING,
                         .is_castle_king_side = true
                     };
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 if (game->can_white_castle_queenside) {
@@ -366,7 +366,7 @@ void generate_pseudo_moves(GameState *game)
                         .piece = W_KING,
                         .is_castle_queen_side = true
                     };
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 break;
@@ -391,40 +391,40 @@ void generate_pseudo_moves(GameState *game)
                 // Normal move
                 if (can_move_one_step) {
                     if (is_on_second_rank) {
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_QUEEN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_ROOK});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_BISHOP});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
                     } else {
-                        add_move(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = B_PAWN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = B_PAWN});
                     }
                 }
 
                 // Double push
                 if (can_move_two_step) {
-                    add_move(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = B_PAWN});
+                    board_movelist_add(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = B_PAWN});
                 }
 
                 // Captures
                 if (start_file > 0 && is_enemy_piece(game->board[target_capture_right], game->turn)) {
                     if (is_on_second_rank) {
-                        add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
                     } else {
-                        add_move(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = B_PAWN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = B_PAWN});
                     }
                 }
 
                 if (start_file < 7 && is_enemy_piece(game->board[target_capture_left], game->turn)) {
                     if (is_on_second_rank) {
-                        add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
                     } else {
-                        add_move(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = B_PAWN});
+                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = B_PAWN});
                     }
                 }
 
@@ -434,31 +434,31 @@ void generate_pseudo_moves(GameState *game)
                     int ep_rank = ep_square / 8;
 
                     // White pawn must be on rank 5 (index 4)
-                    if (start_rank == 4) {
+                    if (start_rank == 3) {
                         // The pawn to be captured is one rank behind en passant square (rank 4)
-                        int captured_pawn_square = ep_square - 8;  // one rank below ep square
+                        int captured_pawn_square = ep_square + 8;  // one rank below ep square
 
                         // Check if there is actually a black pawn on the captured pawn square
-                        if (game->board[captured_pawn_square] == B_PAWN) {
+                        if (game->board[captured_pawn_square] == W_PAWN) {
                             // En passant capture to the left
-                            if (ep_square == target_capture_left && ep_file == start_file - 1) {
-                                add_move(game, (Move){
+                            if (ep_square == target_capture_left && ep_file == start_file + 1) {
+                                board_movelist_add(game, (Move){
                                     .from = i,
                                     .to = ep_square,
                                     .promotion = false,
                                     .capture = true,
-                                    .piece = W_PAWN,
+                                    .piece = B_PAWN,
                                     .is_en_passant = true
                                 });
                             }
                             // En passant capture to the right
-                            else if (ep_square == target_capture_right && ep_file == start_file + 1) {
-                                add_move(game, (Move){
+                            else if (ep_square == target_capture_right && ep_file == start_file - 1) {
+                                board_movelist_add(game, (Move){
                                     .from = i,
                                     .to = ep_square,
                                     .promotion = false,
                                     .capture = true,
-                                    .piece = W_PAWN,
+                                    .piece = B_PAWN,
                                     .is_en_passant = true
                                 });
                             }
@@ -482,7 +482,7 @@ void generate_pseudo_moves(GameState *game)
                     // Prevent wraparound (e.g. jumping from file H to file A)
                     if (abs(new_file - file) > 2 || abs(new_rank - rank) > 2) continue;
 
-                    if (is_color(game->board[new_square], game->turn)) continue;
+                    if (is_same_color(game->board[new_square], game->turn)) continue;
 
                     Move move = {
                         .from = i,
@@ -492,7 +492,7 @@ void generate_pseudo_moves(GameState *game)
                         .piece = B_KNIGHT
                     };
 
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 break;
@@ -517,7 +517,7 @@ void generate_pseudo_moves(GameState *game)
                         // If not moving diagonally or wrapped around file boundary, stop
                         if (abs(target_file - prev_file) != 1 || abs(target_rank - prev_rank) != 1) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -527,7 +527,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = B_BISHOP
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -555,7 +555,7 @@ void generate_pseudo_moves(GameState *game)
                         // Prevent wrapping in horizontal directions
                         if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -565,7 +565,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = B_ROOK
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -595,7 +595,7 @@ void generate_pseudo_moves(GameState *game)
                         if ((offset == 7 || offset == -7 || offset == 9 || offset == -9) &&
                             abs(target_file - prev_file) != 1) break;
 
-                        if (is_color(game->board[target], game->turn)) break;
+                        if (is_same_color(game->board[target], game->turn)) break;
 
                         Move move = {
                             .from = i,
@@ -605,7 +605,7 @@ void generate_pseudo_moves(GameState *game)
                             .piece = B_QUEEN
                         };
 
-                        add_move(game, move);
+                        board_movelist_add(game, move);
 
                         if (move.capture) break;
                     }
@@ -629,7 +629,7 @@ void generate_pseudo_moves(GameState *game)
                     // Prevent wraparounds
                     if (abs(from_file - to_file) > 1 || abs(from_rank - to_rank) > 1) continue;
 
-                    if (is_color(game->board[target], game->turn)) continue;
+                    if (is_same_color(game->board[target], game->turn)) continue;
 
                     Move move = {
                         .from = i,
@@ -639,32 +639,37 @@ void generate_pseudo_moves(GameState *game)
                         .piece = B_KING
                     };
 
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 // === Castling ===
                 // Note: You must also check if the squares between are empty and not under attack externally
-                game->can_black_castle_kingside = can_king_castle(game, BLACK, KING_SIDE);
-                game->can_black_castle_queenside = can_king_castle(game, BLACK, QUEEN_SIDE);
+                int bck = can_king_castle(game, BLACK, KING_SIDE);
+                int bcq = can_king_castle(game, BLACK, QUEEN_SIDE);
 
-                if (game->can_white_castle_kingside) {
+                if (bck == -100 || bcq == -100) break;
+
+                game->can_black_castle_kingside = bck;
+                game->can_black_castle_queenside = bcq;
+
+                if (game->can_black_castle_kingside && !game->permalock_black_castle) {
                     Move move = {
                         .from = i,
                         .to = i + 2,
                         .piece = B_KING,
                         .is_castle_king_side = true
                     };
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
-                if (game->can_white_castle_queenside) {
+                if (game->can_black_castle_queenside && !game->permalock_black_castle) {
                     Move move = {
                         .from = i,
                         .to = i - 2,
                         .piece = B_KING,
                         .is_castle_queen_side = true
                     };
-                    add_move(game, move);
+                    board_movelist_add(game, move);
                 }
 
                 break;
@@ -673,48 +678,5 @@ void generate_pseudo_moves(GameState *game)
                 // Handle empty or invalid piece
                 break;
         }
-    }
-}
-
-int score_move(GameState *game, Move m)
-{
-    int attacker = game->board[m.from];
-    int victim = game->board[m.to];
-
-    if (victim != EMPTY)
-    {
-        return (10 * piece_value(victim)) - piece_value(attacker);
-    }
-
-    if (m.promotion) return 10000 + m.promotion_piece;
-    if (m.is_castle_king_side) return 5000;
-    if (m.is_castle_queen_side) return 5000;
-}
-
-void sort_moves(GameState *game)
-{
-    if (!game || game->move_count == 0) return;
-
-    int scores[MAX_LEGAL_MOVES];
-
-    // Precompute all scores once
-    for (int i = 0; i < game->move_count; i++) {
-        scores[i] = score_move(game, game->movelist[i]);
-    }
-
-    // Insertion sort
-    for (int i = 1; i < game->move_count; i++) {
-        Move key_move = game->movelist[i];
-        int key_score = scores[i];
-        int j = i - 1;
-
-        while (j >= 0 && scores[j] < key_score) {
-            game->movelist[j + 1] = game->movelist[j];
-            scores[j + 1] = scores[j];
-            j--;
-        }
-
-        game->movelist[j + 1] = key_move;
-        scores[j + 1] = key_score;
     }
 }
