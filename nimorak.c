@@ -1,49 +1,33 @@
 #include "nimorak.h"
-#include "constants.h"
+#include "magic.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
 
-GameState *game_new(int turn)
+Game *game_new()
 {
-    GameState *game = calloc(1, sizeof(GameState));
+    Game *game = calloc(1, sizeof(Game));
 
-    if (!game) return NULL;
+    if (!game)
+    {
+        // Failed to allocate memory for game structure, exit
 
-    game->turn = turn;
+        exit(1);
+    }
 
-    game->can_white_castle_queenside = false;
-    game->can_white_castle_kingside  = false;
-    game->can_black_castle_queenside = false;
-    game->can_black_castle_kingside  = false;
+    // Set turn to white
+    game->turn = WHITE;
 
-    game->en_passant_square = -1;
+    // Set enpassant square to -1, there is no enpassant possible
+    game->enpassant_square = -1;
 
-    game->move_count = 0;
-
-    game->new_game_starting = true;
-
-    game->permalock_black_castle = false;
-    game->permalock_white_castle = false;
+    game->bishop_magics = generate_bishop_magics();
+    game->rook_magics   = generate_rook_magics();
 
     return game;
 }
 
-void game_del(GameState *game)
+void game_del(Game *game)
 {
     if (game) free(game);
-}
-
-void game_clone(GameState *dest, const GameState *src)
-{
-    if (!dest || !src) return;
-    memcpy(dest, src, sizeof(GameState));
-}
-
-void nimorak_startup()
-{
-    printf("Nimorak V1.0 by Samuel 't Hart\n");
 }
