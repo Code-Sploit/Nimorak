@@ -1,30 +1,21 @@
 @echo off
-setlocal
+echo Compiling Nimorak chess engine...
 
-REM Check if a version parameter is passed
-if "%~1"=="" (
-    set "VERSION=nimorak"
+REM Set compiler flags
+set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g
+
+REM Source files
+set SOURCES=attack.c board.c magic.c main.c movegen.c nimorak.c perft.c table.c
+
+REM Output file
+set OUTPUT=-o nimorak.exe
+
+REM Compile
+gcc %FLAGS% %SOURCES% %OUTPUT%
+
+if %errorlevel% neq 0 (
+    echo ❌ Build failed.
+    exit /b %errorlevel%
 ) else (
-    set "VERSION=nimorak-%~1"
+    echo ✅ Build succeeded. Output: nimorak.exe
 )
-
-echo [*] Building %VERSION%...
-
-REM Set output file name
-set "OUTPUT=%VERSION%.exe"
-
-REM Clean previous build
-if exist "%OUTPUT%" del "%OUTPUT%"
-
-REM Compile all source files
-gcc main.c nimorak.c board.c movegen.c attack.c helper.c perft.c -o "%OUTPUT%" -O2 -std=c99
-
-REM Check if build succeeded
-if exist "%OUTPUT%" (
-    echo [✓] Build successful: %OUTPUT%
-) else (
-    echo [X] Build failed.
-)
-
-endlocal
-pause
