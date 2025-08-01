@@ -1,20 +1,35 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <stdbool.h>
+
 #include "nimorak.h"
 
-void board_load_fen(GameState *game, const char *fen);
+void board_load_fen(Game *game, const char *fen_string);
+void board_print(Game *game);
+void board_make_move(Game *game, Move move);
+void board_unmake_move(Game *game, Move move);
 
-void board_movelist_clear(GameState *game);
+int board_is_on_rank(int square, int rank);
+int board_find_king(const Game *game, int color);
+int board_is_king_in_check(const Game *game, int color);
 
-void board_movelist_add(GameState *game, Move move);
+const char *board_square_to_name(int square);
 
-void board_make_move(GameState *game, Move move);
+const char *board_move_to_string(Move move);
 
-void board_make_move_str(GameState* game, const char* move_str);
+Move board_parse_move(Game *game, const char *move_str);
 
-void board_clear(GameState *game);
+int board_has_castling_rights(Game *game, int color);
 
-void board_print(GameState *game);
+int board_has_castling_rights_side(Game *game, int side);
+
+void board_set_square(Game *game, int square, Piece piece);
+
+Piece board_get_square(const Game *game, int square);
+
+int board_check_square(const Game *game, int square);
+
+bool board_is_same_line(int from, int to, int offset);
 
 #endif
