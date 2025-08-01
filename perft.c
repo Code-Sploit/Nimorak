@@ -1,257 +1,176 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-
 #include "perft.h"
 #include "movegen.h"
-#include "search.h"
-#include "helper.h"
+#include "board.h"
 
-void perft_debug(GameState *game, int depth, const char *root_move_str) {
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <assert.h>
+
+#define MAX_MOVES 256
+
+// Recursive perft: counts all leaf nodes
+long long perft(Game *game, int depth)
+{
+    if (depth == 0)
+        return 1;
+
+    // Generate legal moves into a local buffer to avoid corruption
     movegen_generate_legal_moves(game);
 
-    for (int i = 0; i < game->move_count; i++) {
-        Move m = game->movelist[i];
+    Move moves[MAX_MOVES];
+    int move_count = game->move_count;
 
-        // Convert move to UCI string
-        char *from_str = translate_square_to_string(m.from);
-        char *to_str = translate_square_to_string(m.to);
-        
-        char move_str[6];
-        
-        snprintf(move_str, sizeof(move_str), "%s%s", from_str, to_str);
+    assert(move_count <= MAX_MOVES);
 
-        if (strcmp(move_str, root_move_str) != 0) continue;
-
-        GameState new_state;
-        
-        game_clone(&new_state, game);
-        board_make_move(&new_state, m);
-        movegen_generate_legal_moves(&new_state);
-        
-        long long total = 0;
-
-        printf("Divide for move %s at depth %d:\n", move_str, depth);
-
-        for (int j = 0; j < new_state.move_count; j++) {
-            Move reply = new_state.movelist[j];
-
-            GameState reply_state;
-            
-            game_clone(&reply_state, &new_state);
-            board_make_move(&reply_state, reply);
-
-            long long nodes = perft(&reply_state, depth - 2);
-
-            char *r_from = translate_square_to_string(reply.from);
-            char *r_to = translate_square_to_string(reply.to);
-            
-            printf("    %s%s: %lld\n", r_from, r_to, nodes);
-
-            total += nodes;
-        }
-
-        printf("Total after %s: %lld nodes\n", move_str, total);
-        
-        return; // Only expand one root move
+    for (int i = 0; i < move_count; i++) {
+        moves[i] = game->movelist[i];
     }
 
-    printf("Move %s not found in root position.\n", root_move_str);
-}
-
-// Recursive perft function
-long long perft(GameState *game, int depth) {
-    if (depth == 0) return 1;
-
-    movegen_generate_legal_moves(game);
-    
     long long nodes = 0;
 
-    for (int i = 0; i < game->move_count; i++) {
-        Move m = game->movelist[i];
+    for (int i = 0; i < move_count; i++)
+    {
+        Move move = moves[i];
 
-        GameState new_state;
-        
-        game_clone(&new_state, game);  // clone current state
-        board_make_move(&new_state, m);
-        
-        nodes += perft(&new_state, depth - 1);
+        board_make_move(game, move);
+        nodes += perft(game, depth - 1);
+        board_unmake_move(game, move);
     }
 
     return nodes;
 }
 
-// Divide function like Stockfish output
-uint64_t perft_divide(GameState *game, int depth, int debug) {
+// Divide function: prints per-move node counts at root
+void perft_root(Game *game, int depth)
+{
+    if (depth <= 0)
+    {
+        printf("Depth must be at least 1\n");
+        return;
+    }
+
     movegen_generate_legal_moves(game);
-    
+
+    Move moves[MAX_MOVES];
+    int move_count = game->move_count;
+
+    for (int i = 0; i < move_count; i++) {
+        moves[i] = game->movelist[i];
+    }
+
     long long total_nodes = 0;
+    clock_t start = clock();
 
-    if (debug) printf("info depth %d\n", depth);
+    for (int i = 0; i < move_count; i++)
+    {
+        Move move = moves[i];
 
-    for (int i = 0; i < game->move_count; i++) {
-        Move m = game->movelist[i];
+        board_make_move(game, move);
+        long long nodes = perft(game, depth - 1);
+        board_unmake_move(game, move);
 
-        GameState new_state;
-        
-        game_clone(&new_state, game);
-        board_make_move(&new_state, m);
-        
-        long long child_nodes = perft(&new_state, depth - 1);
+        printf("%s: %lld\n", board_move_to_string(move), nodes);
 
-        char *msf = translate_square_to_string(m.from);
-        char *mst = translate_square_to_string(m.to);
-        
-        printf("%s%s: %lld\n", msf, mst, child_nodes);
-
-        total_nodes += child_nodes;
+        total_nodes += nodes;
     }
 
-    if (debug) printf("Nodes searched: %lld\n", total_nodes);
+    clock_t end = clock();
 
-    return total_nodes;
-}
+    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
 
-PerftResult perft_detailed(GameState *game, int depth) {
-    PerftResult result = {0};
+    printf("Total nodes: %lld\n", total_nodes);
+    printf("Time: %.2f sec\n", time_spent);
 
-    if (depth == 0) {
-        result.nodes = 1;
-        return result;
+    if (time_spent <= 0.000001)
+    {
+        printf("NPS: time too short to calculate accurately\n");
     }
-
-    movegen_generate_legal_moves(game);
-
-    for (int i = 0; i < game->move_count; i++) {
-        Move m = game->movelist[i];
-
-        GameState new_state;
-        
-        game_clone(&new_state, game);
-        board_make_move(&new_state, m);
-
-        // Classify move
-        if (m.capture) result.captures++;
-        if (m.promotion_piece) result.promotions++;
-        if (m.is_castle_king_side || m.is_castle_queen_side) result.castles++;
-        if (m.is_en_passant) result.en_passants++;
-
-        // Detect if move gives check
-        movegen_generate_legal_moves(&new_state);
-        
-        if (is_king_in_check(&new_state, !game->turn)) {
-            result.checks++;
-        }
-
-        // Quiet move if not any of the above
-        if (!m.capture && !m.promotion_piece && !m.is_castle_king_side && !m.is_castle_queen_side && !m.is_en_passant) {
-            result.quiet_moves++;
-        }
-
-        // Recurse
-        PerftResult child = perft_detailed(&new_state, depth - 1);
-        
-        result.nodes       += child.nodes;
-        result.captures    += child.captures;
-        result.promotions  += child.promotions;
-        result.castles     += child.castles;
-        result.en_passants += child.en_passants;
-        result.checks      += child.checks;
-        result.quiet_moves += child.quiet_moves;
+    else
+    {
+        printf("NPS: %.0f\n", total_nodes / time_spent);
     }
-
-    return result;
 }
 
-void perft_print_breakdown(GameState *game, int depth) {
-    PerftResult r = perft_detailed(game, depth);
-    printf("Perft breakdown at depth %d:\n", depth);
-    printf("  Nodes:       %lld\n", r.nodes);
-    printf("  Captures:    %lld\n", r.captures);
-    printf("  Promotions:  %lld\n", r.promotions);
-    printf("  Castles:     %lld\n", r.castles);
-    printf("  En Passants: %lld\n", r.en_passants);
-    printf("  Checks:      %lld\n", r.checks);
-    printf("  Quiet moves: %lld\n", r.quiet_moves);
+
+// Automated perft test
+void test_perft(Game *game, int depth, long long expected_nodes)
+{
+    printf("Testing perft depth %d...\n", depth);
+    long long nodes = perft(game, depth);
+
+    if (nodes == expected_nodes)
+    {
+        printf("OK: %lld nodes\n", nodes);
+    }
+    else
+    {
+        printf("FAILED: got %lld, expected %lld\n", nodes, expected_nodes);
+    }
 }
 
-void perft_run_test_positions(GameState *game) {
-    const PerftTest tests[] = {
-        {
-            .fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            .expectations = {
-                {1, 20},
-                {2, 400},
-                {3, 8902},
-                {4, 197281},
-                {5, 4865609}
-            },
-            .num_expectations = 5
-        },
-        {
-            .fen = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ",
-            .expectations = {
-                {1, 14},
-                {2, 191},
-                {3, 2812},
-                {4, 43238},
-                {5, 674624}
+void perft_run_tests(Game *game)
+{
+    if (!game) return;
 
-            },
-            .num_expectations = 5
-        },
-        {
-            .fen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ",
-            .expectations = {
-                {1, 44},
-                {2, 1486},
-                {3, 62379},
-                {4, 2103487},
-                {5, 89941194}
-            },
-            .num_expectations = 5
-        },
-        {
-            .fen = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
-            .expectations = {
-                {1, 46},
-                {2, 2079},
-                {3, 89890},
-                {4, 3894594},
-                {5, 164075551}
-            },
-            .num_expectations = 4
-        }
+    struct {
+        const char* fen;
+        int depth;
+        long long expected;
+    } tests[] = {
+        // Startpos FEN
+        { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 1, 20 },
+        { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 2, 400 },
+        { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3, 8902 },
+        { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197281 },
+
+        // Kiwipete
+        { "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", 1, 48 },
+        { "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 1", 2, 2039 },
+
+        // En passant possible
+        { "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPP2PPP/RNBQKBNR b KQkq 0 3", 1, 27 },
+        { "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPP2PPP/RNBQKBNR b KQkq 0 3", 2, 1048 },
+
+        // Castling rights removed partially
+        { "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", 1, 26 },
+        { "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", 2, 568 },
+        
+        // Perft test chess position 3
+        { "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ", 3, 2812 },
+        { "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ", 4, 43238},
+
+        // Perft test chess position 4
+        { "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 4, 422333}
     };
 
-    const int num_tests = sizeof(tests) / sizeof(tests[0]);
-    
-    int total = 0;
-    int passed = 0;
+    int num_tests = sizeof(tests) / sizeof(tests[0]);
+    double total_time = 0.0;
+
+    printf("=== Running Perft Tests ===\n\n");
 
     for (int i = 0; i < num_tests; i++) {
-        const PerftTest *test = &tests[i];
+        printf("Test %d/%d: ", i + 1, num_tests);
 
-        printf("Testing position %d:\nFEN: %s\n", i + 1, test->fen);
-        
-        for (int j = 0; j < test->num_expectations; j++) {
-            const DepthExpectation *exp = &test->expectations[j];
-            
-            board_load_fen(game, test->fen);
-            
-            uint64_t result = perft_divide(game, exp->depth, false);
-            
-            bool ok = (result == exp->expected);
-            
-            printf("  Depth %d: expected %llu, got %llu ... %s\n",
-                   exp->depth, exp->expected, result, ok ? "PASSED" : "FAILED");
-            
-                   total++;
-            
-            if (ok) passed++;
+        board_load_fen(game, tests[i].fen);
+
+        clock_t start = clock();
+        long long nodes = perft(game, tests[i].depth);
+        clock_t end = clock();
+
+        double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+        total_time += time_spent;
+
+        if (nodes == tests[i].expected) {
+            printf("OK | Depth %d | Nodes: %lld | Time: %.2f sec\n",
+                tests[i].depth, nodes, time_spent);
+        } else {
+            printf("FAILED | Depth %d | Got: %lld | Expected: %lld\n",
+                tests[i].depth, nodes, tests[i].expected);
+            return; // Stop early on failure
         }
-        printf("\n");
     }
 
-    printf("Summary: %d/%d tests passed.\n", passed, total);
+    printf("\nAll tests passed!\n");
+    printf("Total time spent: %.2f seconds\n", total_time);
 }
