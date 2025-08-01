@@ -1,682 +1,283 @@
 #include "movegen.h"
-#include "attack.h"
 #include "board.h"
-#include "helper.h"
+#include "magic.h"
+#include "attack.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
-void movegen_generate_legal_moves(GameState *game)
-{
-    movegen_generate_pseudo_legal_moves(game);
+int BISHOP_OFFSETS[4] = {-7, -9, 7, 9};
+int ROOK_OFFSETS[4] = {-1, -8, 1, 8};
+int QUEEN_OFFSETS[8] = {-7, -9, -1, -8, 7, 9, 1, 8};
+int KING_OFFSETS[8] = {-7, -9, -1, -8, 7, 9, 1, 8};
 
-    attack_generate_table(game, WHITE);
-    attack_generate_table(game, BLACK);
+int PAWN_OFFSETS[4] = {8, 16, 7, 9};
 
-    Move legal_moves[MAX_LEGAL_MOVES];
-
-    int legal_move_count = 0;
-
-    for (int i = 0; i < game->move_count; i++)
-    {
-        GameState copy;
-
-        game_clone(&copy, game);
-
-        board_make_move(&copy, game->movelist[i]);
-
-        if (!is_king_in_check(&copy, game->turn))
-        {
-            legal_moves[legal_move_count] = game->movelist[i];
-            legal_move_count++;
-        }
-    }
-
-    for (int i = 0; i < legal_move_count; i++)
-    {
-        game->movelist[i] = legal_moves[i];
-    }
-
-    game->move_count = legal_move_count;
-}
-
-void movegen_generate_pseudo_legal_moves(GameState *game)
+static inline void movegen_add_move(Game *game, Move move)
 {
     if (!game) return;
 
-    board_movelist_clear(game);
-    attack_clear_table(game, game->turn);
+    game->movelist[game->move_count] = move;
+    game->move_count++;
+}
 
-    for (int i = 0; i < 64; i++)
+static inline void movegen_add_promotion_moves(Game *game, int from, int to, int is_capture)
+{
+    movegen_add_move(game, MOVE(from, to, QUEEN, is_capture, 1, 0, 0, 0, 0));
+    movegen_add_move(game, MOVE(from, to, ROOK, is_capture, 1, 0, 0, 0, 0));
+    movegen_add_move(game, MOVE(from, to, BISHOP, is_capture, 1, 0, 0, 0, 0));
+    movegen_add_move(game, MOVE(from, to, KNIGHT, is_capture, 1, 0, 0, 0, 0));
+}
+
+void movegen_generate_pawn_moves(Game *game)
+{
+    if (!game) return;
+
+    const int color = game->turn;
+    const int perspective = (color == WHITE) ? 1 : -1;
+    const int start_rank = (color == WHITE) ? 1 : 6;
+    const int promote_rank = (color == WHITE) ? 7 : 0;
+    const int capture_offsets[2] = { (color == WHITE) ? 7 : -9, (color == WHITE) ? 9 : -7 };
+    const int single_push = PAWN_OFFSETS[0] * perspective;
+    const int double_push = PAWN_OFFSETS[1] * perspective;
+
+    Bitboard pawns = game->board[color][PAWN];
+
+    while (pawns)
     {
-        int piece = game->board[i];
+        int from = __builtin_ctzll(pawns);
+        pawns &= pawns - 1;
 
-        int file = i % 8;
-        int rank = i / 8;
+        int rank = from / 8;
+        int file = from % 8;
 
-        if (is_same_color(piece, game->turn) == false) continue;
+        int to_single = from + single_push;
 
-        switch (piece) {
-            case W_PAWN:
+        // Single push
+        if (to_single < 64 && to_single >= 0 && board_get_square(game, to_single) == EMPTY)
+        {
+            if (board_is_on_rank(to_single, promote_rank))
+                movegen_add_promotion_moves(game, from, to_single, 0);
+            else
             {
-                int start_file = i % 8;
-                int start_rank = i / 8;
-
-                int target_one_step = i + PAWN_OFFSETS[0];
-                int target_two_step = i + PAWN_OFFSETS[1];
-                int target_capture_left = i + PAWN_OFFSETS[4];
-                int target_capture_right = i + PAWN_OFFSETS[5];
-
-                bool is_on_second_rank = (start_rank == 1);
-                bool is_on_seventh_rank = (start_rank == 6); // promotion rank after move
-
-                // Check if target squares are on board (0-63)
-                bool valid_one_step = (target_one_step >= 0 && target_one_step < 64);
-                bool valid_two_step = (target_two_step >= 0 && target_two_step < 64);
-                bool valid_capture_left = (target_capture_left >= 0 && target_capture_left < 64);
-                bool valid_capture_right = (target_capture_right >= 0 && target_capture_right < 64);
-
-                // Normal move
-                if (valid_one_step && game->board[target_one_step] == EMPTY) {
-                    if (is_on_seventh_rank) {
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
-                    } else {
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = W_PAWN});
-                    }
-
-                    // Double push only if first step free & on second rank
-                    if (valid_two_step && is_on_second_rank && game->board[target_two_step] == EMPTY) {
-                        board_movelist_add(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = W_PAWN});
-                    }
-                }
-
-                // Capture right (make sure target file is exactly one right)
-                if (valid_capture_right) {
-                    int target_file = target_capture_right % 8;
-                    if (target_file == start_file + 1 && is_enemy_piece(game->board[target_capture_right], game->turn)) {
-                        if (is_on_seventh_rank) {
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
-                        } else {
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = W_PAWN});
-                        }
-                    }
-                }
-
-                // Capture left (make sure target file is exactly one left)
-                if (valid_capture_left) {
-                    int target_file = target_capture_left % 8;
-                    if (target_file == start_file - 1 && is_enemy_piece(game->board[target_capture_left], game->turn)) {
-                        if (is_on_seventh_rank) {
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_QUEEN});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_ROOK});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_BISHOP});
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = W_PAWN, .promotion_piece = W_KNIGHT});
-                        } else {
-                            board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = W_PAWN});
-                        }
-                    }
-                }
-
-                if (game->en_passant_square != -1) {
-                    int ep_square = game->en_passant_square;
-                    int ep_file = ep_square % 8;
-                    int ep_rank = ep_square / 8;
-
-                    // White pawn must be on rank 4 (index 4) to capture en passant
-                    if (start_rank == 4) {
-                        // The pawn to be captured is behind the en passant square (rank 3)
-                        int captured_pawn_square = ep_square - 8;  // one rank below ep square
-
-                        // Check if there is actually a black pawn on the captured pawn square
-                        if (game->board[captured_pawn_square] == B_PAWN) {
-
-                            // En passant capture to the left
-                            if (ep_square == target_capture_left && ep_file == start_file - 1) {
-                                board_movelist_add(game, (Move){
-                                    .from = i,
-                                    .to = ep_square,
-                                    .promotion = false,
-                                    .capture = true,
-                                    .piece = W_PAWN,
-                                    .is_en_passant = true
-                                });
-                            }
-                            // En passant capture to the right
-                            else if (ep_square == target_capture_right && ep_file == start_file + 1) {
-                                board_movelist_add(game, (Move){
-                                    .from = i,
-                                    .to = ep_square,
-                                    .promotion = false,
-                                    .capture = true,
-                                    .piece = W_PAWN,
-                                    .is_en_passant = true
-                                });
-                            }
-                        }
-                    }
-                }
-
-                break;
-            }
-
-            case W_KNIGHT:
-            {
-                for (int j = 0; j < 8; j++) {
-                    int new_square = i + KNIGHT_OFFSETS[j];
-
-                    if (new_square < 0 || new_square > 63) continue;
-
-                    int new_file = new_square % 8;
-                    int new_rank = new_square / 8;
-
-                    // Prevent wraparound (e.g. jumping from file H to file A)
-                    if (abs(new_file - file) > 2 || abs(new_rank - rank) > 2) continue;
-
-                    if (is_same_color(game->board[new_square], game->turn)) continue;
-
-                    Move move = {
-                        .from = i,
-                        .to = new_square,
-                        .promotion = false,
-                        .capture = is_enemy_piece(game->board[new_square], game->turn),
-                        .piece = W_KNIGHT
-                    };
-
-                    board_movelist_add(game, move);
-                }
-
-                break;
-            }
-            case W_BISHOP:
-            {
-                for (int j = 0; j < 4; j++) { // BISHOP_OFFSETS should have 4 directions: NE, NW, SE, SW
-                    int offset = BISHOP_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // If not moving diagonally or wrapped around file boundary, stop
-                        if (abs(target_file - prev_file) != 1 || abs(target_rank - prev_rank) != 1) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = W_BISHOP
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
-            }
-            case W_ROOK:
-            {
-                for (int j = 0; j < 4; j++) { // ROOK_OFFSETS: +1 (→), -1 (←), +8 (↑), -8 (↓)
-                    int offset = ROOK_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // Prevent wrapping in horizontal directions
-                        if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = W_ROOK
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
-            }
-            case W_QUEEN:
-            {
-                for (int j = 0; j < 8; j++) { // QUEEN_OFFSETS: combines ROOK and BISHOP directions
-                    int offset = QUEEN_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // Prevent file/rank wraparounds
-                        if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
-                        if ((offset == 8 || offset == -8) && target_file != prev_file) break;
-                        if ((offset == 7 || offset == -7 || offset == 9 || offset == -9) &&
-                            abs(target_file - prev_file) != 1) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = W_QUEEN
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
-            }
-            case W_KING:
-            {
-                for (int j = 0; j < 8; j++) {
-                    int offset = KING_OFFSETS[j];
-                    int target = i + offset;
-
-                    if (target < 0 || target > 63) continue;
-
-                    int from_file = i % 8;
-                    int from_rank = i / 8;
-                    int to_file   = target % 8;
-                    int to_rank   = target / 8;
-
-                    // Prevent wraparounds
-                    if (abs(from_file - to_file) > 1 || abs(from_rank - to_rank) > 1) continue;
-
-                    if (is_same_color(game->board[target], game->turn)) continue;
-
-                    Move move = {
-                        .from = i,
-                        .to = target,
-                        .promotion = false,
-                        .capture = is_enemy_piece(game->board[target], game->turn),
-                        .piece = W_KING
-                    };
-
-                    board_movelist_add(game, move);
-                }
-
-                // === Castling ===
-                // Note: You must also check if the squares between are empty and not under attack externally
-                int wck = can_king_castle(game, WHITE, KING_SIDE);
-                int wcq = can_king_castle(game, WHITE, QUEEN_SIDE);
-
-                if (wck == -100 || wcq == -100) break;
-
-                game->can_white_castle_kingside = wck;
-                game->can_white_castle_queenside = wcq;
-
-                if (game->can_white_castle_kingside) {
-                    Move move = {
-                        .from = i,
-                        .to = i + 2,
-                        .piece = W_KING,
-                        .is_castle_king_side = true
-                    };
-                    board_movelist_add(game, move);
-                }
-
-                if (game->can_white_castle_queenside) {
-                    Move move = {
-                        .from = i,
-                        .to = i - 2,
-                        .piece = W_KING,
-                        .is_castle_queen_side = true
-                    };
-                    board_movelist_add(game, move);
-                }
-
-                break;
-            }
-
-            case B_PAWN:
-            {
-                int start_file = i % 8;
-                int start_rank = i / 8;
-
-                int target_one_step = i + PAWN_OFFSETS[2];
-                int target_two_step = i + PAWN_OFFSETS[3];
-                int target_capture_left = i + PAWN_OFFSETS[6];
-                int target_capture_right = i + PAWN_OFFSETS[7];
-
-                bool is_on_second_rank = (start_rank == 1);
-                bool is_on_seventh_rank = (start_rank == 6); // promotion rank after move
-
-                bool can_move_one_step = (game->board[target_one_step] == EMPTY);
-                bool can_move_two_step = can_move_one_step && is_on_seventh_rank && (game->board[target_two_step] == EMPTY);
-
-                // Normal move
-                if (can_move_one_step) {
-                    if (is_on_second_rank) {
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = true, .capture = false, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
-                    } else {
-                        board_movelist_add(game, (Move){.from = i, .to = target_one_step, .promotion = false, .capture = false, .piece = B_PAWN});
-                    }
-                }
+                movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0));
 
                 // Double push
-                if (can_move_two_step) {
-                    board_movelist_add(game, (Move){.from = i, .to = target_two_step, .promotion = false, .capture = false, .piece = B_PAWN});
+                int to_double = from + double_push;
+                if (rank == start_rank && board_get_square(game, to_double) == EMPTY)
+                {
+                    movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0));
                 }
-
-                // Captures
-                if (start_file > 0 && is_enemy_piece(game->board[target_capture_right], game->turn)) {
-                    if (is_on_second_rank) {
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
-                    } else {
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_right, .promotion = false, .capture = true, .piece = B_PAWN});
-                    }
-                }
-
-                if (start_file < 7 && is_enemy_piece(game->board[target_capture_left], game->turn)) {
-                    if (is_on_second_rank) {
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_QUEEN});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_ROOK});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_BISHOP});
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = true, .capture = true, .piece = B_PAWN, .promotion_piece = B_KNIGHT});
-                    } else {
-                        board_movelist_add(game, (Move){.from = i, .to = target_capture_left, .promotion = false, .capture = true, .piece = B_PAWN});
-                    }
-                }
-
-                if (game->en_passant_square != -1) {
-                    int ep_square = game->en_passant_square;
-                    int ep_file = ep_square % 8;
-                    int ep_rank = ep_square / 8;
-
-                    // White pawn must be on rank 5 (index 4)
-                    if (start_rank == 3) {
-                        // The pawn to be captured is one rank behind en passant square (rank 4)
-                        int captured_pawn_square = ep_square + 8;  // one rank below ep square
-
-                        // Check if there is actually a black pawn on the captured pawn square
-                        if (game->board[captured_pawn_square] == W_PAWN) {
-                            // En passant capture to the left
-                            if (ep_square == target_capture_left && ep_file == start_file + 1) {
-                                board_movelist_add(game, (Move){
-                                    .from = i,
-                                    .to = ep_square,
-                                    .promotion = false,
-                                    .capture = true,
-                                    .piece = B_PAWN,
-                                    .is_en_passant = true
-                                });
-                            }
-                            // En passant capture to the right
-                            else if (ep_square == target_capture_right && ep_file == start_file - 1) {
-                                board_movelist_add(game, (Move){
-                                    .from = i,
-                                    .to = ep_square,
-                                    .promotion = false,
-                                    .capture = true,
-                                    .piece = B_PAWN,
-                                    .is_en_passant = true
-                                });
-                            }
-                        }
-                    }
-                }
-
-
-                break;
             }
-            case B_KNIGHT:
+        }
+
+        // Captures and en passant
+        for (int i = 0; i < 2; i++)
+        {
+            int to = from + capture_offsets[i];
+            if (to < 0 || to >= 64)
+                continue;
+
+            // Prevent file wrap (wrap happens from A->H or H->A across board edges)
+            if ((i == 0 && file == 0) || (i == 1 && file == 7))
+                continue;
+
+            Piece target = board_get_square(game, to);
+
+            if (target != EMPTY && GET_COLOR(target) != color)
             {
-                for (int j = 0; j < 8; j++) {
-                    int new_square = i + KNIGHT_OFFSETS[j];
-
-                    if (new_square < 0 || new_square > 63) continue;
-
-                    int new_file = new_square % 8;
-                    int new_rank = new_square / 8;
-
-                    // Prevent wraparound (e.g. jumping from file H to file A)
-                    if (abs(new_file - file) > 2 || abs(new_rank - rank) > 2) continue;
-
-                    if (is_same_color(game->board[new_square], game->turn)) continue;
-
-                    Move move = {
-                        .from = i,
-                        .to = new_square,
-                        .promotion = false,
-                        .capture = is_enemy_piece(game->board[new_square], game->turn),
-                        .piece = B_KNIGHT
-                    };
-
-                    board_movelist_add(game, move);
-                }
-
-                break;
+                if (board_is_on_rank(to, promote_rank))
+                    movegen_add_promotion_moves(game, from, to, 1);
+                else
+                    movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0));
             }
-            case B_BISHOP:
+
+            if (game->enpassant_square == to)
             {
-                for (int j = 0; j < 4; j++) { // BISHOP_OFFSETS should have 4 directions: NE, NW, SE, SW
-                    int offset = BISHOP_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // If not moving diagonally or wrapped around file boundary, stop
-                        if (abs(target_file - prev_file) != 1 || abs(target_rank - prev_rank) != 1) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = B_BISHOP
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
+                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 1, 0, 0, 0));
             }
-            case B_ROOK:
-            {
-                for (int j = 0; j < 4; j++) { // ROOK_OFFSETS: +1 (→), -1 (←), +8 (↑), -8 (↓)
-                    int offset = ROOK_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // Prevent wrapping in horizontal directions
-                        if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = B_ROOK
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
-            }
-            case B_QUEEN:
-            {
-                for (int j = 0; j < 8; j++) { // QUEEN_OFFSETS: combines ROOK and BISHOP directions
-                    int offset = QUEEN_OFFSETS[j];
-                    int target = i;
-
-                    while (true) {
-                        int prev_file = target % 8;
-                        int prev_rank = target / 8;
-
-                        target += offset;
-                        if (target < 0 || target > 63) break;
-
-                        int target_file = target % 8;
-                        int target_rank = target / 8;
-
-                        // Prevent file/rank wraparounds
-                        if ((offset == 1 || offset == -1) && target_rank != prev_rank) break;
-                        if ((offset == 8 || offset == -8) && target_file != prev_file) break;
-                        if ((offset == 7 || offset == -7 || offset == 9 || offset == -9) &&
-                            abs(target_file - prev_file) != 1) break;
-
-                        if (is_same_color(game->board[target], game->turn)) break;
-
-                        Move move = {
-                            .from = i,
-                            .to = target,
-                            .promotion = false,
-                            .capture = is_enemy_piece(game->board[target], game->turn),
-                            .piece = B_QUEEN
-                        };
-
-                        board_movelist_add(game, move);
-
-                        if (move.capture) break;
-                    }
-                }
-
-                break;
-            }
-            case B_KING:
-            {
-                for (int j = 0; j < 8; j++) {
-                    int offset = KING_OFFSETS[j];
-                    int target = i + offset;
-
-                    if (target < 0 || target > 63) continue;
-
-                    int from_file = i % 8;
-                    int from_rank = i / 8;
-                    int to_file   = target % 8;
-                    int to_rank   = target / 8;
-
-                    // Prevent wraparounds
-                    if (abs(from_file - to_file) > 1 || abs(from_rank - to_rank) > 1) continue;
-
-                    if (is_same_color(game->board[target], game->turn)) continue;
-
-                    Move move = {
-                        .from = i,
-                        .to = target,
-                        .promotion = false,
-                        .capture = is_enemy_piece(game->board[target], game->turn),
-                        .piece = B_KING
-                    };
-
-                    board_movelist_add(game, move);
-                }
-
-                // === Castling ===
-                // Note: You must also check if the squares between are empty and not under attack externally
-                int bck = can_king_castle(game, BLACK, KING_SIDE);
-                int bcq = can_king_castle(game, BLACK, QUEEN_SIDE);
-
-                if (bck == -100 || bcq == -100) break;
-
-                game->can_black_castle_kingside = bck;
-                game->can_black_castle_queenside = bcq;
-
-                if (game->can_black_castle_kingside && !game->permalock_black_castle) {
-                    Move move = {
-                        .from = i,
-                        .to = i + 2,
-                        .piece = B_KING,
-                        .is_castle_king_side = true
-                    };
-                    board_movelist_add(game, move);
-                }
-
-                if (game->can_black_castle_queenside && !game->permalock_black_castle) {
-                    Move move = {
-                        .from = i,
-                        .to = i - 2,
-                        .piece = B_KING,
-                        .is_castle_queen_side = true
-                    };
-                    board_movelist_add(game, move);
-                }
-
-                break;
-            }
-            default:
-                // Handle empty or invalid piece
-                break;
         }
     }
+}
+
+void movegen_generate_knight_moves(Game *game)
+{
+    if (!game) return;
+
+    int color = game->turn;
+    Bitboard knights = game->board[color][KNIGHT];
+    Bitboard friendly = game->occupancy[color];
+
+    while (knights)
+    {
+        int from = __builtin_ctzll(knights);
+        knights &= knights - 1;
+
+        Bitboard attacks = game->attack_tables_pc[KNIGHT][from] & ~friendly;
+
+        while (attacks)
+        {
+            int to = __builtin_ctzll(attacks);
+            attacks &= attacks - 1;
+
+            // No need to check color/type since friendly squares masked out
+            movegen_add_move(game, MOVE(from, to, 0, 0, 0, 0, 0, 0, 0));
+        }
+    }
+}
+
+void movegen_generate_sliding_moves(Game *game, int piece_type)
+{
+    if (!game) return;
+
+    int color = game->turn;
+    Bitboard sliders = game->board[color][piece_type];
+    Bitboard occupancy = game->occupancy[BOTH];
+
+    while (sliders)
+    {
+        int square = __builtin_ctzll(sliders);
+        sliders &= sliders - 1;
+
+        Bitboard attacks = 0ULL;
+
+        switch (piece_type)
+        {
+            case BISHOP:
+                attacks = magic_get_bishop_attacks(game, square, occupancy);
+                break;
+            case ROOK:
+                attacks = magic_get_rook_attacks(game, square, occupancy);
+                break;
+            case QUEEN:
+                attacks = magic_get_bishop_attacks(game, square, occupancy)
+                        | magic_get_rook_attacks(game, square, occupancy);
+                break;
+            case KING:
+                attacks = game->attack_tables_pc[KING][square];
+                break;
+            default:
+                continue; // Skip non-sliders
+        }
+
+        Bitboard attack_targets = attacks;
+        while (attack_targets)
+        {
+            int target = __builtin_ctzll(attack_targets);
+            attack_targets &= attack_targets - 1;
+
+            Piece target_piece = board_get_square(game, target);
+            int target_color = GET_COLOR(target_piece);
+
+            if (GET_TYPE(target_piece) == EMPTY)
+            {
+                movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0));
+            }
+            else if (target_color != color)
+            {
+                movegen_add_move(game, MOVE(square, target, 0, 1, 0, 0, 0, 0, 0));
+            }
+        }
+    }
+}
+
+
+static int movegen_can_castle_through(Game *game, int sq)
+{
+    AttackTable enemy_attack = game->attack_map_full[!game->turn];
+
+    if (board_get_square(game, sq) != EMPTY) return 0; // square not empty
+    
+    if ((enemy_attack >> sq) & 1ULL) return 0; // attacked by enemy
+
+    return 1;
+}
+
+void movegen_generate_castle_moves(Game *game)
+{
+    if (!game || !board_has_castling_rights(game, game->turn)) return;
+
+    int king_square = board_find_king(game, game->turn);
+    int is_white = (game->turn == WHITE);
+
+    // Check if king is currently in check
+    if (game->attack_map_full[!game->turn] & (1ULL << king_square)) return;
+
+    // Kingside castling
+    int kingside_right = is_white ? WHITE_KINGSIDE : BLACK_KINGSIDE;
+    if (board_has_castling_rights_side(game, kingside_right)) {
+        int f1 = king_square + 1;
+        int g1 = king_square + 2;
+
+        if (movegen_can_castle_through(game, f1) && movegen_can_castle_through(game, g1)) {
+            movegen_add_move(game, MOVE(king_square, g1, 0, 0, 0, 0, 0, 0, 1));
+        }
+    }
+
+    // Queenside castling
+    int queenside_right = is_white ? WHITE_QUEENSIDE : BLACK_QUEENSIDE;
+    if (board_has_castling_rights_side(game, queenside_right)) {
+        int d1 = king_square - 1;
+        int c1 = king_square - 2;
+
+        if (movegen_can_castle_through(game, d1) && movegen_can_castle_through(game, c1)) {
+            movegen_add_move(game, MOVE(king_square, c1, 0, 0, 0, 0, 0, 0, 1));
+        }
+    }
+}
+
+void movegen_generate_pseudo_moves(Game *game)
+{
+    if (!game) return;
+
+    memset(game->movelist, 0, sizeof(Move) * 256);
+
+    game->move_count = 0;
+
+    // Generate pawn moves
+    movegen_generate_pawn_moves(game);
+    
+    // Generate knight moves
+    movegen_generate_knight_moves(game);
+
+    // Generate sliding moves (bishop, rook, queen and king)
+    movegen_generate_sliding_moves(game, BISHOP);
+    movegen_generate_sliding_moves(game, ROOK);
+    movegen_generate_sliding_moves(game, QUEEN);
+    movegen_generate_sliding_moves(game, KING);
+
+    // Generate castle moves
+    movegen_generate_castle_moves(game);
+}
+
+void movegen_generate_legal_moves(Game *game)
+{
+    if (!game) return;
+
+    game->move_count = 0;
+
+    movegen_generate_pseudo_moves(game);
+
+    int move_count = game->move_count;
+    int legal_move_count = 0;
+
+    for (int i = 0; i < move_count; i++)
+    {
+        Move move = game->movelist[i];
+
+        if (board_get_square(game, GET_FROM(move)) == 0) continue;
+
+        board_make_move(game, move);
+
+        if (!board_is_king_in_check(game, !game->turn))
+        {
+            game->movelist[legal_move_count] = move;
+            legal_move_count++;
+        }
+        
+        board_unmake_move(game, move);
+    }
+
+    game->move_count = legal_move_count;
 }
