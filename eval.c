@@ -75,5 +75,5 @@ int eval_position(Game *game)
 
   //  printf("\nFinal evaluation: %d\n", score);
 
-    return score;
+    return (game->turn == WHITE) ? score : -score;
 }
