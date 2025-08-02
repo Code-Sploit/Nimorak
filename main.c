@@ -4,6 +4,8 @@
 #include "attack.h"
 #include "table.h"
 #include "magic.h"
+#include "eval.h"
+#include "search.h"
 
 #include <stdio.h>
 
@@ -11,12 +13,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
-
-int rand_between(int a, int b)
-{
-    srand(time(NULL));
-    return a + rand() % (b - a);
-}
 
 void uci_loop(Game *game)
 {
@@ -101,9 +97,9 @@ void uci_loop(Game *game)
         }
         else if (strncmp(input, "go", 2) == 0)
         {
-            movegen_generate_legal_moves(game);
+            Move best_move = search_start(game, SEARCH_INITIAL_DEPTH);
 
-            printf("bestmove %s\n", board_move_to_string(game->movelist[rand_between(0, game->move_count)]));
+            printf("bestmove %s\n", board_move_to_string(best_move));
 
             fflush(stdout);
         }
@@ -124,6 +120,10 @@ void uci_loop(Game *game)
         else if (strcmp(input, "atb") == 0)
         {
             attack_print_table(game, BLACK);
+        }
+        else if (strcmp(input, "eval") == 0)
+        {
+            eval_position(game);
         }
     }
 }

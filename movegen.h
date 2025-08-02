@@ -16,11 +16,11 @@ extern int PAWN_OFFSETS[4];
 
 extern int KNIGHT_OFFSETS[8];
 
-void movegen_generate_pawn_moves(Game *game);
-void movegen_generate_knight_moves(Game *game);
-void movegen_generate_sliding_moves(Game *game, int piece_type);
+void movegen_generate_pawn_moves(Game *game, MoveList *moves);
+void movegen_generate_knight_moves(Game *game, MoveList *moves);
+void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves);
 
-void movegen_generate_pseudo_moves(Game *game);
-void movegen_generate_legal_moves(Game *game);
+void movegen_generate_pseudo_moves(Game *game, MoveList *moves);
+void movegen_generate_legal_moves(Game *game, MoveList *moves);
 
 #endif

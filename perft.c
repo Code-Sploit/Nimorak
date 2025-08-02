@@ -5,9 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <assert.h>
-
-#define MAX_MOVES 256
 
 // Recursive perft: counts all leaf nodes
 long long perft(Game *game, int depth)
@@ -15,26 +12,20 @@ long long perft(Game *game, int depth)
     if (depth == 0)
         return 1;
 
-    // Generate legal moves into a local buffer to avoid corruption
-    movegen_generate_legal_moves(game);
+    MoveList moves;
 
-    Move moves[MAX_MOVES];
-    int move_count = game->move_count;
-
-    assert(move_count <= MAX_MOVES);
-
-    for (int i = 0; i < move_count; i++) {
-        moves[i] = game->movelist[i];
-    }
+    movegen_generate_legal_moves(game, &moves);
 
     long long nodes = 0;
 
-    for (int i = 0; i < move_count; i++)
+    for (int i = 0; i < moves.count; i++)
     {
-        Move move = moves[i];
+        Move move = moves.moves[i];
 
         board_make_move(game, move);
+
         nodes += perft(game, depth - 1);
+        
         board_unmake_move(game, move);
     }
 
@@ -50,24 +41,22 @@ void perft_root(Game *game, int depth)
         return;
     }
 
-    movegen_generate_legal_moves(game);
+    MoveList moves;
 
-    Move moves[MAX_MOVES];
-    int move_count = game->move_count;
-
-    for (int i = 0; i < move_count; i++) {
-        moves[i] = game->movelist[i];
-    }
+    movegen_generate_legal_moves(game, &moves);
 
     long long total_nodes = 0;
+
     clock_t start = clock();
 
-    for (int i = 0; i < move_count; i++)
+    for (int i = 0; i < moves.count; i++)
     {
-        Move move = moves[i];
+        Move move = moves.moves[i];
 
         board_make_move(game, move);
+
         long long nodes = perft(game, depth - 1);
+        
         board_unmake_move(game, move);
 
         printf("%s: %lld\n", board_move_to_string(move), nodes);

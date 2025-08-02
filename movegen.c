@@ -14,23 +14,23 @@ int KING_OFFSETS[8] = {-7, -9, -1, -8, 7, 9, 1, 8};
 
 int PAWN_OFFSETS[4] = {8, 16, 7, 9};
 
-static inline void movegen_add_move(Game *game, Move move)
+static inline void movegen_add_move(Game *game, Move move, MoveList *moves)
 {
     if (!game) return;
 
-    game->movelist[game->move_count] = move;
-    game->move_count++;
+    moves->moves[moves->count] = move;
+    moves->count++;
 }
 
-static inline void movegen_add_promotion_moves(Game *game, int from, int to, int is_capture)
+static inline void movegen_add_promotion_moves(Game *game, int from, int to, int is_capture, MoveList *moves)
 {
-    movegen_add_move(game, MOVE(from, to, QUEEN, is_capture, 1, 0, 0, 0, 0));
-    movegen_add_move(game, MOVE(from, to, ROOK, is_capture, 1, 0, 0, 0, 0));
-    movegen_add_move(game, MOVE(from, to, BISHOP, is_capture, 1, 0, 0, 0, 0));
-    movegen_add_move(game, MOVE(from, to, KNIGHT, is_capture, 1, 0, 0, 0, 0));
+    movegen_add_move(game, MOVE(from, to, QUEEN, is_capture, 1, 0, 0, 0, 0), moves);
+    movegen_add_move(game, MOVE(from, to, ROOK, is_capture, 1, 0, 0, 0, 0), moves);
+    movegen_add_move(game, MOVE(from, to, BISHOP, is_capture, 1, 0, 0, 0, 0), moves);
+    movegen_add_move(game, MOVE(from, to, KNIGHT, is_capture, 1, 0, 0, 0, 0), moves);
 }
 
-void movegen_generate_pawn_moves(Game *game)
+void movegen_generate_pawn_moves(Game *game, MoveList *moves)
 {
     if (!game) return;
 
@@ -58,16 +58,16 @@ void movegen_generate_pawn_moves(Game *game)
         if (to_single < 64 && to_single >= 0 && board_get_square(game, to_single) == EMPTY)
         {
             if (board_is_on_rank(to_single, promote_rank))
-                movegen_add_promotion_moves(game, from, to_single, 0);
+                movegen_add_promotion_moves(game, from, to_single, 0, moves);
             else
             {
-                movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0));
+                movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0), moves);
 
                 // Double push
                 int to_double = from + double_push;
                 if (rank == start_rank && board_get_square(game, to_double) == EMPTY)
                 {
-                    movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0));
+                    movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0), moves);
                 }
             }
         }
@@ -88,20 +88,20 @@ void movegen_generate_pawn_moves(Game *game)
             if (target != EMPTY && GET_COLOR(target) != color)
             {
                 if (board_is_on_rank(to, promote_rank))
-                    movegen_add_promotion_moves(game, from, to, 1);
+                    movegen_add_promotion_moves(game, from, to, 1, moves);
                 else
-                    movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0));
+                    movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0), moves);
             }
 
             if (game->enpassant_square == to)
             {
-                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 1, 0, 0, 0));
+                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 1, 0, 0, 0), moves);
             }
         }
     }
 }
 
-void movegen_generate_knight_moves(Game *game)
+void movegen_generate_knight_moves(Game *game, MoveList *moves)
 {
     if (!game) return;
 
@@ -122,12 +122,12 @@ void movegen_generate_knight_moves(Game *game)
             attacks &= attacks - 1;
 
             // No need to check color/type since friendly squares masked out
-            movegen_add_move(game, MOVE(from, to, 0, 0, 0, 0, 0, 0, 0));
+            movegen_add_move(game, MOVE(from, to, 0, 0, 0, 0, 0, 0, 0), moves);
         }
     }
 }
 
-void movegen_generate_sliding_moves(Game *game, int piece_type)
+void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves)
 {
     if (!game) return;
 
@@ -172,11 +172,11 @@ void movegen_generate_sliding_moves(Game *game, int piece_type)
 
             if (GET_TYPE(target_piece) == EMPTY)
             {
-                movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0));
+                movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0), moves);
             }
             else if (target_color != color)
             {
-                movegen_add_move(game, MOVE(square, target, 0, 1, 0, 0, 0, 0, 0));
+                movegen_add_move(game, MOVE(square, target, 0, 1, 0, 0, 0, 0, 0), moves);
             }
         }
     }
@@ -194,7 +194,7 @@ static int movegen_can_castle_through(Game *game, int sq)
     return 1;
 }
 
-void movegen_generate_castle_moves(Game *game)
+void movegen_generate_castle_moves(Game *game, MoveList *moves)
 {
     if (!game || !board_has_castling_rights(game, game->turn)) return;
 
@@ -211,7 +211,7 @@ void movegen_generate_castle_moves(Game *game)
         int g1 = king_square + 2;
 
         if (movegen_can_castle_through(game, f1) && movegen_can_castle_through(game, g1)) {
-            movegen_add_move(game, MOVE(king_square, g1, 0, 0, 0, 0, 0, 0, 1));
+            movegen_add_move(game, MOVE(king_square, g1, 0, 0, 0, 0, 0, 0, 1), moves);
         }
     }
 
@@ -220,51 +220,50 @@ void movegen_generate_castle_moves(Game *game)
     if (board_has_castling_rights_side(game, queenside_right)) {
         int d1 = king_square - 1;
         int c1 = king_square - 2;
+        int b1 = king_square - 3;
 
-        if (movegen_can_castle_through(game, d1) && movegen_can_castle_through(game, c1)) {
-            movegen_add_move(game, MOVE(king_square, c1, 0, 0, 0, 0, 0, 0, 1));
+        if (movegen_can_castle_through(game, d1) && movegen_can_castle_through(game, c1) && (GET_TYPE(board_get_square(game, b1)) == EMPTY)) {
+            movegen_add_move(game, MOVE(king_square, c1, 0, 0, 0, 0, 0, 0, 1), moves);
         }
     }
 }
 
-void movegen_generate_pseudo_moves(Game *game)
+void movegen_generate_pseudo_moves(Game *game, MoveList *moves)
 {
     if (!game) return;
 
-    memset(game->movelist, 0, sizeof(Move) * 256);
-
-    game->move_count = 0;
+    moves->count = 0;
 
     // Generate pawn moves
-    movegen_generate_pawn_moves(game);
+    movegen_generate_pawn_moves(game, moves);
     
     // Generate knight moves
-    movegen_generate_knight_moves(game);
+    movegen_generate_knight_moves(game, moves);
 
     // Generate sliding moves (bishop, rook, queen and king)
-    movegen_generate_sliding_moves(game, BISHOP);
-    movegen_generate_sliding_moves(game, ROOK);
-    movegen_generate_sliding_moves(game, QUEEN);
-    movegen_generate_sliding_moves(game, KING);
+    movegen_generate_sliding_moves(game, BISHOP, moves);
+    movegen_generate_sliding_moves(game, ROOK, moves);
+    movegen_generate_sliding_moves(game, QUEEN, moves);
+    movegen_generate_sliding_moves(game, KING, moves);
 
     // Generate castle moves
-    movegen_generate_castle_moves(game);
+    movegen_generate_castle_moves(game, moves);
 }
 
-void movegen_generate_legal_moves(Game *game)
+void movegen_generate_legal_moves(Game *game, MoveList *moves)
 {
     if (!game) return;
 
-    game->move_count = 0;
+    moves->count = 0;
 
-    movegen_generate_pseudo_moves(game);
+    movegen_generate_pseudo_moves(game, moves);
 
-    int move_count = game->move_count;
+    int move_count = moves->count;
     int legal_move_count = 0;
 
     for (int i = 0; i < move_count; i++)
     {
-        Move move = game->movelist[i];
+        Move move = moves->moves[i];
 
         if (board_get_square(game, GET_FROM(move)) == 0) continue;
 
@@ -272,12 +271,12 @@ void movegen_generate_legal_moves(Game *game)
 
         if (!board_is_king_in_check(game, !game->turn))
         {
-            game->movelist[legal_move_count] = move;
+            moves->moves[legal_move_count] = move;
             legal_move_count++;
         }
         
         board_unmake_move(game, move);
     }
 
-    game->move_count = legal_move_count;
+    moves->count = legal_move_count;
 }

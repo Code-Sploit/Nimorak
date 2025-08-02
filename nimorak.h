@@ -108,6 +108,12 @@ typedef uint64_t AttackTable;
 
 typedef uint64_t Bitboard;
 
+typedef struct {
+    int count;
+
+    Move moves[256];
+} MoveList;
+
 /* History for make_move and unmake_move */
 typedef struct {
     CastlingRights castling_rights;
@@ -131,7 +137,6 @@ typedef struct {
 
 typedef struct {
     int turn;
-    int move_count;
     int enpassant_square;
     int history_count;
     
@@ -144,7 +149,7 @@ typedef struct {
 
     AttackTable attack_tables_pc[7][64];
 
-    Move movelist[256];
+    MoveList *movelist;
 
     State history[4096];
 

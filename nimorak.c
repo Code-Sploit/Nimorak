@@ -15,6 +15,8 @@ Game *game_new()
         exit(1);
     }
 
+    game->movelist = calloc(1, sizeof(MoveList));
+
     // Set turn to white
     game->turn = WHITE;
 
