@@ -14,7 +14,7 @@ long long perft(Game *game, int depth)
 
     MoveList moves;
 
-    movegen_generate_legal_moves(game, &moves);
+    movegen_generate_legal_moves(game, &moves, 0);
 
     long long nodes = 0;
 
@@ -43,7 +43,7 @@ void perft_root(Game *game, int depth)
 
     MoveList moves;
 
-    movegen_generate_legal_moves(game, &moves);
+    movegen_generate_legal_moves(game, &moves, 0);
 
     long long total_nodes = 0;
 

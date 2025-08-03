@@ -30,7 +30,7 @@ static inline void movegen_add_promotion_moves(Game *game, int from, int to, int
     movegen_add_move(game, MOVE(from, to, KNIGHT, is_capture, 1, 0, 0, 0, 0), moves);
 }
 
-void movegen_generate_pawn_moves(Game *game, MoveList *moves)
+void movegen_generate_pawn_moves(Game *game, MoveList *moves, int only_captures)
 {
     if (!game) return;
 
@@ -54,20 +54,23 @@ void movegen_generate_pawn_moves(Game *game, MoveList *moves)
 
         int to_single = from + single_push;
 
-        // Single push
-        if (to_single < 64 && to_single >= 0 && board_get_square(game, to_single) == EMPTY)
+        // Quiet pawn pushes
+        if (!only_captures)
         {
-            if (board_is_on_rank(to_single, promote_rank))
-                movegen_add_promotion_moves(game, from, to_single, 0, moves);
-            else
+            if (to_single >= 0 && to_single < 64 && board_get_square(game, to_single) == EMPTY)
             {
-                movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0), moves);
-
-                // Double push
-                int to_double = from + double_push;
-                if (rank == start_rank && board_get_square(game, to_double) == EMPTY)
+                if (board_is_on_rank(to_single, promote_rank))
+                    movegen_add_promotion_moves(game, from, to_single, 0, moves);
+                else
                 {
-                    movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0), moves);
+                    movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0), moves);
+
+                    // Double push
+                    int to_double = from + double_push;
+                    if (rank == start_rank && board_get_square(game, to_double) == EMPTY)
+                    {
+                        movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0), moves);
+                    }
                 }
             }
         }
@@ -79,7 +82,6 @@ void movegen_generate_pawn_moves(Game *game, MoveList *moves)
             if (to < 0 || to >= 64)
                 continue;
 
-            // Prevent file wrap (wrap happens from A->H or H->A across board edges)
             if ((i == 0 && file == 0) || (i == 1 && file == 7))
                 continue;
 
@@ -101,7 +103,7 @@ void movegen_generate_pawn_moves(Game *game, MoveList *moves)
     }
 }
 
-void movegen_generate_knight_moves(Game *game, MoveList *moves)
+void movegen_generate_knight_moves(Game *game, MoveList *moves, int only_captures)
 {
     if (!game) return;
 
@@ -121,13 +123,18 @@ void movegen_generate_knight_moves(Game *game, MoveList *moves)
             int to = __builtin_ctzll(attacks);
             attacks &= attacks - 1;
 
-            // No need to check color/type since friendly squares masked out
-            movegen_add_move(game, MOVE(from, to, 0, 0, 0, 0, 0, 0, 0), moves);
+            Piece target = board_get_square(game, to);
+            int is_capture = GET_TYPE(target) != EMPTY;
+
+            if (only_captures && !is_capture)
+                continue;
+
+            movegen_add_move(game, MOVE(from, to, 0, is_capture, 0, 0, 0, 0, 0), moves);
         }
     }
 }
 
-void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves)
+void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves, int only_captures)
 {
     if (!game) return;
 
@@ -172,7 +179,10 @@ void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves)
 
             if (GET_TYPE(target_piece) == EMPTY)
             {
-                movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0), moves);
+                if (!only_captures)
+                {
+                    movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0), moves);
+                }
             }
             else if (target_color != color)
             {
@@ -181,7 +191,6 @@ void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves)
         }
     }
 }
-
 
 static int movegen_can_castle_through(Game *game, int sq)
 {
@@ -228,35 +237,35 @@ void movegen_generate_castle_moves(Game *game, MoveList *moves)
     }
 }
 
-void movegen_generate_pseudo_moves(Game *game, MoveList *moves)
+void movegen_generate_pseudo_moves(Game *game, MoveList *moves, int only_captures)
 {
     if (!game) return;
 
     moves->count = 0;
 
     // Generate pawn moves
-    movegen_generate_pawn_moves(game, moves);
+    movegen_generate_pawn_moves(game, moves, only_captures);
     
     // Generate knight moves
-    movegen_generate_knight_moves(game, moves);
+    movegen_generate_knight_moves(game, moves, only_captures);
 
     // Generate sliding moves (bishop, rook, queen and king)
-    movegen_generate_sliding_moves(game, BISHOP, moves);
-    movegen_generate_sliding_moves(game, ROOK, moves);
-    movegen_generate_sliding_moves(game, QUEEN, moves);
-    movegen_generate_sliding_moves(game, KING, moves);
+    movegen_generate_sliding_moves(game, BISHOP, moves, only_captures);
+    movegen_generate_sliding_moves(game, ROOK, moves, only_captures);
+    movegen_generate_sliding_moves(game, QUEEN, moves, only_captures);
+    movegen_generate_sliding_moves(game, KING, moves, only_captures);
 
     // Generate castle moves
-    movegen_generate_castle_moves(game, moves);
+    if (only_captures == 0) movegen_generate_castle_moves(game, moves);
 }
 
-void movegen_generate_legal_moves(Game *game, MoveList *moves)
+void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures)
 {
     if (!game) return;
 
     moves->count = 0;
 
-    movegen_generate_pseudo_moves(game, moves);
+    movegen_generate_pseudo_moves(game, moves, only_captures);
 
     int move_count = moves->count;
     int legal_move_count = 0;
