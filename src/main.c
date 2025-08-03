@@ -1,4 +1,5 @@
 #include <table/transposition.h>
+#include <table/repetition.h>
 #include <table/zobrist.h>
 #include <table/magic.h>
 #include <table/table.h>
@@ -38,8 +39,8 @@ void uci_loop(Game *game)
         else if (strcmp(input, "ucinewgame") == 0)
         {
             game->history_count = 0;
-            game->repetition_table->count = 0;
-
+            
+            repetition_clear(game);
             tt_clear(game);
         }
         else if (strcmp(input, "isready") == 0)

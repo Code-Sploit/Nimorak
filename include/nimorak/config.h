@@ -2,8 +2,8 @@
 #define CONFIG_H
 
 #define TT_SIZE (1 << 20)
-#define HISTORY_SIZE (1 << 10)
-#define REPETITION_SIZE (1 << 10)
+#define HISTORY_SIZE (1 << 20)
+#define REPETITION_SIZE (1 << 20)
 
 #define SEARCH_ENABLE_QUIESCENSE 1
 #define SEARCH_QUIESCENSE_DEPTH_LIMIT 7
