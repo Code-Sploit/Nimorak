@@ -141,6 +141,54 @@ static inline double eval_calculate_endgame_weight(Game *game)
     return 1.0 / (1.0 + exp(0.5 * (piece_count - 12)));
 }
 
+int eval_endgame_king_to_corner(Game *game) {
+    if (!game) return 0;
+
+    double endgame_weight = eval_calculate_endgame_weight(game);
+    if (endgame_weight == 0.0) return 0;
+
+    // Example assumptions about your Game structure:
+    // - int side_to_move; // side to move (0=white,1=black)
+    // - int king_square[2]; // king positions for white and black
+    // - int rook_count[2];  // count of rooks per side
+    // - int piece_count[2]; // total pieces per side (excluding king)
+    
+    int attacker = game->turn;
+    int defender = attacker ^ 1;
+
+    // Get defender king position
+    int ksq = board_find_king(game, defender);
+    int rank = ksq / 8;
+    int file = ksq % 8;
+
+    // Corners coordinates
+    int corners[4][2] = {
+        {0, 0},
+        {0, 7},
+        {7, 0},
+        {7, 7}
+    };
+
+    // Calculate min Manhattan distance to corners for defender king
+    int min_dist = 14; // max manhattan dist on 8x8 is 7+7=14
+    for (int i = 0; i < 4; i++) {
+        int dist = abs(rank - corners[i][0]) + abs(file - corners[i][1]);
+        if (dist < min_dist) min_dist = dist;
+    }
+
+    // Map distance to score: closer to corner = higher score
+    // Scale to ~200 centipawns max, linearly
+    int max_dist = 14;
+    int base_score = 200 * (max_dist - min_dist) / max_dist;
+
+    // Weight by endgame phase
+    double weighted_score = base_score * endgame_weight;
+
+    // Return positive score from attacker POV
+    // (You may want to adjust sign depending on your eval convention)
+    return (int)(weighted_score + 0.5);
+}
+
 int eval_material(Game *game)
 {
     if (!game) return 0;
@@ -224,6 +272,7 @@ int eval_position(Game *game)
 
     score += eval_material(game);
     score += eval_piece_squares(game);
+    score += eval_endgame_king_to_corner(game);
 
     return (game->turn == WHITE) ? score : -score;
 }

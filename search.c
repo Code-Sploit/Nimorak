@@ -1,4 +1,5 @@
 #include "transposition.h"
+#include "repetition.h"
 #include "movegen.h"
 #include "search.h"
 #include "board.h"
@@ -124,6 +125,8 @@ int search_quiescense(Game *game, int alpha, int beta, int depth)
 int search_negamax(Game *game, int depth, int alpha, int beta)
 {
     if (!game) return 0;
+
+    if (repetition_check_for_threefold(game, game->zobrist_key)) return 0;
 
     if (depth == 0)
         return search_quiescense(game, alpha, beta, 0);

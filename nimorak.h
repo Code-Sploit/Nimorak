@@ -101,6 +101,8 @@ typedef uint8_t CastlingRights;
 #define REMOVE_CASTLE_RIGHTS(rights, side) (rights &= ~side)
 
 #define TT_SIZE (1 << 20)
+#define HISTORY_SIZE (1 << 10)
+#define REPETITION_SIZE (1 << 10)
 
 /* Attack Table is defined as an 64-bit integer */
 
@@ -150,6 +152,13 @@ typedef struct
     Move best_move;
 } TTEntry;
 
+typedef struct
+{
+    ZobristHash stack[REPETITION_SIZE];
+
+    int count;
+} RepetitionTable;
+
 typedef struct {
     int turn;
     int enpassant_square;
@@ -166,7 +175,7 @@ typedef struct {
 
     MoveList *movelist;
 
-    State history[8192];
+    State history[HISTORY_SIZE];
 
     Piece board_ghost[64];
 
@@ -176,6 +185,8 @@ typedef struct {
     TTEntry transposition_table[TT_SIZE];
 
     ZobristHash zobrist_key;
+
+    RepetitionTable *repetition_table;
 } Game;
 
 Game *game_new();

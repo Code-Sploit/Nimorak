@@ -1,6 +1,7 @@
 #include "board.h"
 #include "attack.h"
 #include "zobrist.h"
+#include "repetition.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -313,6 +314,8 @@ void board_make_move(Game *game, Move move)
     game->turn ^= 1;
 
     zobrist_update_board(game);
+
+    repetition_push(game, game->zobrist_key);
 }
 
 
@@ -377,6 +380,8 @@ void board_unmake_move(Game *game, Move move)
     game->turn ^= 1;
 
     zobrist_update_board(game);
+
+    repetition_pop(game);
 
     // Optional: you can skip clearing old state for speed
 }

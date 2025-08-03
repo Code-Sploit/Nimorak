@@ -26,6 +26,9 @@ Game *game_new()
     game->bishop_magics = generate_bishop_magics();
     game->rook_magics   = generate_rook_magics();
 
+    game->repetition_table = calloc(1, sizeof(RepetitionTable));
+    game->repetition_table->count = 0;
+
     return game;
 }
 
