@@ -8,6 +8,9 @@
 #include <stdio.h>
 
 #define SEARCH_QUIESCENSE_DEPTH_LIMIT 7
+#define SEARCH_MAX_DEPTH 64
+
+Move search_killer_moves[SEARCH_MAX_DEPTH][2];
 
 typedef struct
 {
@@ -45,7 +48,7 @@ static inline int search_compare_moves(const void *a, const void *b)
     return mb->score - ma->score;
 }
 
-void search_order_moves(Game *game, MoveList *movelist)
+void search_order_moves(Game *game, MoveList *movelist, int ply)
 {
     if (!game || movelist->count == 0)
         return;
@@ -53,25 +56,33 @@ void search_order_moves(Game *game, MoveList *movelist)
     MoveScore scored_moves[256];
     int count = 0;
 
-    // Score and store all moves
     for (int i = 0; i < movelist->count; i++)
     {
         Move move = movelist->moves[i];
-        int score = IS_CAPTURE(move) ? search_get_mvv_lva_score(game, move) : -1; // Capture = high score, quiet = low
+        int score = 0;
 
-        scored_moves[count].move = move;
-        scored_moves[count].score = score;
-        count++;
+        if (IS_CAPTURE(move))
+        {
+            score = search_get_mvv_lva_score(game, move);
+        }
+        else
+        {
+            // Check if move is a killer move
+            if (move == search_killer_moves[ply][0])
+                score = 900000;
+            else if (move == search_killer_moves[ply][1])
+                score = 800000;
+            else
+                score = 0; // Could use history heuristic later
+        }
 
-        if (count >= 256) break; // Safety
+        scored_moves[count++] = (MoveScore){ move, score };
+        if (count >= 256) break;
     }
 
-    // Sort by score
     qsort(scored_moves, count, sizeof(MoveScore), search_compare_moves);
 
-    // Write back to movelist
     movelist->count = count;
-
     for (int i = 0; i < count; i++)
         movelist->moves[i] = scored_moves[i].move;
 }
@@ -118,6 +129,7 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
         return search_quiescense(game, alpha, beta, 0);
 
     ZobristHash key = game->zobrist_key;
+
     int tt_score;
 
     // Probe TT
@@ -125,9 +137,10 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
         return tt_score;
 
     MoveList movelist;
+
     movegen_generate_legal_moves(game, &movelist, 0);
 
-    search_order_moves(game, &movelist);
+    search_order_moves(game, &movelist, SEARCH_INITIAL_DEPTH - depth);
 
     if (movelist.count == 0)
         return board_is_king_in_check(game, game->turn) ? -INF + (SEARCH_INITIAL_DEPTH - depth) : 0;
@@ -158,6 +171,18 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
         if (alpha >= beta)
         {
             flag = TT_BETA; // Fail-high cutoff
+
+            if (!IS_CAPTURE(movelist.moves[i]))
+            {
+                int ply = SEARCH_INITIAL_DEPTH - depth;
+
+                if (search_killer_moves[ply][0] != movelist.moves[i])
+                {
+                    search_killer_moves[ply][1] = search_killer_moves[ply][0];
+                    search_killer_moves[ply][0] = movelist.moves[i];
+                }
+            }
+
             break;
         }
     }
@@ -184,7 +209,7 @@ Move search_start(Game *game, int initial_depth)
 
     movegen_generate_legal_moves(game, &movelist, 0);
 
-    search_order_moves(game, &movelist);
+    search_order_moves(game, &movelist, SEARCH_INITIAL_DEPTH - initial_depth);
 
     for (int i = 0; i < movelist.count; i++)
     {
