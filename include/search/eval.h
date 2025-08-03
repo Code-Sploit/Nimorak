@@ -1,7 +1,7 @@
 #ifndef EVAL_H
 #define EVAL_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 int eval_position(Game *game);
 

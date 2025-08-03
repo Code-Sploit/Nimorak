@@ -1,5 +1,6 @@
-#include "eval.h"
-#include "board.h"
+#include <search/eval.h>
+
+#include <board/board.h>
 
 #include <stdio.h>
 #include <math.h>

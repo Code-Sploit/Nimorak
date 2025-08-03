@@ -1,7 +1,7 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 #define SEARCH_INITIAL_DEPTH 5
 #define INF 1000000

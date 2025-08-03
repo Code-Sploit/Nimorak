@@ -1,6 +1,7 @@
-#include "perft.h"
-#include "movegen.h"
-#include "board.h"
+#include <board/movegen.h>
+#include <board/board.h>
+
+#include <search/perft.h>
 
 #include <stdio.h>
 #include <stdlib.h>

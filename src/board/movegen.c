@@ -1,7 +1,8 @@
-#include "movegen.h"
-#include "board.h"
-#include "magic.h"
-#include "attack.h"
+#include <board/movegen.h>
+#include <board/attack.h>
+#include <board/board.h>
+
+#include <table/magic.h>
 
 #include <stdlib.h>
 #include <stdio.h>

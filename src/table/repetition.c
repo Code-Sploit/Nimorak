@@ -1,4 +1,4 @@
-#include "repetition.h"
+#include <table/repetition.h>
 
 #include <stdlib.h>
 #include <stdio.h>

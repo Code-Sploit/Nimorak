@@ -1,8 +1,7 @@
 #ifndef TRANSPOSITION_H
 #define TRANSPOSITION_H
 
-#include "nimorak.h"
-#include "zobrist.h"
+#include <nimorak.h>
 
 #include <stdbool.h>
 

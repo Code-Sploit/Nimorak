@@ -6,6 +6,9 @@
         "stdio.h": "c",
         "movegen.h": "c",
         "stdlib.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "table.h": "c",
+        "attack.h": "c",
+        "board.h": "c"
     }
 }

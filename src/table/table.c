@@ -1,5 +1,5 @@
-#include "table.h"
-#include "magic.h"
+#include <table/table.h>
+#include <table/magic.h>
 
 #include <stdio.h>
 

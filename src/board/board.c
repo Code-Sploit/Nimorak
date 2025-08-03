@@ -1,7 +1,8 @@
-#include "board.h"
-#include "attack.h"
-#include "zobrist.h"
-#include "repetition.h"
+#include <table/repetition.h>
+#include <table/zobrist.h>
+
+#include <board/attack.h>
+#include <board/board.h>
 
 #include <stdio.h>
 #include <ctype.h>

@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 void board_load_fen(Game *game, const char *fen_string);
 void board_print(Game *game);

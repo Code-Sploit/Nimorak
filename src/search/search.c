@@ -1,9 +1,11 @@
-#include "transposition.h"
-#include "repetition.h"
-#include "movegen.h"
-#include "search.h"
-#include "board.h"
-#include "eval.h"
+#include <table/transposition.h>
+#include <table/repetition.h>
+
+#include <board/movegen.h>
+#include <board/board.h>
+
+#include <search/search.h>
+#include <search/eval.h>
 
 #include <stdlib.h>
 #include <stdio.h>

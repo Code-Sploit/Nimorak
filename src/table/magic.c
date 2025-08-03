@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "magic.h"
+#include <table/magic.h>
 
 static inline int popcount(uint64_t bb) {
     int count = 0;

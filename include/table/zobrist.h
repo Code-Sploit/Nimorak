@@ -1,7 +1,7 @@
 #ifndef ZOBRIST_H
 #define ZOBRIST_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 #define NUM_PIECE_TYPES 12
 #define NUM_SQUARES 64

@@ -1,4 +1,4 @@
-#include "transposition.h"
+#include <table/transposition.h>
 
 #include <stdbool.h>
 #include <string.h>

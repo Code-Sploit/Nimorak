@@ -4,14 +4,17 @@ echo Compiling Nimorak chess engine...
 REM Set compiler flags
 set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g
 
-REM Source files
-set SOURCES=attack.c board.c eval.c magic.c main.c movegen.c nimorak.c perft.c table.c search.c repetition.c transposition.c zobrist.c
+REM Include directory
+set INCLUDE=-Iinclude
+
+REM Source files with relative paths
+set SOURCES=src/board/attack.c src/board/board.c src/search/eval.c src/table/magic.c src/main.c src/board/movegen.c src/nimorak/nimorak.c src/search/perft.c src/table/table.c src/search/search.c src/table/repetition.c src/table/transposition.c src/table/zobrist.c
 
 REM Output file
 set OUTPUT=-o nimorak.exe
 
 REM Compile
-gcc %FLAGS% %SOURCES% %OUTPUT%
+gcc %FLAGS% %INCLUDE% %SOURCES% %OUTPUT%
 
 if %errorlevel% neq 0 (
     echo ❌ Build failed.

@@ -1,7 +1,7 @@
 #ifndef PERFT_H
 #define PERFT_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 long long perft(Game *game, int depth);
 void perft_run_tests(Game *game);

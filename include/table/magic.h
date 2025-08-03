@@ -1,7 +1,7 @@
 #ifndef MAGIC_H
 #define MAGIC_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 #define BISHOP_ATTACK_TABLE_SIZE 5248
 #define ROOK_ATTACK_TABLE_SIZE 102400

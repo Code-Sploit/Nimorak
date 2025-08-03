@@ -1,8 +1,10 @@
-#include "attack.h"
-#include "board.h"
-#include "magic.h"
-#include "movegen.h"
-#include "nimorak.h"
+#include <board/movegen.h>
+#include <board/attack.h>
+#include <board/board.h>
+
+#include <table/magic.h>
+
+#include <nimorak.h>
 
 #include <stdbool.h>
 #include <stdlib.h>

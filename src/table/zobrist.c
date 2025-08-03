@@ -1,4 +1,5 @@
-#include "zobrist.h"
+#include <table/transposition.h>
+#include <table/zobrist.h>
 
 #include <stdlib.h>
 #include <time.h>

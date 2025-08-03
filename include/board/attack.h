@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 void attack_add_piece(Game *game, int color, int piece_type, int square);
 

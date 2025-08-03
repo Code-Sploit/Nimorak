@@ -1,12 +1,15 @@
-#include "board.h"
-#include "movegen.h"
-#include "perft.h"
-#include "attack.h"
-#include "table.h"
-#include "magic.h"
-#include "eval.h"
-#include "search.h"
-#include "transposition.h"
+#include <table/transposition.h>
+#include <table/zobrist.h>
+#include <table/magic.h>
+#include <table/table.h>
+
+#include <board/movegen.h>
+#include <board/attack.h>
+#include <board/board.h>
+
+#include <search/search.h>
+#include <search/perft.h>
+#include <search/eval.h>
 
 #include <stdio.h>
 

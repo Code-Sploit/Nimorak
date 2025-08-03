@@ -1,9 +1,7 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "nimorak.h"
-
-#include "table.h"
+#include <nimorak.h>
 
 #include <stdlib.h>
 

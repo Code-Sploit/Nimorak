@@ -1,5 +1,6 @@
-#include "nimorak.h"
-#include "magic.h"
+#include <table/magic.h>
+
+#include <nimorak.h>
 
 #include <stdlib.h>
 #include <stdio.h>

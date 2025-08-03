@@ -1,7 +1,7 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
-#include "nimorak.h"
+#include <nimorak.h>
 
 extern int BISHOP_OFFSETS[4];
 extern int ROOK_OFFSETS[4];
