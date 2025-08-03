@@ -1,5 +1,6 @@
 #include "board.h"
 #include "attack.h"
+#include "zobrist.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -310,6 +311,8 @@ void board_make_move(Game *game, Move move)
 
     // Flip side to move
     game->turn ^= 1;
+
+    zobrist_update_board(game);
 }
 
 
@@ -372,6 +375,8 @@ void board_unmake_move(Game *game, Move move)
 
     // Flip turn back
     game->turn ^= 1;
+
+    zobrist_update_board(game);
 
     // Optional: you can skip clearing old state for speed
 }

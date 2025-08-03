@@ -100,6 +100,8 @@ typedef uint8_t CastlingRights;
 
 #define REMOVE_CASTLE_RIGHTS(rights, side) (rights &= ~side)
 
+#define TT_SIZE (1 << 20)
+
 /* Attack Table is defined as an 64-bit integer */
 
 typedef uint64_t AttackTable;
@@ -107,6 +109,8 @@ typedef uint64_t AttackTable;
 /* Bitboard is a 64-bit integer */
 
 typedef uint64_t Bitboard;
+
+typedef uint64_t ZobristHash;
 
 typedef struct {
     int count;
@@ -135,6 +139,17 @@ typedef struct {
     int shift;
 } Magic;
 
+typedef struct
+{
+    ZobristHash key;
+
+    int depth;
+    int eval;
+    int flag;
+
+    Move best_move;
+} TTEntry;
+
 typedef struct {
     int turn;
     int enpassant_square;
@@ -151,12 +166,16 @@ typedef struct {
 
     MoveList *movelist;
 
-    State history[4096];
+    State history[8192];
 
     Piece board_ghost[64];
 
     Magic *bishop_magics;
     Magic *rook_magics;
+
+    TTEntry transposition_table[TT_SIZE];
+
+    ZobristHash zobrist_key;
 } Game;
 
 Game *game_new();

@@ -6,6 +6,7 @@
 #include "magic.h"
 #include "eval.h"
 #include "search.h"
+#include "transposition.h"
 
 #include <stdio.h>
 
@@ -30,6 +31,12 @@ void uci_loop(Game *game)
             printf("uciok\n");
 
             fflush(stdout);
+        }
+        else if (strcmp(input, "ucinewgame") == 0)
+        {
+            game->history_count = 0;
+
+            tt_clear(game);
         }
         else if (strcmp(input, "isready") == 0)
         {
@@ -135,6 +142,8 @@ int main()
     Game *game = game_new();
 
     table_precompute_all_attacks(game);
+
+    zobrist_init();
 
     uci_loop(game);
 
