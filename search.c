@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SEARCH_QUIESCENSE_DEPTH_LIMIT 3
+#define SEARCH_QUIESCENSE_DEPTH_LIMIT 7
 
 typedef struct
 {
