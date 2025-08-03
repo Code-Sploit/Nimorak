@@ -130,7 +130,7 @@ void uci_loop(Game *game)
         }
         else if (strcmp(input, "eval") == 0)
         {
-            eval_position(game);
+            printf("Eval: %d\n", eval_position(game));
         }
     }
 }

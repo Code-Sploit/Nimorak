@@ -6,14 +6,14 @@
 const int piece_values[] = {0, 100, 300, 350, 500, 900};
 
 int eval_pst_table[5][64] = {
-    { 0,  0,  0,  0,  0,  0,  0,  0,
-     50, 50, 50, 50, 50, 50, 50, 50,
-     10, 10, 20, 30, 30, 20, 10, 10,
-      5,  5, 10, 25, 25, 10,  5,  5,
-      0,  0,  0, 20, 20,  0,  0,  0,
-      5, -5,-10,  0,  0,-10, -5,  5,
-      5, 10, 10,-20,-20, 10, 10,  5,
-      0,  0,  0,  0,  0,  0,  0,  0},
+    {0,  0,  0,   0,   0,  0,  0,  0,
+    60, 60, 60,  60,  60, 60, 60, 60,
+    20, 30, 40,  60,  60, 40, 30, 20,
+    10, 20, 40, 100, 100, 40, 20, 10,
+     0, 10, 30,  90,  90, 30, 10,  0,
+    10,  0,-10,  20,  20,-10,  0, 10,
+    10, 20, 20, -30, -30, 20, 20, 10,
+     0,  0,  0,   0,   0,  0,  0,  0},
 
     {-50,-40,-30,-30,-30,-30,-40,-50,
     -40,-20,  0,  5,  5,  0,-20,-40,
@@ -159,7 +159,7 @@ int eval_piece_squares(Game *game)
 
     for (int color = WHITE; color <= BLACK; color++)
     {
-        for (int piece = PAWN; piece <= KING; piece++)
+        for (int piece = PAWN; piece <= QUEEN; piece++)
         {
             Bitboard pieces = game->board[color][piece];
 
@@ -167,8 +167,9 @@ int eval_piece_squares(Game *game)
             {
                 int square = __builtin_ctzll(pieces);
                 int real_square = (color == BLACK && piece == PAWN) ? invert_piece_table(square) : square;
+                int perspective = (color == WHITE) ? 1 : -1;
 
-                score += eval_pst_table[piece][real_square] * (color == WHITE) ? 1 : -1;
+                score += eval_pst_table[piece - 1][real_square] * perspective;
 
                 pieces &= pieces - 1;
             }

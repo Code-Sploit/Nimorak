@@ -274,8 +274,6 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
     {
         Move move = moves->moves[i];
 
-        if (board_get_square(game, GET_FROM(move)) == 0) continue;
-
         board_make_move(game, move);
 
         if (!board_is_king_in_check(game, !game->turn))
