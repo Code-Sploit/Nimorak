@@ -10,9 +10,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SEARCH_QUIESCENSE_DEPTH_LIMIT 7
-#define SEARCH_MAX_DEPTH 64
-
 Move search_killer_moves[SEARCH_MAX_DEPTH][2];
 
 typedef struct
@@ -131,7 +128,9 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
     if (repetition_check_for_threefold(game, game->zobrist_key)) return 0;
 
     if (depth == 0)
-        return search_quiescense(game, alpha, beta, 0);
+    {
+        return (SEARCH_ENABLE_QUIESCENSE == 1) ? search_quiescense(game, alpha, beta, 0) : eval_position(game);
+    }
 
     ZobristHash key = game->zobrist_key;
 
