@@ -2,6 +2,7 @@
 #include "board.h"
 
 #include <stdio.h>
+#include <math.h>
 
 const int piece_values[] = {0, 100, 300, 350, 500, 900};
 
@@ -9,7 +10,7 @@ int eval_pst_table[5][64] = {
     {0,  0,  0,   0,   0,  0,  0,  0,
     60, 60, 60,  60,  60, 60, 60, 60,
     20, 30, 40,  60,  60, 40, 30, 20,
-    10, 20, 40, 100, 100, 40, 20, 10,
+    10, 20, 40, 120, 120, 40, 20, 10,
      0, 10, 30,  90,  90, 30, 10,  0,
     10,  0,-10,  20,  20,-10,  0, 10,
     10, 20, 20, -30, -30, 20, 20, 10,
@@ -52,7 +53,7 @@ int eval_pst_table[5][64] = {
     -20,-10,-10, -5, -5,-10,-10,-20}
 };
 
-int pst_king_midgame[64] = {
+int eval_king_mid_pst[64] = {
     -30,-40,-40,-50,-50,-40,-40,-30,
     -30,-40,-40,-50,-50,-40,-40,-30,
     -30,-40,-40,-50,-50,-40,-40,-30,
@@ -63,7 +64,7 @@ int pst_king_midgame[64] = {
      20, 30, 10,  0,  0, 10, 30, 20
 };
 
-int pst_king_endgame[64] = {
+int eval_king_end_pst[64] = {
     -50,-40,-30,-20,-20,-30,-40,-50,
     -30,-20,-10,  0,  0,-10,-20,-30,
     -30,-10, 20, 30, 30, 20,-10,-30,
@@ -119,6 +120,27 @@ static inline const char *square_to_text(int square) {
     return square_str;
 }
 
+static inline double eval_calculate_endgame_weight(Game *game)
+{
+    if (!game) return 0.0;
+
+    int piece_count = 0;
+
+    for (int color = WHITE; color <= BLACK; color++)
+    {
+        Bitboard occupancy = game->occupancy[color];
+
+        while (occupancy)
+        {
+            occupancy &= occupancy - 1;
+            piece_count++;
+        }
+    }
+
+    // Sigmoid function centered around 12 pieces, steeper curve with factor 0.5
+    return 1.0 / (1.0 + exp(0.5 * (piece_count - 12)));
+}
+
 int eval_material(Game *game)
 {
     if (!game) return 0;
@@ -159,17 +181,30 @@ int eval_piece_squares(Game *game)
 
     for (int color = WHITE; color <= BLACK; color++)
     {
-        for (int piece = PAWN; piece <= QUEEN; piece++)
+        for (int piece = PAWN; piece <= KING; piece++)
         {
             Bitboard pieces = game->board[color][piece];
 
             while (pieces)
             {
                 int square = __builtin_ctzll(pieces);
-                int real_square = (color == BLACK && piece == PAWN) ? invert_piece_table(square) : square;
-                int perspective = (color == WHITE) ? 1 : -1;
 
-                score += eval_pst_table[piece - 1][real_square] * perspective;
+                if (piece == KING)
+                {
+                    int endgame_weight = eval_calculate_endgame_weight(game);
+                    int real_square = (color == WHITE) ? square : invert_piece_table(square);
+
+                    score += eval_king_mid_pst[real_square] + (endgame_weight * eval_king_end_pst[real_square]);
+                }
+                else
+                {
+                    int real_square = (color == WHITE) ? square : invert_piece_table(square);
+                    int perspective = (color == WHITE) ? 1 : -1;
+
+                    //if (piece == PAWN) printf("evaluating black pawn for square %d transforming to real square gives %d with eval %d\n", square, real_square, eval_pst_table[piece - 1][real_square] * perspective);
+
+                    score += eval_pst_table[piece - 1][real_square] * perspective;
+                }
 
                 pieces &= pieces - 1;
             }

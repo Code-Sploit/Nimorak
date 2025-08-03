@@ -9,41 +9,71 @@
 
 #define SEARCH_QUIESCENSE_DEPTH_LIMIT 3
 
+typedef struct
+{
+    Move move;
+
+    int score;
+} MoveScore;
+
+const int search_mvv_lva_scores[5][5] = {
+    // Attacker:  PAWN  KNIGHT  BISHOP  ROOK   QUEEN
+    /* Victim: PAWN   */ { 900,   700,    680,   500,   100 },
+    /* Victim: KNIGHT */ {2700,  2400,   2380,  2200,  1800 },
+    /* Victim: BISHOP */ {2900,  2600,   2580,  2400,  2000 },
+    /* Victim: ROOK   */ {4900,  4600,   4580,  4400,  4000 },
+    /* Victim: QUEEN  */ {8900,  8600,   8580,  8400,  8000 }
+};
+
+
+static inline int search_get_mvv_lva_score(Game *game, Move move)
+{
+    int from = GET_FROM(move);
+    int to   = GET_TO(move);
+
+    Piece from_piece = board_get_square(game, from);
+    Piece to_piece   = board_get_square(game, to);
+
+    return search_mvv_lva_scores[GET_TYPE(to_piece) - 1][GET_TYPE(from_piece) - 1];
+}
+
+static inline int search_compare_moves(const void *a, const void *b)
+{
+    const MoveScore *ma = (const MoveScore *) a;
+    const MoveScore *mb = (const MoveScore *) b;
+
+    return mb->score - ma->score;
+}
+
 void search_order_moves(Game *game, MoveList *movelist)
 {
     if (!game || movelist->count == 0)
         return;
 
-    MoveList ordered_moves;
-    ordered_moves.count = 0;  // Initialize count!
+    MoveScore scored_moves[256];
+    int count = 0;
 
-    // First, add all captures
+    // Score and store all moves
     for (int i = 0; i < movelist->count; i++)
     {
         Move move = movelist->moves[i];
-        if (IS_CAPTURE(move))
-        {
-            ordered_moves.moves[ordered_moves.count++] = move;
-            if (ordered_moves.count >= 256) break; // Safety
-        }
+        int score = IS_CAPTURE(move) ? search_get_mvv_lva_score(game, move) : -1; // Capture = high score, quiet = low
+
+        scored_moves[count].move = move;
+        scored_moves[count].score = score;
+        count++;
+
+        if (count >= 256) break; // Safety
     }
 
-    // Then, add all non-captures (quiet moves)
-    for (int i = 0; i < movelist->count && ordered_moves.count < 256; i++)
-    {
-        Move move = movelist->moves[i];
-        if (!IS_CAPTURE(move))
-        {
-            ordered_moves.moves[ordered_moves.count++] = move;
-        }
-    }
+    // Sort by score
+    qsort(scored_moves, count, sizeof(MoveScore), search_compare_moves);
 
-    // Copy back
-    for (int i = 0; i < ordered_moves.count; i++)
-    {
-        movelist->moves[i] = ordered_moves.moves[i];
-    }
-    movelist->count = ordered_moves.count;
+    // Write back to movelist
+    movelist->count = count;
+
+    for (int i = 0; i < count; i++)
+        movelist->moves[i] = scored_moves[i].move;
 }
 
 int search_quiescense(Game *game, int alpha, int beta, int depth)
