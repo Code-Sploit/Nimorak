@@ -1,9 +1,9 @@
 #ifndef NIMORAK_H
 #define NIMORAK_H
 
-#include <constants.h>
-#include <helpers.h>
-#include <config.h>
+#include <nimorak/constants.h>
+#include <nimorak/helpers.h>
+#include <nimorak/config.h>
 
 typedef struct {
     int   count;
