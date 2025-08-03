@@ -24,9 +24,6 @@ Game *game_new()
     // Set enpassant square to -1, there is no enpassant possible
     game->enpassant_square = -1;
 
-    game->bishop_magics = generate_bishop_magics();
-    game->rook_magics   = generate_rook_magics();
-
     game->repetition_table = calloc(1, sizeof(RepetitionTable));
     game->repetition_table->count = 0;
 

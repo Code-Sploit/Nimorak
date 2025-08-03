@@ -71,10 +71,6 @@ typedef struct {
     State            history[HISTORY_SIZE];
     Piece            board_ghost[64];
 
-    // Magic bitboards
-    Magic           *bishop_magics;
-    Magic           *rook_magics;
-
     // Transposition
     TTEntry          transposition_table[TT_SIZE];
 
