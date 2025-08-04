@@ -12,11 +12,10 @@
 #include <search/perft.h>
 #include <search/eval.h>
 
-#include <stdio.h>
-
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <stdio.h>
 #include <time.h>
 
 void uci_loop(Game *game)
@@ -101,6 +100,7 @@ void uci_loop(Game *game)
         else if (strncmp(input, "go perft ", 9) == 0)
         {
             int depth = atoi(input + 9);
+
             perft_root(game, depth);
         }
         else if (strncmp(input, "go perfttest", 12) == 0)
@@ -109,10 +109,91 @@ void uci_loop(Game *game)
         }
         else if (strncmp(input, "go", 2) == 0)
         {
-            Move best_move = search_start(game, SEARCH_INITIAL_DEPTH);
+            char *ptr = input + 2;
+
+            int wtime = -1, btime = -1;
+            int winc = 0, binc = 0;
+            int movestogo = 30;
+            int depth = -1;
+            int movetime = -1;
+
+            while (*ptr)
+            {
+                if (strncmp(ptr, "wtime", 5) == 0)
+                {
+                    ptr += 5; while (*ptr == ' ') ptr++;
+                    wtime = atoi(ptr);
+                }
+                else if (strncmp(ptr, "btime", 5) == 0)
+                {
+                    ptr += 5; while (*ptr == ' ') ptr++;
+                    btime = atoi(ptr);
+                }
+                else if (strncmp(ptr, "winc", 4) == 0)
+                {
+                    ptr += 4; while (*ptr == ' ') ptr++;
+                    winc = atoi(ptr);
+                }
+                else if (strncmp(ptr, "binc", 4) == 0)
+                {
+                    ptr += 4; while (*ptr == ' ') ptr++;
+                    binc = atoi(ptr);
+                }
+                else if (strncmp(ptr, "movestogo", 9) == 0)
+                {
+                    ptr += 9; while (*ptr == ' ') ptr++;
+                    movestogo = atoi(ptr);
+                }
+                else if (strncmp(ptr, "depth", 5) == 0)
+                {
+                    ptr += 5; while (*ptr == ' ') ptr++;
+                    depth = atoi(ptr);
+                }
+                else if (strncmp(ptr, "movetime", 8) == 0)
+                {
+                    ptr += 8; while (*ptr == ' ') ptr++;
+                    movetime = atoi(ptr);
+                }
+
+                while (*ptr && *ptr != ' ')
+                    ptr++;
+                while (*ptr == ' ')
+                    ptr++;
+            }
+
+            Move best_move;
+
+            if (movetime > 0)
+            {
+                best_move = search_start(game, 64, movetime);
+            }
+            else if (depth > 0)
+            {
+                best_move = search_start(game, depth, INFINITE_TIME);
+            }
+            else if (wtime > 0 && btime > 0)
+            {
+                int time_left = (game->turn == WHITE) ? wtime : btime;
+                int increment = (game->turn == WHITE) ? winc : binc;
+
+                if (movestogo <= 0) movestogo = 30;
+
+                int think_time = time_left / movestogo;
+
+                think_time += increment / 2;        // optional: use part of increment
+                if (think_time > time_left - 50)    // never use all time
+                    think_time = time_left - 50;
+
+                if (think_time < 10) think_time = 10;  // minimum think time
+
+                best_move = search_start(game, 64, think_time);
+            }
+            else
+            {
+                best_move = search_start(game, SEARCH_INITIAL_DEPTH, INFINITE_TIME);
+            }
 
             printf("bestmove %s\n", board_move_to_string(best_move));
-
             fflush(stdout);
         }
         else if (strcmp(input, "quit") == 0)

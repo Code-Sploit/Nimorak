@@ -76,6 +76,17 @@ int eval_king_end_pst[64] = {
     -50,-30,-30,-30,-30,-30,-30,-50
 };
 
+int mirror[64] = {
+    56,57,58,59,60,61,62,63,
+    48,49,50,51,52,53,54,55,
+    40,41,42,43,44,45,46,47,
+    32,33,34,35,36,37,38,39,
+    24,25,26,27,28,29,30,31,
+    16,17,18,19,20,21,22,23,
+     8, 9,10,11,12,13,14,15,
+     0, 1, 2, 3, 4, 5, 6, 7
+};
+
 static inline const char *color_to_text(int color)
 {
     switch (color)
@@ -99,14 +110,6 @@ static inline const char *piece_to_text(int piece_type)
     }
 
     return "-";
-}
-
-static inline int invert_piece_table(int square)
-{
-    int rank = square / 8;
-    int file = square % 8;
-    int flipped_rank = 7 - rank;
-    return flipped_rank * 8 + file;
 }
 
 static inline const char *square_to_text(int square) {
@@ -190,6 +193,38 @@ int eval_endgame_king_to_corner(Game *game) {
     return (int)(weighted_score + 0.5);
 }
 
+int eval_center_control(Game *game)
+{
+    if (!game) return 0;
+
+    int score = 0;
+    const int center_squares[4] = {27, 28, 35, 36}; /* d4, e4, d5, e5 */
+
+    for (int i = 0; i < 4; i++)
+    {
+        int sq = center_squares[i];
+        Piece piece = board_get_square(game, sq);
+        int type = GET_TYPE(piece);
+        int color = GET_COLOR(piece);
+
+        // Bonus for occupying the center with a pawn
+        if (type == PAWN)
+        {
+            if (color == WHITE) score += PAWN_CENTER_CONTROL_BONUS;
+            else if (color == BLACK) score -= PAWN_CENTER_CONTROL_BONUS;
+        }
+
+        // Bonus for controlling center square via attack
+        if (game->attack_map_full[WHITE] & (1ULL << sq))
+            score += CENTER_CONTROL_ATTACK_BONUS;
+
+        if (game->attack_map_full[BLACK] & (1ULL << sq))
+            score -= CENTER_CONTROL_ATTACK_BONUS;
+    }
+
+    return score;
+}
+
 int eval_material(Game *game)
 {
     if (!game) return 0;
@@ -241,13 +276,13 @@ int eval_piece_squares(Game *game)
                 if (piece == KING)
                 {
                     int endgame_weight = eval_calculate_endgame_weight(game);
-                    int real_square = (color == WHITE) ? square : invert_piece_table(square);
+                    int real_square = (color == WHITE) ? square : mirror[square];
 
                     score += eval_king_mid_pst[real_square] + (endgame_weight * eval_king_end_pst[real_square]);
                 }
                 else
                 {
-                    int real_square = (color == WHITE) ? square : invert_piece_table(square);
+                    int real_square = (color == WHITE) ? square : mirror[square];
                     int perspective = (color == WHITE) ? 1 : -1;
 
                     //if (piece == PAWN) printf("evaluating black pawn for square %d transforming to real square gives %d with eval %d\n", square, real_square, eval_pst_table[piece - 1][real_square] * perspective);
@@ -274,6 +309,7 @@ int eval_position(Game *game)
     score += eval_material(game);
     score += eval_piece_squares(game);
     score += eval_endgame_king_to_corner(game);
+    score += eval_center_control(game);
 
     return (game->turn == WHITE) ? score : -score;
 }

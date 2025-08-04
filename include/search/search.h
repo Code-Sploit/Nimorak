@@ -6,6 +6,6 @@
 #define SEARCH_INITIAL_DEPTH 5
 #define INF 1000000
 
-Move search_start(Game *game, int initial_depth);
+Move search_start(Game *game, int initial_depth, int think_time);
 
 #endif

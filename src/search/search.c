@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 Move search_killer_moves[SEARCH_MAX_DEPTH][2];
 
@@ -121,7 +122,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth)
     return alpha;
 }
 
-int search_negamax(Game *game, int depth, int alpha, int beta)
+int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta)
 {
     if (!game) return 0;
 
@@ -144,13 +145,14 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
 
     movegen_generate_legal_moves(game, &movelist, 0);
 
-    search_order_moves(game, &movelist, SEARCH_INITIAL_DEPTH - depth);
+    search_order_moves(game, &movelist, initial_depth - depth);
 
     if (movelist.count == 0)
-        return board_is_king_in_check(game, game->turn) ? -INF + (SEARCH_INITIAL_DEPTH - depth) : 0;
+        return board_is_king_in_check(game, game->turn) ? -INF + (initial_depth - depth) : 0;
 
     int best_eval = -INF;
     int flag = TT_ALPHA; // Assume fail-low until proven otherwise
+
     Move best_move = 0;
 
     int alpha_original = alpha;  // Save original alpha for TT flag
@@ -159,7 +161,7 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
     {
         board_make_move(game, movelist.moves[i]);
 
-        int eval = -search_negamax(game, depth - 1, -beta, -alpha);
+        int eval = -search_negamax(game, initial_depth, depth - 1, -beta, -alpha);
 
         board_unmake_move(game, movelist.moves[i]);
 
@@ -203,32 +205,74 @@ int search_negamax(Game *game, int depth, int alpha, int beta)
     return best_eval;
 }
 
-Move search_start(Game *game, int initial_depth)
+Move search_start(Game *game, int max_depth, int think_time_ms)
 {
     if (!game) return 0;
 
-    Move best_move = 0;
-    int best_eval = -INF;
+    clock_t start_time = clock();
+
+    Move best_move_so_far = 0;
+    int best_eval_so_far = -INF;
+
     MoveList movelist;
 
-    movegen_generate_legal_moves(game, &movelist, 0);
-
-    search_order_moves(game, &movelist, SEARCH_INITIAL_DEPTH - initial_depth);
-
-    for (int i = 0; i < movelist.count; i++)
+    for (int depth = 1; depth <= max_depth; depth++)
     {
-        board_make_move(game, movelist.moves[i]);
+        double elapsed_ms = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
+        if (elapsed_ms >= think_time_ms)
+            break;
 
-        int eval = -search_negamax(game, initial_depth - 1, -INF, INF);
+        Move best_this_depth = 0;
+        int eval_this_depth = -INF;
+        bool completed = true;
 
-        board_unmake_move(game, movelist.moves[i]);
+        movegen_generate_legal_moves(game, &movelist, 0);
 
-        if (eval > best_eval)
+        search_order_moves(game, &movelist, depth - 1);
+
+        for (int i = 0; i < movelist.count; i++)
         {
-            best_eval = eval;
-            best_move = movelist.moves[i];
+            elapsed_ms = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
+            if (elapsed_ms >= think_time_ms)
+            {
+                completed = false;
+                break;
+            }
+
+            Move move = movelist.moves[i];
+            board_make_move(game, move);
+
+            int score = -search_negamax(game, max_depth, depth - 1, -INF, INF);
+
+            board_unmake_move(game, move);
+
+            if (score > eval_this_depth)
+            {
+                eval_this_depth = score;
+                best_this_depth = move;
+            }
+        }
+
+        if (completed && best_this_depth)
+        {
+            best_move_so_far = best_this_depth;
+            best_eval_so_far = eval_this_depth;
+
+            printf("info depth %d score cp %d pv %s time %.0fms\n", depth, eval_this_depth,
+                   board_move_to_string(best_this_depth),
+                   (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+        }
+        else
+        {
+            // Search was cut off — fallback to last full depth
+            break;
         }
     }
 
-    return best_move;
+    if (best_move_so_far)
+        return best_move_so_far;
+
+    // Nothing completed, fallback to first legal move
+    movegen_generate_legal_moves(game, &movelist, 0);
+    return movelist.count > 0 ? movelist.moves[0] : 0;
 }

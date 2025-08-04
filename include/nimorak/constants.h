@@ -52,4 +52,13 @@ typedef uint8_t Piece;
 #define BLACK   1
 #define BOTH    2
 
+/* Time controls */
+
+#define INFINITE_TIME 1000000000
+
+/* Evaluation */
+
+#define PAWN_CENTER_CONTROL_BONUS 15
+#define CENTER_CONTROL_ATTACK_BONUS 10
+
 #endif
