@@ -13,6 +13,7 @@ typedef struct {
 
 typedef struct {
     CastlingRights castling_rights;
+    ZobristHash    zobrist_key;
     Piece          captured_piece;
     Move           move;
 

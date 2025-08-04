@@ -9,12 +9,10 @@ ZobristHash zobrist_castling[NUM_CASTLING];
 ZobristHash zobrist_enpassant[NUM_ENPASSANT];
 ZobristHash zobrist_turn;
 
-static inline int piece_to_index(int color, int piece)
-{
-    if (color == WHITE) return piece;
-
-    return piece + 6;
-}
+const int piece_to_index[2][7] = {
+    {1, 2, 3, 4, 5, 6},
+    {7, 8, 9, 10, 11, 12}
+};
 
 ZobristHash zobrist_compute_hash(Game *game)
 {
@@ -24,28 +22,29 @@ ZobristHash zobrist_compute_hash(Game *game)
     {
         for (int piece = PAWN; piece <= KING; piece++)
         {
-            Bitboard positions = game->board[color][piece];
+            uint64_t bb = game->board[color][piece];
+            int index = piece_to_index[color][piece];
 
-            while (positions)
+            while (bb)
             {
-                int square = __builtin_ctzll(positions);
-
-                hash ^= zobrist_pieces[piece_to_index(color, piece)][square];
-
-                positions &= positions - 1;
+                int sq = __builtin_ctzll(bb);
+                hash ^= zobrist_pieces[index][sq];
+                bb &= bb - 1;
             }
         }
     }
 
+    // Castling rights
     hash ^= zobrist_castling[game->castling_rights];
 
+    // En passant (file-based hashing only)
     if (game->enpassant_square != -1)
     {
-        int file = game->enpassant_square & 8;
-
+        int file = game->enpassant_square & 7; // safer than % 8
         hash ^= zobrist_enpassant[file];
     }
 
+    // Side to move
     if (game->turn == BLACK)
     {
         hash ^= zobrist_turn;

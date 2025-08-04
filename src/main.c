@@ -93,8 +93,6 @@ void uci_loop(Game *game)
                 }
             }
 
-            attack_print_table(game, WHITE);
-
             fflush(stdout);
         }
         else if (strncmp(input, "go perft ", 9) == 0)

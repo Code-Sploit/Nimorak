@@ -166,8 +166,6 @@ void board_load_fen(Game *game, const char *fen_string)
     // Skip to end (en passant, halfmove clock, fullmove number ignored for now)
     // Can be added here if needed
 
-    printf("Board loaded FEN: %s\n", fen_string);
-
     // Recalculate attack tables
     attack_generate_table(game, WHITE);
     attack_generate_table(game, BLACK);
@@ -245,8 +243,12 @@ void board_make_move(Game *game, Move move)
         .captured_piece = captured,
         .move = move
     };
+    
     memcpy(s.attack_map, game->attack_map, sizeof(game->attack_map));
     memcpy(s.attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
+
+    s.zobrist_key = game->zobrist_key;
+
     game->history[game->history_count++] = s;
 
     // Move piece: clear from-square, place piece at to-square
@@ -380,7 +382,7 @@ void board_unmake_move(Game *game, Move move)
     // Flip turn back
     game->turn ^= 1;
 
-    zobrist_update_board(game);
+    game->zobrist_key = s->zobrist_key;
 
     repetition_pop(game);
 
