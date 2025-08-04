@@ -101,11 +101,11 @@ void attack_generate_sliding(Game *game, int color, int piece_type) {
 
         Bitboard attacks;
         if (piece_type == BISHOP)
-            attacks = magic_get_bishop_attacks(game, square, occupancy);
+            attacks = magic_get_bishop_attacks(square, occupancy);
         else if (piece_type == ROOK)
-            attacks = magic_get_rook_attacks(game, square, occupancy);
+            attacks = magic_get_rook_attacks(square, occupancy);
         else if (piece_type == QUEEN)
-            attacks = magic_get_bishop_attacks(game, square, occupancy) | magic_get_rook_attacks(game, square, occupancy);
+            attacks = magic_get_bishop_attacks(square, occupancy) | magic_get_rook_attacks(square, occupancy);
         else if (piece_type == KING)
             attacks = game->attack_tables_pc[KING][square];
         else
@@ -243,14 +243,14 @@ Bitboard attack_generate_single_sliding(Game *game, int square, int piece_type)
     switch (piece_type)
     {
         case BISHOP:
-            return magic_get_bishop_attacks(game, square, game->occupancy[BOTH]);
+            return magic_get_bishop_attacks(square, game->occupancy[BOTH]);
 
         case ROOK:
-            return magic_get_rook_attacks(game, square, game->occupancy[BOTH]);
+            return magic_get_rook_attacks(square, game->occupancy[BOTH]);
 
         case QUEEN:
-            return magic_get_bishop_attacks(game, square, game->occupancy[BOTH]) |
-                   magic_get_rook_attacks(game, square, game->occupancy[BOTH]);
+            return magic_get_bishop_attacks(square, game->occupancy[BOTH]) |
+                   magic_get_rook_attacks(square, game->occupancy[BOTH]);
 
         case KING:
             return game->attack_tables_pc[KING][square];

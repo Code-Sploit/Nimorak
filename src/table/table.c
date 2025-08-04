@@ -85,14 +85,14 @@ void table_precompute_sliding_attacks(Game *game, int piece_type)
         switch (piece_type)
         {
             case BISHOP:
-                attacks = magic_get_bishop_attacks(game, square, 0ULL);
+                attacks = magic_get_bishop_attacks(square, 0ULL);
                 break;
             case ROOK:
-                attacks = magic_get_rook_attacks(game, square, 0ULL);
+                attacks = magic_get_rook_attacks(square, 0ULL);
                 break;
             case QUEEN:
-                attacks = magic_get_bishop_attacks(game, square, 0ULL)
-                        | magic_get_rook_attacks(game, square, 0ULL);
+                attacks = magic_get_bishop_attacks(square, 0ULL)
+                        | magic_get_rook_attacks(square, 0ULL);
                 break;
             case KING:
                 attacks = game->attack_tables_pc[KING][square];

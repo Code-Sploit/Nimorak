@@ -15,6 +15,8 @@ long long perft(Game *game, int depth)
 
     MoveList moves;
 
+    moves.count = 0;
+
     movegen_generate_legal_moves(game, &moves, 0);
 
     long long nodes = 0;

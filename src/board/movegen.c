@@ -153,14 +153,14 @@ void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves,
         switch (piece_type)
         {
             case BISHOP:
-                attacks = magic_get_bishop_attacks(game, square, occupancy);
+                attacks = magic_get_bishop_attacks(square, occupancy);
                 break;
             case ROOK:
-                attacks = magic_get_rook_attacks(game, square, occupancy);
+                attacks = magic_get_rook_attacks(square, occupancy);
                 break;
             case QUEEN:
-                attacks = magic_get_bishop_attacks(game, square, occupancy)
-                        | magic_get_rook_attacks(game, square, occupancy);
+                attacks = magic_get_bishop_attacks(square, occupancy)
+                        | magic_get_rook_attacks(square, occupancy);
                 break;
             case KING:
                 attacks = game->attack_tables_pc[KING][square];

@@ -241,8 +241,6 @@ int eval_material(Game *game)
 
             while (pieces)
             {
-                int square = __builtin_ctzll(pieces);
-
                 piece_count[color][piece_type]++;
 
                // printf("[EVAL]: Found %s %s on square %s\n", color_to_text(color), piece_to_text(piece_type), square_to_text(square));

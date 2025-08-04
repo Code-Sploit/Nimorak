@@ -103,6 +103,8 @@ int search_quiescense(Game *game, int alpha, int beta, int depth)
 
     MoveList captures;
 
+    captures.count = 0;
+
     movegen_generate_legal_moves(game, &captures, 1);
 
     for (int i = 0; i < captures.count; i++)
