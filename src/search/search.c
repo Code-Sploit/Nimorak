@@ -10,18 +10,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdbool.h>
+
+#define MAX_MOVES 256
 
 Move search_killer_moves[SEARCH_MAX_DEPTH][2];
 
-typedef struct
-{
-    Move move;
+// Adjust this as needed or implement actual history heuristic later
+static int search_history_heuristic[6][64] = {{0}};
 
-    int score;
-} MoveScore;
-
+// MVV-LVA scores: [victim][attacker], indexed 0..4 (pawn..queen)
 const int search_mvv_lva_scores[5][5] = {
-    // Attacker:  PAWN  KNIGHT  BISHOP  ROOK   QUEEN
+    /* Attacker: PAWN KNIGHT BISHOP ROOK QUEEN */
     /* Victim: PAWN   */ { 900,   700,    680,   500,   100 },
     /* Victim: KNIGHT */ {2700,  2400,   2380,  2200,  1800 },
     /* Victim: BISHOP */ {2900,  2600,   2580,  2400,  2000 },
@@ -29,35 +29,49 @@ const int search_mvv_lva_scores[5][5] = {
     /* Victim: QUEEN  */ {8900,  8600,   8580,  8400,  8000 }
 };
 
+typedef struct
+{
+    Move move;
+    int score;
+} MoveScore;
+
+static inline int clamp(int val, int min, int max)
+{
+    if (val < min) return min;
+    if (val > max) return max;
+    return val;
+}
 
 static inline int search_get_mvv_lva_score(Game *game, Move move)
 {
     int from = GET_FROM(move);
-    int to   = GET_TO(move);
+    int to = GET_TO(move);
 
     Piece from_piece = board_get_square(game, from);
-    Piece to_piece   = board_get_square(game, to);
+    Piece to_piece = board_get_square(game, to);
 
-    return search_mvv_lva_scores[GET_TYPE(to_piece) - 1][GET_TYPE(from_piece) - 1];
+    // Defensive clamp on piece types (assuming 1-based indexing: PAWN=1 .. QUEEN=5)
+    int victim_type = clamp(GET_TYPE(to_piece) - 1, 0, 4);
+    int attacker_type = clamp(GET_TYPE(from_piece) - 1, 0, 4);
+
+    return search_mvv_lva_scores[victim_type][attacker_type];
 }
 
 static inline int search_compare_moves(const void *a, const void *b)
 {
-    const MoveScore *ma = (const MoveScore *) a;
-    const MoveScore *mb = (const MoveScore *) b;
-
-    return mb->score - ma->score;
+    const MoveScore *ma = (const MoveScore *)a;
+    const MoveScore *mb = (const MoveScore *)b;
+    return mb->score - ma->score; // descending order
 }
 
 void search_order_moves(Game *game, MoveList *movelist, int ply)
 {
-    if (!game || movelist->count == 0)
-        return;
+    if (!game || movelist->count == 0) return;
 
-    MoveScore scored_moves[256];
+    MoveScore scored_moves[MAX_MOVES];
     int count = 0;
 
-    for (int i = 0; i < movelist->count; i++)
+    for (int i = 0; i < movelist->count && count < MAX_MOVES; i++)
     {
         Move move = movelist->moves[i];
         int score = 0;
@@ -66,19 +80,23 @@ void search_order_moves(Game *game, MoveList *movelist, int ply)
         {
             score = search_get_mvv_lva_score(game, move);
         }
+        else if (move == search_killer_moves[ply][0])
+        {
+            score = 900000;
+        }
+        else if (move == search_killer_moves[ply][1])
+        {
+            score = 800000;
+        }
         else
         {
-            // Check if move is a killer move
-            if (move == search_killer_moves[ply][0])
-                score = 900000;
-            else if (move == search_killer_moves[ply][1])
-                score = 800000;
-            else
-                score = 0; // Could use history heuristic later
+            // Optional: add history heuristic here
+            int from = GET_FROM(move);
+            Piece from_piece = board_get_square(game, from);
+            score = search_history_heuristic[GET_TYPE(from_piece)][GET_TO(move)];
         }
 
-        scored_moves[count++] = (MoveScore){ move, score };
-        if (count >= 256) break;
+        scored_moves[count++] = (MoveScore){move, score};
     }
 
     qsort(scored_moves, count, sizeof(MoveScore), search_compare_moves);
@@ -92,7 +110,8 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
 {
     if (!game) return 0;
 
-    if (depth >= SEARCH_QUIESCENSE_DEPTH_LIMIT) return eval_position(game);
+    if (depth >= SEARCH_QUIESCENSE_DEPTH_LIMIT)
+        return eval_position(game);
 
     int stand_pat = eval_position(game);
 
@@ -101,10 +120,10 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
     if (stand_pat > alpha)
         alpha = stand_pat;
 
-    MoveList captures;
-    captures.count = 0;
+    MoveList captures = {0};
+    movegen_generate_legal_moves(game, &captures, 1);  // generate only captures
 
-    movegen_generate_legal_moves(game, &captures, 1);  // Only captures
+    search_order_moves(game, &captures, ply);
 
     for (int i = 0; i < captures.count; i++)
     {
@@ -127,17 +146,21 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
 {
     if (!game) return 0;
 
-    if (repetition_check_for_threefold(game, game->zobrist_key)) return 0;
+    // Draw by repetition
+    if (repetition_check_for_threefold(game, game->zobrist_key))
+        return 0;
 
     if (depth == 0)
     {
-        int score = (SEARCH_ENABLE_QUIESCENSE == 1) ? search_quiescense(game, alpha, beta, 0, ply) : eval_position(game);
+        int score = (SEARCH_ENABLE_QUIESCENSE == 1) ?
+            search_quiescense(game, alpha, beta, 0, ply) :
+            eval_position(game);
 
-        // Adjust mate scores for distance pruning (if near mate)
+        // Mate score adjustment for distance pruning
         if (score > MATE_SCORE - SEARCH_MAX_DEPTH)
-            score = score - ply;
+            score -= ply;
         else if (score < -MATE_SCORE + SEARCH_MAX_DEPTH)
-            score = score + ply;
+            score += ply;
 
         return score;
     }
@@ -145,11 +168,10 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
     ZobristHash key = game->zobrist_key;
 
     int tt_score;
-
     if (tt_probe(game, key, depth, alpha, beta, &tt_score))
         return tt_score;
 
-    MoveList movelist;
+    MoveList movelist = {0};
     movegen_generate_legal_moves(game, &movelist, 0);
 
     search_order_moves(game, &movelist, ply);
@@ -157,13 +179,9 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
     if (movelist.count == 0)
     {
         if (board_is_king_in_check(game, game->turn))
-        {
-            return -MATE_SCORE + ply;
-        }
+            return -MATE_SCORE + ply; // checkmate found
         else
-        {
-            return 0;
-        }
+            return 0; // stalemate
     }
 
     int best_eval = -INF;
@@ -173,16 +191,17 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
 
     for (int i = 0; i < movelist.count; i++)
     {
-        board_make_move(game, movelist.moves[i]);
+        Move move = movelist.moves[i];
+        board_make_move(game, move);
 
         int eval = -search_negamax(game, initial_depth, depth - 1, -beta, -alpha, ply + 1);
 
-        board_unmake_move(game, movelist.moves[i]);
+        board_unmake_move(game, move);
 
         if (eval > best_eval)
         {
             best_eval = eval;
-            best_move = movelist.moves[i];
+            best_move = move;
         }
 
         if (eval > alpha)
@@ -192,19 +211,17 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
         {
             flag = TT_BETA;
 
-            if (!IS_CAPTURE(movelist.moves[i]))
+            // Update killer moves only for quiet moves (non-captures)
+            if (!IS_CAPTURE(move))
             {
-                // ply is already passed, so ply - 1 for killer moves at current ply
-                int killer_ply = ply;
-
-                if (search_killer_moves[killer_ply][0] != movelist.moves[i])
+                if (search_killer_moves[ply][0] != move)
                 {
-                    search_killer_moves[killer_ply][1] = search_killer_moves[killer_ply][0];
-                    search_killer_moves[killer_ply][0] = movelist.moves[i];
+                    search_killer_moves[ply][1] = search_killer_moves[ply][0];
+                    search_killer_moves[ply][0] = move;
                 }
             }
 
-            break;
+            break; // Beta cutoff
         }
     }
 
@@ -218,7 +235,7 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
     return best_eval;
 }
 
-// Updated call in search_start to match new search_negamax signature
+// Iterative deepening with time control (ms)
 Move search_start(Game *game, int max_depth, int think_time_ms)
 {
     if (!game) return 0;
@@ -241,8 +258,7 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
         bool completed = true;
 
         movegen_generate_legal_moves(game, &movelist, 0);
-
-        search_order_moves(game, &movelist, 0); // ply=0 at root
+        search_order_moves(game, &movelist, 0); // root ply = 0
 
         for (int i = 0; i < movelist.count; i++)
         {
@@ -267,38 +283,34 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
             }
         }
 
-        if (completed && best_this_depth)
+        if (completed)
         {
-            best_move_so_far = best_this_depth;
-            best_eval_so_far = eval_this_depth;
-
             if (abs(eval_this_depth) > MATE_THRESHOLD)
             {
                 int mate_in = (MATE_SCORE - abs(eval_this_depth) + 1) / 2;
+                if (eval_this_depth < 0) mate_in = -mate_in;
 
-                if (eval_this_depth > 0) mate_in = +mate_in;
-                else mate_in = -mate_in;
-
-                printf("info depth %d score mate %d pv %s time %.0fms\n",
-                       depth, mate_in, board_move_to_string(best_this_depth),
-                       (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+                printf("info depth %d score mate %d time %.0f ms pv %s\n",
+                    depth, mate_in,
+                    elapsed_ms,
+                    board_move_to_string(best_this_depth));
             }
             else
             {
-                printf("info depth %d score cp %d pv %s time %.0fms\n",
-                       depth, eval_this_depth, board_move_to_string(best_this_depth),
-                       (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+                printf("info depth %d score cp %d time %.0f ms pv %s\n",
+                    depth, eval_this_depth,
+                    elapsed_ms,
+                    board_move_to_string(best_this_depth));
             }
         }
         else
         {
             break;
         }
+
+        best_move_so_far = best_this_depth;
+        best_eval_so_far = eval_this_depth;
     }
 
-    if (best_move_so_far)
-        return best_move_so_far;
-
-    movegen_generate_legal_moves(game, &movelist, 0);
-    return movelist.count > 0 ? movelist.moves[0] : 0;
+    return best_move_so_far;
 }
