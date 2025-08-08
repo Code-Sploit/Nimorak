@@ -61,4 +61,7 @@ typedef uint8_t Piece;
 #define PAWN_CENTER_CONTROL_BONUS 15
 #define CENTER_CONTROL_ATTACK_BONUS 10
 
+#define MATE_SCORE 32000
+#define MATE_THRESHOLD (MATE_SCORE - 1000)
+
 #endif

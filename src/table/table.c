@@ -105,6 +105,56 @@ void table_precompute_sliding_attacks(Game *game, int piece_type)
     }
 }
 
+void table_precompute_pawn_attacks(Game *game, int color)
+{
+    if (!game) return;
+
+    int pawn_capture_left;
+    int pawn_capture_right;
+
+    if (color == WHITE)
+    {
+        pawn_capture_left = 7;
+        pawn_capture_right = 9;
+    }
+    else
+    {
+        pawn_capture_left = -9;
+        pawn_capture_right = -7;
+    }
+
+    for (int square = 0; square < 64; square++)
+    {
+        int file   = square % 8;
+
+        AttackTable attacks = 0ULL;
+
+        // Capture left (only if not on file A)
+        if (file > 0)
+        {
+            int target = square + pawn_capture_left;
+
+            if (target >= 0 && target < 64)
+            {
+                attacks |= (1ULL << target);
+            }
+        }
+
+        // Capture right (only if not on file H)
+        if (file < 7)
+        {
+            int target = square + pawn_capture_right;
+
+            if (target >= 0 && target < 64)
+            {
+                attacks |= (1ULL << target);
+            }
+        }
+
+        game->attack_tables_pc_pawn[color][square] = attacks;
+    }
+}
+
 void table_precompute_all_attacks(Game *game)
 {
     if (!game) return;
@@ -115,4 +165,6 @@ void table_precompute_all_attacks(Game *game)
     table_precompute_sliding_attacks(game, ROOK);
     table_precompute_sliding_attacks(game, QUEEN);
     table_precompute_sliding_attacks(game, KING);
+    table_precompute_pawn_attacks(game, WHITE);
+    table_precompute_pawn_attacks(game, BLACK);
 }

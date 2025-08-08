@@ -222,8 +222,7 @@ void board_print(Game *game)
     printf("\n");
 }
 
-void board_make_move(Game *game, Move move)
-{
+void board_make_move(Game *game, Move move) {
     if (!game) return;
 
     const int from = GET_FROM(move);
@@ -232,29 +231,31 @@ void board_make_move(Game *game, Move move)
     Piece piece = board_get_square(game, from);
     const int color = GET_COLOR(piece);
 
-    // Capture detection - avoid branch by using ternary early
+    // Calculate en passant capture square if needed
     const int ep_capture_sq = (color == WHITE) ? to - 8 : to + 8;
     Piece captured = IS_ENPASSANT(move) ? board_get_square(game, ep_capture_sq) : board_get_square(game, to);
 
-    // Save current state for undo efficiently by stack allocation
-    State s = {
-        .castling_rights = game->castling_rights,
-        .enpassant_square = game->enpassant_square,
-        .captured_piece = captured,
-        .move = move
-    };
-    
+    // Save full state snapshot
+    State s;
+    s.castling_rights = game->castling_rights;
+    s.enpassant_square = game->enpassant_square;
+    s.captured_piece = captured;
+    s.move = move;
+    s.zobrist_key = game->zobrist_key;
+    s.turn = game->turn;
+
     memcpy(s.attack_map, game->attack_map, sizeof(game->attack_map));
     memcpy(s.attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
 
-    s.zobrist_key = game->zobrist_key;
+    memcpy(s.board, game->board, sizeof(game->board));
+    memcpy(s.occupancy, game->occupancy, sizeof(game->occupancy));
+    memcpy(s.board_ghost, game->board_ghost, sizeof(game->board_ghost));
 
     game->history[game->history_count++] = s;
 
-    // Move piece: clear from-square, place piece at to-square
+    // Apply move on bitboards and board_ghost via your existing board_set_square or bitboard ops
     board_set_square(game, from, EMPTY);
 
-    // Handle promotion inline to avoid double set_square calls
     if (IS_PROMO(move)) {
         const int promo_type = GET_PROMO(move);
         board_set_square(game, to, MAKE_PIECE(promo_type, color));
@@ -262,18 +263,16 @@ void board_make_move(Game *game, Move move)
         board_set_square(game, to, piece);
     }
 
-    // Handle en passant capture pawn removal
     if (IS_ENPASSANT(move)) {
         board_set_square(game, ep_capture_sq, EMPTY);
     }
 
-    // Castling rook move - simplified with precomputed offsets
     if (IS_CASTLE(move)) {
         int rook_from, rook_to;
-        if (to == from + 2) {         // Kingside
+        if (to == from + 2) {  // Kingside
             rook_from = from + 3;
             rook_to = from + 1;
-        } else {                     // Queenside
+        } else {  // Queenside
             rook_from = from - 4;
             rook_to = from - 1;
         }
@@ -282,13 +281,11 @@ void board_make_move(Game *game, Move move)
         board_set_square(game, rook_to, rook);
     }
 
-    // Update castling rights - use a fast lookup table or bitmask checks
+    // Update castling rights
     const int piece_type = GET_TYPE(piece);
     if (piece_type == KING) {
         game->castling_rights &= ~(color == WHITE ? (WHITE_KINGSIDE | WHITE_QUEENSIDE) : (BLACK_KINGSIDE | BLACK_QUEENSIDE));
-    }
-    else if (piece_type == ROOK) {
-        // Update castling rights depending on rook's original square (only 4 squares matter)
+    } else if (piece_type == ROOK) {
         switch (from) {
             case 0:  game->castling_rights &= ~WHITE_QUEENSIDE; break;
             case 7:  game->castling_rights &= ~WHITE_KINGSIDE; break;
@@ -297,7 +294,6 @@ void board_make_move(Game *game, Move move)
         }
     }
     if (captured != EMPTY && GET_TYPE(captured) == ROOK) {
-        // Same for captured rook squares
         switch (to) {
             case 0:  game->castling_rights &= ~WHITE_QUEENSIDE; break;
             case 7:  game->castling_rights &= ~WHITE_KINGSIDE; break;
@@ -306,87 +302,46 @@ void board_make_move(Game *game, Move move)
         }
     }
 
-    // Set en passant target or clear
+    // Set en passant target square or clear it
     game->enpassant_square = IS_DOUBLE_PUSH(move) ? (color == WHITE ? to - 8 : to + 8) : -1;
 
-    // Update attack tables - incremental updates are best for speed
+    // Update attack tables incrementally
     attack_generate_table(game, game->turn);
     attack_generate_table(game, !game->turn);
 
     // Flip side to move
     game->turn ^= 1;
 
+    // Update zobrist hash incrementally
     zobrist_update_board(game);
 
+    // Push repetition key
     repetition_push(game, game->zobrist_key);
 }
 
-
-void board_unmake_move(Game *game, Move move)
-{
+void board_unmake_move(Game *game, Move move) {
     if (!game) return;
-
     if (game->history_count <= 0) {
         fprintf(stderr, "Error: unmake_move with empty history!\n");
         exit(EXIT_FAILURE);
     }
 
+    // Restore full snapshot state
     State *s = &game->history[--game->history_count];
-    int from = GET_FROM(move);
-    int to = GET_TO(move);
 
-    Piece piece = board_get_square(game, to);
-    int color = GET_COLOR(piece);
-
-    // Undo promotion: revert to pawn if promo
-    piece = IS_PROMO(move) ? MAKE_PIECE(PAWN, color) : piece;
-
-    // Clear destination square first (to avoid overwrite conflicts)
-    board_set_square(game, to, EMPTY);
-
-    // Restore moved piece to from-square
-    board_set_square(game, from, piece);
-
-    // Restore captured piece (handle en passant separately)
-    if (IS_ENPASSANT(move)) {
-        int ep_sq = (color == WHITE) ? to - 8 : to + 8;
-        board_set_square(game, ep_sq, s->captured_piece);
-    } else if (s->captured_piece != EMPTY) {
-        board_set_square(game, to, s->captured_piece);
-    }
-
-    // Undo castling rook move if applicable
-    if (IS_CASTLE(move)) {
-        // Kingside or queenside castling offset logic simplified
-        int rook_from, rook_to;
-        if (to == from + 2) { // kingside
-            rook_from = from + 1;
-            rook_to = from + 3;
-        } else { // queenside
-            rook_from = from - 1;
-            rook_to = from - 4;
-        }
-        Piece rook = board_get_square(game, rook_from);
-        board_set_square(game, rook_to, rook);
-        board_set_square(game, rook_from, EMPTY);
-    }
-
-    // Restore castling rights and en passant square
     game->castling_rights = s->castling_rights;
     game->enpassant_square = s->enpassant_square;
+    game->zobrist_key = s->zobrist_key;
+    game->turn = s->turn;
 
-    // Restore attack tables (copy with memcpy for speed)
     memcpy(game->attack_map, s->attack_map, sizeof(game->attack_map));
     memcpy(game->attack_map_full, s->attack_map_full, sizeof(game->attack_map_full));
 
-    // Flip turn back
-    game->turn ^= 1;
-
-    game->zobrist_key = s->zobrist_key;
+    memcpy(game->board, s->board, sizeof(game->board));
+    memcpy(game->occupancy, s->occupancy, sizeof(game->occupancy));
+    memcpy(game->board_ghost, s->board_ghost, sizeof(game->board_ghost));
 
     repetition_pop(game);
-
-    // Optional: you can skip clearing old state for speed
 }
 
 int board_is_on_rank(int square, int rank)

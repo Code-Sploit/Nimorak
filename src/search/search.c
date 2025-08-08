@@ -88,11 +88,11 @@ void search_order_moves(Game *game, MoveList *movelist, int ply)
         movelist->moves[i] = scored_moves[i].move;
 }
 
-int search_quiescense(Game *game, int alpha, int beta, int depth)
+int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
 {
     if (!game) return 0;
 
-    if (depth >= SEARCH_QUIESCENSE_DEPTH_LIMIT) return eval_position(game); // Safety limit
+    if (depth >= SEARCH_QUIESCENSE_DEPTH_LIMIT) return eval_position(game);
 
     int stand_pat = eval_position(game);
 
@@ -102,16 +102,15 @@ int search_quiescense(Game *game, int alpha, int beta, int depth)
         alpha = stand_pat;
 
     MoveList captures;
-
     captures.count = 0;
 
-    movegen_generate_legal_moves(game, &captures, 1);
+    movegen_generate_legal_moves(game, &captures, 1);  // Only captures
 
     for (int i = 0; i < captures.count; i++)
     {
         board_make_move(game, captures.moves[i]);
 
-        int score = -search_quiescense(game, -beta, -alpha, depth + 1);
+        int score = -search_quiescense(game, -beta, -alpha, depth + 1, ply + 1);
 
         board_unmake_move(game, captures.moves[i]);
 
@@ -124,7 +123,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth)
     return alpha;
 }
 
-int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta)
+int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta, int ply)
 {
     if (!game) return 0;
 
@@ -132,38 +131,51 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
 
     if (depth == 0)
     {
-        return (SEARCH_ENABLE_QUIESCENSE == 1) ? search_quiescense(game, alpha, beta, 0) : eval_position(game);
+        int score = (SEARCH_ENABLE_QUIESCENSE == 1) ? search_quiescense(game, alpha, beta, 0, ply) : eval_position(game);
+
+        // Adjust mate scores for distance pruning (if near mate)
+        if (score > MATE_SCORE - SEARCH_MAX_DEPTH)
+            score = score - ply;
+        else if (score < -MATE_SCORE + SEARCH_MAX_DEPTH)
+            score = score + ply;
+
+        return score;
     }
 
     ZobristHash key = game->zobrist_key;
 
     int tt_score;
 
-    // Probe TT
     if (tt_probe(game, key, depth, alpha, beta, &tt_score))
         return tt_score;
 
     MoveList movelist;
-
     movegen_generate_legal_moves(game, &movelist, 0);
 
-    search_order_moves(game, &movelist, initial_depth - depth);
+    search_order_moves(game, &movelist, ply);
 
     if (movelist.count == 0)
-        return board_is_king_in_check(game, game->turn) ? -INF + (initial_depth - depth) : 0;
+    {
+        if (board_is_king_in_check(game, game->turn))
+        {
+            return -MATE_SCORE + ply;
+        }
+        else
+        {
+            return 0;
+        }
+    }
 
     int best_eval = -INF;
-    int flag = TT_ALPHA; // Assume fail-low until proven otherwise
-
+    int flag = TT_ALPHA;
     Move best_move = 0;
-
-    int alpha_original = alpha;  // Save original alpha for TT flag
+    int alpha_original = alpha;
 
     for (int i = 0; i < movelist.count; i++)
     {
         board_make_move(game, movelist.moves[i]);
 
-        int eval = -search_negamax(game, initial_depth, depth - 1, -beta, -alpha);
+        int eval = -search_negamax(game, initial_depth, depth - 1, -beta, -alpha, ply + 1);
 
         board_unmake_move(game, movelist.moves[i]);
 
@@ -178,16 +190,17 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
 
         if (alpha >= beta)
         {
-            flag = TT_BETA; // Fail-high cutoff
+            flag = TT_BETA;
 
             if (!IS_CAPTURE(movelist.moves[i]))
             {
-                int ply = SEARCH_INITIAL_DEPTH - depth;
+                // ply is already passed, so ply - 1 for killer moves at current ply
+                int killer_ply = ply;
 
-                if (search_killer_moves[ply][0] != movelist.moves[i])
+                if (search_killer_moves[killer_ply][0] != movelist.moves[i])
                 {
-                    search_killer_moves[ply][1] = search_killer_moves[ply][0];
-                    search_killer_moves[ply][0] = movelist.moves[i];
+                    search_killer_moves[killer_ply][1] = search_killer_moves[killer_ply][0];
+                    search_killer_moves[killer_ply][0] = movelist.moves[i];
                 }
             }
 
@@ -195,18 +208,17 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
         }
     }
 
-    // Determine the TT flag for storing
     if (best_eval > alpha_original && best_eval < beta)
         flag = TT_EXACT;
     else if (best_eval <= alpha_original)
         flag = TT_ALPHA;
-    // else flag = TT_BETA already set on cutoff
 
     tt_store(game, key, depth, best_eval, flag, best_move);
 
     return best_eval;
 }
 
+// Updated call in search_start to match new search_negamax signature
 Move search_start(Game *game, int max_depth, int think_time_ms)
 {
     if (!game) return 0;
@@ -230,7 +242,7 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
 
         movegen_generate_legal_moves(game, &movelist, 0);
 
-        search_order_moves(game, &movelist, depth - 1);
+        search_order_moves(game, &movelist, 0); // ply=0 at root
 
         for (int i = 0; i < movelist.count; i++)
         {
@@ -244,7 +256,7 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
             Move move = movelist.moves[i];
             board_make_move(game, move);
 
-            int score = -search_negamax(game, max_depth, depth - 1, -INF, INF);
+            int score = -search_negamax(game, depth, depth - 1, -INF, INF, 1);
 
             board_unmake_move(game, move);
 
@@ -260,13 +272,26 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
             best_move_so_far = best_this_depth;
             best_eval_so_far = eval_this_depth;
 
-            printf("info depth %d score cp %d pv %s time %.0fms\n", depth, eval_this_depth,
-                   board_move_to_string(best_this_depth),
-                   (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+            if (abs(eval_this_depth) > MATE_THRESHOLD)
+            {
+                int mate_in = (MATE_SCORE - abs(eval_this_depth) + 1) / 2;
+
+                if (eval_this_depth > 0) mate_in = +mate_in;
+                else mate_in = -mate_in;
+
+                printf("info depth %d score mate %d pv %s time %.0fms\n",
+                       depth, mate_in, board_move_to_string(best_this_depth),
+                       (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+            }
+            else
+            {
+                printf("info depth %d score cp %d pv %s time %.0fms\n",
+                       depth, eval_this_depth, board_move_to_string(best_this_depth),
+                       (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC);
+            }
         }
         else
         {
-            // Search was cut off — fallback to last full depth
             break;
         }
     }
@@ -274,7 +299,6 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
     if (best_move_so_far)
         return best_move_so_far;
 
-    // Nothing completed, fallback to first legal move
     movegen_generate_legal_moves(game, &movelist, 0);
     return movelist.count > 0 ? movelist.moves[0] : 0;
 }

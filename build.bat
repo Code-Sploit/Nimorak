@@ -8,7 +8,7 @@ REM Include directory
 set INCLUDE=-Iinclude
 
 REM Source files with relative paths
-set SOURCES=src/board/attack.c src/board/board.c src/search/eval.c src/table/magic.c src/main.c src/board/movegen.c src/nimorak/nimorak.c src/search/perft.c src/table/table.c src/search/search.c src/table/repetition.c src/table/transposition.c src/table/zobrist.c
+set SOURCES=src/board/attack.c src/board/board.c src/search/eval.c src/main.c src/board/movegen.c src/nimorak/nimorak.c src/search/perft.c src/table/table.c src/search/search.c src/table/repetition.c src/table/transposition.c src/table/zobrist.c
 
 REM Output file
 set OUTPUT=-o nimorak.exe

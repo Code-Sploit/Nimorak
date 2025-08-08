@@ -9,6 +9,9 @@
         "time.h": "c",
         "table.h": "c",
         "attack.h": "c",
-        "board.h": "c"
+        "board.h": "c",
+        "magic.h": "c",
+        "magic_bitboards.h": "c",
+        "nimorak.h": "c"
     }
 }

@@ -151,46 +151,36 @@ int eval_endgame_king_to_corner(Game *game) {
     double endgame_weight = eval_calculate_endgame_weight(game);
     if (endgame_weight == 0.0) return 0;
 
-    // Example assumptions about your Game structure:
-    // - int side_to_move; // side to move (0=white,1=black)
-    // - int king_square[2]; // king positions for white and black
-    // - int rook_count[2];  // count of rooks per side
-    // - int piece_count[2]; // total pieces per side (excluding king)
-    
-    int attacker = game->turn;
+    // Determine the attacker — assume it's the side with more material (excluding kings)
+    int material_white = 0, material_black = 0;
+    for (int piece_type = PAWN; piece_type <= QUEEN; piece_type++) {
+        material_white += __builtin_popcountll(game->board[WHITE][piece_type]) * piece_values[piece_type];
+        material_black += __builtin_popcountll(game->board[BLACK][piece_type]) * piece_values[piece_type];
+    }
+
+    int attacker = (material_white > material_black) ? WHITE : BLACK;
     int defender = attacker ^ 1;
 
-    // Get defender king position
+    // Defender king position
     int ksq = board_find_king(game, defender);
     int rank = ksq / 8;
     int file = ksq % 8;
 
-    // Corners coordinates
-    int corners[4][2] = {
-        {0, 0},
-        {0, 7},
-        {7, 0},
-        {7, 7}
-    };
-
-    // Calculate min Manhattan distance to corners for defender king
-    int min_dist = 14; // max manhattan dist on 8x8 is 7+7=14
+    // Manhattan distance to nearest corner
+    int corners[4][2] = {{0,0}, {0,7}, {7,0}, {7,7}};
+    int min_dist = 14;
     for (int i = 0; i < 4; i++) {
         int dist = abs(rank - corners[i][0]) + abs(file - corners[i][1]);
         if (dist < min_dist) min_dist = dist;
     }
 
-    // Map distance to score: closer to corner = higher score
-    // Scale to ~200 centipawns max, linearly
+    // Scale score: closer to corner = higher bonus
     int max_dist = 14;
     int base_score = 200 * (max_dist - min_dist) / max_dist;
-
-    // Weight by endgame phase
     double weighted_score = base_score * endgame_weight;
 
-    // Return positive score from attacker POV
-    // (You may want to adjust sign depending on your eval convention)
-    return (int)(weighted_score + 0.5);
+    // Always return from White's perspective
+    return (attacker == WHITE) ? (int)(weighted_score + 0.5) : -(int)(weighted_score + 0.5);
 }
 
 int eval_center_control(Game *game)

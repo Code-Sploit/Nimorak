@@ -15,54 +15,15 @@ void attack_generate_pawn(Game *game, int color)
 {
     if (!game) return;
 
-    int pawn_capture_left;
-    int pawn_capture_right;
-
-    if (color == WHITE)
-    {
-        pawn_capture_left = 7;
-        pawn_capture_right = 9;
-    }
-    else
-    {
-        pawn_capture_left = -9;
-        pawn_capture_right = -7;
-    }
-
     Bitboard pawns = game->board[color][PAWN];
 
     while (pawns)
     {
         int square = __builtin_ctzll(pawns);
-        int file   = square % 8;
 
-        AttackTable attacks = 0ULL;
+        AttackTable attacks = game->attack_tables_pc_pawn[color][square];
 
-        // Capture left (only if not on file A)
-        if (file > 0)
-        {
-            int target = square + pawn_capture_left;
-
-            if (target >= 0 && target < 64)
-            {
-                attacks |= (1ULL << target);
-            }
-        }
-
-        // Capture right (only if not on file H)
-        if (file < 7)
-        {
-            int target = square + pawn_capture_right;
-
-            if (target >= 0 && target < 64)
-            {
-                attacks |= (1ULL << target);
-            }
-        }
-
-        game->attack_map_full[color] ^= game->attack_map[color][square];
         game->attack_map[color][square] = attacks;
-        game->attack_map_full[color] |= attacks;
 
         pawns &= pawns - 1;
     }
@@ -80,9 +41,7 @@ void attack_generate_knight(Game *game, int color)
 
         AttackTable attacks = game->attack_tables_pc[KNIGHT][square];
 
-        game->attack_map_full[color] ^= game->attack_map[color][square];
         game->attack_map[color][square] = attacks;
-        game->attack_map_full[color] |= attacks;
 
         knights &= knights - 1;
     }
@@ -130,6 +89,7 @@ void attack_generate_table(Game *game, int color) {
 
     // Rebuild full attack bitboard once per color after all updates
     AttackTable full = 0ULL;
+    
     for (int i = 0; i < 64; i++) {
         full |= attack_map[i];
     }

@@ -10,7 +10,6 @@ typedef struct {
     Move  moves[256];
 } MoveList;
 
-
 typedef struct {
     CastlingRights castling_rights;
     ZobristHash    zobrist_key;
@@ -21,8 +20,12 @@ typedef struct {
     Bitboard       attack_map[2][64];
 
     int            enpassant_square;
+    int            turn;            // also save turn here!
+    
+    Bitboard       board[3][7];
+    Bitboard       occupancy[3];
+    Piece          board_ghost[64];
 } State;
-
 
 typedef struct {
     uint64_t  mask;
@@ -64,6 +67,7 @@ typedef struct {
     Bitboard         attack_map[2][64];        // [color][square]
     Bitboard         attack_map_full[2];       // [color]
     AttackTable      attack_tables_pc[7][64];  // [piece_type][square]
+    AttackTable      attack_tables_pc_pawn[2][64];
 
     // Move generation
     MoveList        *movelist;
