@@ -283,7 +283,7 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
             legal_move_count++;
         }
         
-        board_unmake_move(game, move);
+        board_unmake_move(game);
     }
 
     moves->count = legal_move_count;

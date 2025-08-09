@@ -25,6 +25,8 @@ void attack_generate_pawn(Game *game, int color)
 
         game->attack_map[color][square] = attacks;
 
+        game->attack_map_includes_square |= 1ULL << square;
+
         pawns &= pawns - 1;
     }
 }
@@ -42,6 +44,8 @@ void attack_generate_knight(Game *game, int color)
         AttackTable attacks = game->attack_tables_pc[KNIGHT][square];
 
         game->attack_map[color][square] = attacks;
+
+        game->attack_map_includes_square |= 1ULL << square;
 
         knights &= knights - 1;
     }
@@ -71,6 +75,8 @@ void attack_generate_sliding(Game *game, int color, int piece_type) {
             continue;
 
         attack_map[square] = attacks;
+
+        game->attack_map_includes_square |= 1ULL << square;
     }
 }
 
@@ -78,7 +84,10 @@ void attack_generate_table(Game *game, int color) {
     if (!game) return;
 
     AttackTable *attack_map = game->attack_map[color];
+    
     memset(attack_map, 0, 64 * sizeof(AttackTable));
+
+    game->attack_map_includes_square = 0ULL;
 
     attack_generate_pawn(game, color);
     attack_generate_knight(game, color);
@@ -87,12 +96,16 @@ void attack_generate_table(Game *game, int color) {
     attack_generate_sliding(game, color, QUEEN);
     attack_generate_sliding(game, color, KING);
 
-    // Rebuild full attack bitboard once per color after all updates
     AttackTable full = 0ULL;
     
-    for (int i = 0; i < 64; i++) {
-        full |= attack_map[i];
+    Bitboard occ = game->attack_map_includes_square;
+    
+    while (occ) {
+        int sq = __builtin_ctzll(occ);
+        full |= attack_map[sq];
+        occ &= occ - 1;
     }
+
     game->attack_map_full[color] = full;
 }
 
@@ -120,103 +133,3 @@ void attack_print_table(Game *game, int color)
 
     printf("\n   a b c d e f g h\n\n"); // Print file letters
 }
-
-AttackTable attack_generate_single_pawn(Game *game, int square, int color)
-{
-    if (!game) return 0;
-
-    int pawn_capture_left;
-    int pawn_capture_right;
-
-    if (color == WHITE)
-    {
-        pawn_capture_left = 7;
-        pawn_capture_right = 9;
-    }
-    else
-    {
-        pawn_capture_left = -9;
-        pawn_capture_right = -7;
-    }
-
-    int file   = square % 8;
-
-    AttackTable attacks = 0ULL;
-
-    // Capture left (only if not on file A)
-    if (file > 0)
-    {
-        int target = square + pawn_capture_left;
-
-        if (target >= 0 && target < 64)
-        {
-            attacks |= (1ULL << target);
-        }
-    }
-
-    // Capture right (only if not on file H)
-    if (file < 7)
-    {
-        int target = square + pawn_capture_right;
-
-        if (target >= 0 && target < 64)
-        {
-            attacks |= (1ULL << target);
-        }
-    }
-
-    return attacks;
-}
-
-AttackTable attack_generate_single_knight(Game *game, int square)
-{
-    if (!game) return 0;
-
-    AttackTable attacks = 0ULL;
-
-    int file = square % 8;
-    int rank = square / 8;
-
-    for (int j = 0; j < 8; j++)
-    {
-        int offset = KNIGHT_OFFSETS[j];
-        int target = square + offset;
-
-        if (target < 0 || target >= 64) continue;
-
-        int target_file = target % 8;
-        int target_rank = target / 8;
-
-        // Ensure the knight didn't wrap around the board
-        if (abs(target_file - file) > 2 || abs(target_rank - rank) > 2) continue;
-
-        attacks |= (1ULL << target);
-    }
-
-    return attacks;
-}
-
-Bitboard attack_generate_single_sliding(Game *game, int square, int piece_type)
-{
-    if (!game) return 0;
-
-    switch (piece_type)
-    {
-        case BISHOP:
-            return magic_get_bishop_attacks(square, game->occupancy[BOTH]);
-
-        case ROOK:
-            return magic_get_rook_attacks(square, game->occupancy[BOTH]);
-
-        case QUEEN:
-            return magic_get_bishop_attacks(square, game->occupancy[BOTH]) |
-                   magic_get_rook_attacks(square, game->occupancy[BOTH]);
-
-        case KING:
-            return game->attack_tables_pc[KING][square];
-
-        default:
-            return 0ULL;
-    }
-}
-

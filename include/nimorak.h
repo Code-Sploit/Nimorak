@@ -57,6 +57,7 @@ typedef struct {
     int              turn;
     int              enpassant_square;
     int              history_count;
+    int              board_is_first_load;
     CastlingRights   castling_rights;
 
     // Board and occupancy
@@ -64,6 +65,7 @@ typedef struct {
     Bitboard         occupancy[3];             // [color]
     
     // Attack data
+    Bitboard         attack_map_includes_square;
     Bitboard         attack_map[2][64];        // [color][square]
     Bitboard         attack_map_full[2];       // [color]
     AttackTable      attack_tables_pc[7][64];  // [piece_type][square]

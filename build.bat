@@ -1,8 +1,8 @@
 @echo off
 echo Compiling Nimorak chess engine...
 
-REM Set compiler flags
-set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g
+REM Set compiler flags for optimization, debugging, and warnings
+set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g -DNDEBUG -funroll-loops -fomit-frame-pointer
 
 REM Include directory
 set INCLUDE=-Iinclude

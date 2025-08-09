@@ -29,7 +29,7 @@ long long perft(Game *game, int depth)
 
         nodes += perft(game, depth - 1);
         
-        board_unmake_move(game, move);
+        board_unmake_move(game);
     }
 
     return nodes;
@@ -60,7 +60,7 @@ void perft_root(Game *game, int depth)
 
         long long nodes = perft(game, depth - 1);
         
-        board_unmake_move(game, move);
+        board_unmake_move(game);
 
         printf("%s: %lld\n", board_move_to_string(move), nodes);
 

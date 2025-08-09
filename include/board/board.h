@@ -8,7 +8,7 @@
 void board_load_fen(Game *game, const char *fen_string);
 void board_print(Game *game);
 void board_make_move(Game *game, Move move);
-void board_unmake_move(Game *game, Move move);
+void board_unmake_move(Game *game);
 
 int board_is_on_rank(int square, int rank);
 int board_find_king(const Game *game, int color);
@@ -28,8 +28,10 @@ void board_set_square(Game *game, int square, Piece piece);
 
 Piece board_get_square(const Game *game, int square);
 
-int board_check_square(const Game *game, int square);
-
 bool board_is_same_line(int from, int to, int offset);
+
+bool board_move_gives_check(Game *game, Move move);
+
+bool board_is_same_ray(int square_a, int square_b);
 
 #endif

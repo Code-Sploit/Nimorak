@@ -50,15 +50,6 @@ inline Piece board_get_square(const Game *game, int square)
     return game->board_ghost[square];
 }
 
-// Inline fast check_square, no safety checks
-int board_check_square(const Game *game, int square)
-{
-    // Optionally safety:
-    // if (!game || (unsigned)square >= 64) return 0;
-
-    return GET_TYPE(game->board_ghost[square]) != EMPTY;
-}
-
 void board_array_from_bitboards(Game *game) {
     if (!game) return;
 
@@ -84,6 +75,8 @@ void board_array_from_bitboards(Game *game) {
 void board_load_fen(Game *game, const char *fen_string)
 {
     if (!game || !fen_string) return;
+
+    if (!game->board_is_first_load) game->board_is_first_load = 1;
 
     // Clear all bitboards
     memset(game->board, 0, sizeof(game->board));
@@ -167,8 +160,11 @@ void board_load_fen(Game *game, const char *fen_string)
     // Can be added here if needed
 
     // Recalculate attack tables
-    attack_generate_table(game, WHITE);
-    attack_generate_table(game, BLACK);
+    if (game->board_is_first_load)
+    {
+        attack_generate_table(game, WHITE);
+        attack_generate_table(game, BLACK);
+    }
 }
 
 void board_print(Game *game)
@@ -237,6 +233,7 @@ void board_make_move(Game *game, Move move) {
 
     // Save full state snapshot
     State s;
+
     s.castling_rights = game->castling_rights;
     s.enpassant_square = game->enpassant_square;
     s.captured_piece = captured;
@@ -283,6 +280,7 @@ void board_make_move(Game *game, Move move) {
 
     // Update castling rights
     const int piece_type = GET_TYPE(piece);
+
     if (piece_type == KING) {
         game->castling_rights &= ~(color == WHITE ? (WHITE_KINGSIDE | WHITE_QUEENSIDE) : (BLACK_KINGSIDE | BLACK_QUEENSIDE));
     } else if (piece_type == ROOK) {
@@ -319,7 +317,8 @@ void board_make_move(Game *game, Move move) {
     repetition_push(game, game->zobrist_key);
 }
 
-void board_unmake_move(Game *game, Move move) {
+void board_unmake_move(Game *game)
+{
     if (!game) return;
     if (game->history_count <= 0) {
         fprintf(stderr, "Error: unmake_move with empty history!\n");
@@ -344,20 +343,20 @@ void board_unmake_move(Game *game, Move move) {
     repetition_pop(game);
 }
 
-int board_is_on_rank(int square, int rank)
+inline int board_is_on_rank(int square, int rank)
 {
     // Assuming square is always valid; remove bounds check for speed
     return ((square >> 3) == rank);
 }
 
-int board_find_king(const Game *game, int color)
+inline int board_find_king(const Game *game, int color)
 {
     // Assuming game->board[color][KING] always valid
     uint64_t king_bb = game->board[color][KING];
     return king_bb ? __builtin_ctzll(king_bb) : -1;
 }
 
-int board_is_king_in_check(const Game *game, int color)
+inline int board_is_king_in_check(const Game *game, int color)
 {
     int king_square = board_find_king(game, color);
     if ((unsigned)king_square >= 64) return 0;  // safer cast & check
@@ -482,20 +481,25 @@ Move board_parse_move(Game *game, const char *move_str)
     return move;
 }
 
-int board_has_castling_rights(Game *game, int color)
+inline int board_has_castling_rights(Game *game, int color)
 {
-    if (color == WHITE) return (game->castling_rights & (WHITE_KINGSIDE | WHITE_QUEENSIDE)) != 0;
-    if (color == BLACK) return (game->castling_rights & (BLACK_KINGSIDE | BLACK_QUEENSIDE)) != 0;
+    // Predefined masks indexed by color (assuming WHITE=0, BLACK=1)
+    static const int castling_masks[2] = {
+        WHITE_KINGSIDE | WHITE_QUEENSIDE,
+        BLACK_KINGSIDE | BLACK_QUEENSIDE
+    };
 
-    return 0;
+    if (color < 0 || color > 1) return 0; // safety check
+
+    return (game->castling_rights & castling_masks[color]) != 0;
 }
 
-int board_has_castling_rights_side(Game *game, int side)
+inline int board_has_castling_rights_side(Game *game, int side)
 {
     return (game->castling_rights & side) != 0;
 }
 
-bool board_is_same_line(int from, int to, int offset) {
+inline bool board_is_same_line(int from, int to, int offset) {
     int from_rank = from / 8, from_file = from % 8;
     int to_rank = to / 8, to_file = to % 8;
 
@@ -515,4 +519,28 @@ bool board_is_same_line(int from, int to, int offset) {
         default:
             return false;
     }
+}
+
+inline bool board_move_gives_check(Game *game, Move move)
+{
+    if (!game) return false;
+
+    board_make_move(game, move);
+
+    bool check = board_is_king_in_check(game, game->turn);
+
+    board_unmake_move(game);
+
+    return check;
+}
+
+inline bool board_is_same_ray(int square_a, int square_b)
+{
+    int rank_a = square_a / 8;
+    int rank_b = square_b / 8;
+
+    int file_a = square_a % 8;
+    int file_b = square_b % 8;
+    
+    return (rank_a == rank_b || file_a == file_b || abs(rank_a - rank_b) == abs(file_a - file_b));
 }
