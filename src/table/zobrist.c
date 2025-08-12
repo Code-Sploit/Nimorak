@@ -1,6 +1,8 @@
 #include <table/transposition.h>
 #include <table/zobrist.h>
 
+#include <board/board.h>
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -18,20 +20,19 @@ ZobristHash zobrist_compute_hash(Game *game)
 {
     ZobristHash hash = 0ULL;
 
-    for (int color = WHITE; color <= BLACK; color++)
-    {
-        for (int piece = PAWN; piece <= KING; piece++)
-        {
-            uint64_t bb = game->board[color][piece];
-            int index = piece_to_index[color][piece];
+    Bitboard occupancy = game->occupancy[BOTH];
 
-            while (bb)
-            {
-                int sq = __builtin_ctzll(bb);
-                hash ^= zobrist_pieces[index][sq];
-                bb &= bb - 1;
-            }
-        }
+    while (occupancy)
+    {
+        int square = __builtin_ctzll(occupancy);
+
+        Piece piece = board_get_square(game, square);
+
+        int index = piece_to_index[GET_COLOR(piece)][GET_TYPE(piece)];
+
+        hash ^= zobrist_pieces[index][square];
+
+        occupancy &= occupancy - 1;
     }
 
     // Castling rights
