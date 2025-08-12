@@ -225,10 +225,12 @@ void board_make_move(Game *game, Move move) {
     const int to = GET_TO(move);
 
     Piece piece = board_get_square(game, from);
+
     const int color = GET_COLOR(piece);
 
     // Calculate en passant capture square if needed
     const int ep_capture_sq = (color == WHITE) ? to - 8 : to + 8;
+    
     Piece captured = IS_ENPASSANT(move) ? board_get_square(game, ep_capture_sq) : board_get_square(game, to);
 
     // Save full state snapshot
@@ -244,9 +246,9 @@ void board_make_move(Game *game, Move move) {
     memcpy(s.attack_map, game->attack_map, sizeof(game->attack_map));
     memcpy(s.attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
 
-    memcpy(s.board, game->board, sizeof(game->board));
-    memcpy(s.occupancy, game->occupancy, sizeof(game->occupancy));
-    memcpy(s.board_ghost, game->board_ghost, sizeof(game->board_ghost));
+    //memcpy(s.board, game->board, sizeof(game->board));
+    //memcpy(s.occupancy, game->occupancy, sizeof(game->occupancy));
+    //memcpy(s.board_ghost, game->board_ghost, sizeof(game->board_ghost));
 
     game->history[game->history_count++] = s;
 
@@ -324,20 +326,59 @@ void board_unmake_move(Game *game)
         exit(EXIT_FAILURE);
     }
 
-    // Restore full snapshot state
     State *s = &game->history[--game->history_count];
 
+    Move move = s->move;
+    const int from = GET_FROM(move);
+    const int to = GET_TO(move);
+
+    Piece piece = board_get_square(game, to);
+    int color = GET_COLOR(piece);
+
+    // Undo turn flip first (since make_move flips at the end)
+    game->turn = s->turn;
+
+    // Move piece back from `to` to `from`
+    board_set_square(game, to, EMPTY);
+
+    if (IS_PROMO(move)) {
+        // On unmake, remove promoted piece at `to`, restore pawn at `from`
+        board_set_square(game, from, MAKE_PIECE(PAWN, color));
+    } else {
+        board_set_square(game, from, piece);
+    }
+
+    // Restore captured piece
+    if (IS_ENPASSANT(move)) {
+        // Restore the captured pawn behind the `to` square
+        const int ep_capture_sq = (color == WHITE) ? to - 8 : to + 8;
+        board_set_square(game, ep_capture_sq, s->captured_piece);
+    } else if (s->captured_piece != EMPTY) {
+        board_set_square(game, to, s->captured_piece);
+    }
+
+    // Undo castling rook move if castling
+    if (IS_CASTLE(move)) {
+        int rook_from, rook_to;
+        if (to == from + 2) {  // Kingside castle
+            rook_from = from + 3;
+            rook_to = from + 1;
+        } else {               // Queenside castle
+            rook_from = from - 4;
+            rook_to = from - 1;
+        }
+        Piece rook = board_get_square(game, rook_to);
+        board_set_square(game, rook_to, EMPTY);
+        board_set_square(game, rook_from, rook);
+    }
+
+    // Restore castling rights, en passant, zobrist key, and attack tables
     game->castling_rights = s->castling_rights;
     game->enpassant_square = s->enpassant_square;
     game->zobrist_key = s->zobrist_key;
-    game->turn = s->turn;
 
     memcpy(game->attack_map, s->attack_map, sizeof(game->attack_map));
     memcpy(game->attack_map_full, s->attack_map_full, sizeof(game->attack_map_full));
-
-    memcpy(game->board, s->board, sizeof(game->board));
-    memcpy(game->occupancy, s->occupancy, sizeof(game->occupancy));
-    memcpy(game->board_ghost, s->board_ghost, sizeof(game->board_ghost));
 
     repetition_pop(game);
 }

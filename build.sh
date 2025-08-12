@@ -1,6 +1,6 @@
 echo Compiling Nimorak chess engine...
 
-FLAGS="-Ofast -march=native -std=c99 -Wall -Wextra -flto -g -DNDEBUG -funroll-loops -fomit-frame-pointer"
+FLAGS="-Ofast -march=native -std=c99 -Wall -Wextra -flto -DNDEBUG -funroll-loops -fomit-frame-pointer -fstrict-aliasing"
 
 INCLUDE="-Iinclude"
 

@@ -297,7 +297,7 @@ int eval_position(Game *game)
 
     score += eval_material(game);
     score += eval_piece_squares(game);
-    score += eval_endgame_king_to_corner(game);
+    //score += eval_endgame_king_to_corner(game);
     score += eval_center_control(game);
 
     return (game->turn == WHITE) ? score : -score;
