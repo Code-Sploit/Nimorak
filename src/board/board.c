@@ -304,14 +304,13 @@ void board_make_move(Game *game, Move move) {
     game->enpassant_square = IS_DOUBLE_PUSH(move) ? (color == WHITE ? to - 8 : to + 8) : -1;
 
     // Update attack tables incrementally
-    attack_generate_table(game, game->turn);
-    attack_generate_table(game, !game->turn);
+    attack_generate_all(game);
 
     // Flip side to move
     game->turn ^= 1;
 
     // Update zobrist hash incrementally
-    zobrist_update_board(game);
+    zobrist_update_move(game, move, &s);
 
     // Push repetition key
     repetition_push(game, game->zobrist_key);

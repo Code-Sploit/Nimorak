@@ -109,6 +109,65 @@ void attack_generate_table(Game *game, int color) {
     game->attack_map_full[color] = full;
 }
 
+void attack_generate_all(Game *game)
+{
+    // Local occupancy (both colors combined)
+    Bitboard occ = game->occupancy[BOTH];
+
+    // Clear attack maps
+    memset(game->attack_map, 0, sizeof(game->attack_map));
+    game->attack_map_full[WHITE] = 0ULL;
+    game->attack_map_full[BLACK] = 0ULL;
+
+    // Track all occupied squares
+    game->attack_map_includes_square = occ;
+
+    // Loop all occupied squares only once
+    Bitboard temp = occ;
+    while (temp)
+    {
+        int sq = __builtin_ctzll(temp);
+        temp &= temp - 1;
+
+        int piece = game->board_ghost[sq];  // Non‐empty guaranteed
+        int color = GET_COLOR(piece);
+        
+        Bitboard attacks;
+
+        switch (GET_TYPE(piece))
+        {
+            case PAWN:
+                attacks = game->attack_tables_pc_pawn[color][sq];
+                break;
+            case KNIGHT:
+                attacks = game->attack_tables_pc[KNIGHT][sq];
+                break;
+            case BISHOP:
+                attacks = magic_get_bishop_attacks(sq, occ);
+                break;
+            case ROOK:
+                attacks = magic_get_rook_attacks(sq, occ);
+                break;
+            case QUEEN:
+                attacks = magic_get_bishop_attacks(sq, occ) |
+                          magic_get_rook_attacks(sq, occ);
+                break;
+            case KING:
+                attacks = game->attack_tables_pc[KING][sq];
+                break;
+            default:
+                attacks = 0ULL; // Should never hit
+                break;
+        }
+
+        // Store per‐square attacks
+        game->attack_map[color][sq] = attacks;
+
+        // Add to per‐color aggregate
+        game->attack_map_full[color] |= attacks;
+    }
+}
+
 void attack_print_table(Game *game, int color)
 {
     uint64_t bitboard = game->attack_map_full[color];

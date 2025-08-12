@@ -54,6 +54,60 @@ ZobristHash zobrist_compute_hash(Game *game)
     return hash;
 }
 
+void zobrist_update_move(Game *game, Move move, State *old_state) {
+    int from = GET_FROM(move);
+    int to = GET_TO(move);
+    int color = game->turn;  // side to move before flipping
+
+    ZobristHash hash = 0ULL;
+
+    Piece moved_piece = board_get_square(game, from);
+    Piece captured_piece = (IS_ENPASSANT(move)) 
+        ? board_get_square(game, (color == WHITE ? to - 8 : to + 8))
+        : board_get_square(game, to);
+
+    // XOR out moved piece on from square
+    hash ^= zobrist_pieces[piece_to_index[GET_COLOR(moved_piece)][GET_TYPE(moved_piece)]][from];
+
+    // XOR in empty on from square (implicitly no XOR needed, since empty not hashed)
+
+    // XOR out captured piece on to square (or ep square)
+    if (captured_piece != EMPTY) {
+        int cap_sq = IS_ENPASSANT(move) ? (color == WHITE ? to - 8 : to + 8) : to;
+        hash ^= zobrist_pieces[piece_to_index[GET_COLOR(captured_piece)][GET_TYPE(captured_piece)]][cap_sq];
+    }
+
+    // XOR in moved piece on to square (or promo piece)
+    Piece piece_to_hash = moved_piece;
+    if (IS_PROMO(move)) {
+        piece_to_hash = MAKE_PIECE(GET_PROMO(move), color);
+    }
+    hash ^= zobrist_pieces[piece_to_index[GET_COLOR(piece_to_hash)][GET_TYPE(piece_to_hash)]][to];
+
+    // Handle castling rook move XORs similarly if castle
+
+    // XOR out old castling rights and XOR in new castling rights
+    hash ^= zobrist_castling[old_state->castling_rights];
+    hash ^= zobrist_castling[game->castling_rights];
+
+    // XOR out old en passant (if any) and XOR in new en passant (if any)
+    if (old_state->enpassant_square != -1) {
+        int file = old_state->enpassant_square & 7;
+        hash ^= zobrist_enpassant[file];
+    }
+    if (game->enpassant_square != -1) {
+        int file = game->enpassant_square & 7;
+        hash ^= zobrist_enpassant[file];
+    }
+
+    // XOR side to move
+    hash ^= zobrist_turn;
+
+    // Update game->zobrist_key = hash;
+
+    game->zobrist_key = hash;
+}
+
 void zobrist_init()
 {
     srand(12345678);

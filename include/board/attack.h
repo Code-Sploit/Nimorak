@@ -14,4 +14,6 @@ void attack_print_table(Game *game, int color);
 
 AttackTable attack_get_table(Game *game, int color);
 
+void attack_generate_all(Game *game);
+
 #endif
