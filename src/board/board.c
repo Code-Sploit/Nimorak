@@ -302,7 +302,6 @@ void board_make_move(Game *game, Move move) {
     game->enpassant_square = IS_DOUBLE_PUSH(move) ? (color == WHITE ? to - 8 : to + 8) : -1;
 
     // Update attack tables incrementally
-    //attack_generate_all(game);
     attack_update_incremental(game, move);
 
     // Flip side to move

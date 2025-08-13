@@ -22,11 +22,11 @@ static inline AttackTable attack_generate_sliders(int piece_type, int square, Bi
     }
 }
 
-static inline bool attack_sliding_piece_line_intersects_square(int slider_square, int target_square, int piece_type, Bitboard occupancy)
+static inline bool attack_sliding_piece_line_intersects_square(Game *game, int slider_square, int target_square, int piece_type, Bitboard occupancy)
 {
     if (!IS_SLIDING_PIECE(piece_type)) return false;
     
-    AttackTable attacks = attack_generate_sliders(piece_type, slider_square, occupancy);
+    AttackTable attacks = game->attack_tables_pc[piece_type][slider_square];
     
     return (attacks & (1ULL << target_square)) != 0;
 }
@@ -266,7 +266,9 @@ void attack_update_incremental(Game *game, Move move)
     if (new_att_to) game->attack_map_full[color] |= new_att_to;
 
     // --- 4) Sliding pieces affected by move ---
-    Bitboard sliders = board_get_sliding_pieces_bitboard(game, WHITE) | board_get_sliding_pieces_bitboard(game, BLACK);
+    Bitboard sliders = board_get_sliding_pieces_bitboard(game, WHITE) |
+                       board_get_sliding_pieces_bitboard(game, BLACK);
+
     while (sliders) {
         int sq = __builtin_ctzll(sliders);
         sliders &= sliders - 1;
@@ -277,33 +279,48 @@ void attack_update_incremental(Game *game, Move move)
 
         if (!IS_SLIDING_PIECE(pt)) continue;
 
-        if (attack_sliding_piece_line_intersects_square(sq, from, pt, occ) ||
-            attack_sliding_piece_line_intersects_square(sq, to, pt, occ)) 
+        // Only recompute if the move affects its ray
+        AttackTable old_att = game->attack_map[c][sq];
+        if (old_att & ((1ULL << from) | (1ULL << to)) || attack_sliding_piece_line_intersects_square(game, sq, from, pt, occ) ||
+            attack_sliding_piece_line_intersects_square(game, sq, to, pt, occ)) 
         {
-            AttackTable *map_sq = &game->attack_map[c][sq]; // small pointer trick
-            AttackTable old_att = *map_sq;
             if (old_att) game->attack_map_full[c] &= ~old_att;
 
             AttackTable recalculated = attack_generate_sliders(pt, sq, occ);
-            *map_sq = recalculated;
+            game->attack_map[c][sq] = recalculated;
             if (recalculated) game->attack_map_full[c] |= recalculated;
         }
     }
 
     // --- 5) Pawns and knights (unrolled slightly) ---
-    for (int pt = PAWN; pt <= KNIGHT; pt += (pt==PAWN?1:2)) {
-        Bitboard pieces = game->board[color][pt];
+    // Precompute tables and boards
+    Bitboard piece_bb[2] = { game->board[color][PAWN], game->board[color][KNIGHT] };
+    AttackTable *tables[2] = { game->attack_tables_pc_pawn[color], game->attack_tables_pc[KNIGHT] };
+
+    AttackTable add_accum = 0ULL;    // attacks to add
+    AttackTable remove_accum = 0ULL; // attacks to remove
+
+    for (int i = 0; i < 2; i++) {
+        Bitboard pieces = piece_bb[i];
+        AttackTable *table = tables[i];
+
         while (pieces) {
             int sq = __builtin_ctzll(pieces);
             pieces &= pieces - 1;
 
             AttackTable *map_sq = &game->attack_map[color][sq];
-            if (*map_sq) game->attack_map_full[color] &= ~(*map_sq);
+            AttackTable new_att = table[sq];
+            AttackTable old_att = *map_sq;
 
-            AttackTable new_att = (pt==PAWN) ? game->attack_tables_pc_pawn[color][sq]
-                                             : game->attack_tables_pc[KNIGHT][sq];
             *map_sq = new_att;
-            if (new_att) game->attack_map_full[color] |= new_att;
+
+            if (old_att)    remove_accum |= old_att; // accumulate attacks to remove
+            if (new_att)    add_accum |= new_att;    // accumulate attacks to add
         }
     }
+
+    // Apply all changes in one memory write
+    game->attack_map_full[color] &= ~remove_accum;
+    game->attack_map_full[color] |= add_accum;
+
 }
