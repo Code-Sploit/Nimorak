@@ -265,7 +265,8 @@ void attack_update_incremental(Game *game, Move move)
     game->attack_map[color][to] = new_att_to;
     if (new_att_to) game->attack_map_full[color] |= new_att_to;
 
-    // --- 4) Sliding pieces affected by move ---
+    // --- 4) Sliding pieces affected by move using ray masks ---
+    // Precompute sliding piece bitboards
     Bitboard sliders = board_get_sliding_pieces_bitboard(game, WHITE) |
                        board_get_sliding_pieces_bitboard(game, BLACK);
 
@@ -279,26 +280,25 @@ void attack_update_incremental(Game *game, Move move)
 
         if (!IS_SLIDING_PIECE(pt)) continue;
 
-        // Only recompute if the move affects its ray
-        AttackTable old_att = game->attack_map[c][sq];
-        if (old_att & ((1ULL << from) | (1ULL << to)) || attack_sliding_piece_line_intersects_square(game, sq, from, pt, occ) ||
-            attack_sliding_piece_line_intersects_square(game, sq, to, pt, occ)) 
-        {
+        // Only update if move affects piece along precomputed rays
+        Bitboard move_mask = (1ULL << from) | (1ULL << to);
+        if (move_mask & game->attack_tables_pc[pt][sq]) {
+            AttackTable old_att = game->attack_map[c][sq];
             if (old_att) game->attack_map_full[c] &= ~old_att;
 
             AttackTable recalculated = attack_generate_sliders(pt, sq, occ);
             game->attack_map[c][sq] = recalculated;
+
             if (recalculated) game->attack_map_full[c] |= recalculated;
         }
     }
 
     // --- 5) Pawns and knights (unrolled slightly) ---
-    // Precompute tables and boards
     Bitboard piece_bb[2] = { game->board[color][PAWN], game->board[color][KNIGHT] };
     AttackTable *tables[2] = { game->attack_tables_pc_pawn[color], game->attack_tables_pc[KNIGHT] };
 
-    AttackTable add_accum = 0ULL;    // attacks to add
-    AttackTable remove_accum = 0ULL; // attacks to remove
+    AttackTable add_accum = 0ULL;
+    AttackTable remove_accum = 0ULL;
 
     for (int i = 0; i < 2; i++) {
         Bitboard pieces = piece_bb[i];
@@ -314,13 +314,14 @@ void attack_update_incremental(Game *game, Move move)
 
             *map_sq = new_att;
 
-            if (old_att)    remove_accum |= old_att; // accumulate attacks to remove
-            if (new_att)    add_accum |= new_att;    // accumulate attacks to add
+            if (old_att) remove_accum |= old_att;
+            if (new_att) add_accum |= new_att;
         }
     }
 
     // Apply all changes in one memory write
     game->attack_map_full[color] &= ~remove_accum;
     game->attack_map_full[color] |= add_accum;
-
 }
+
+
