@@ -3,6 +3,7 @@
 #include <board/board.h>
 
 #include <table/magic.h>
+#include <table/zobrist.h>
 
 #include <nimorak.h>
 
@@ -193,27 +194,43 @@ void attack_generate_all(Game *game)
 
 void attack_print_table(Game *game, int color)
 {
-    uint64_t bitboard = game->attack_map_full[color];
+    if (!game) return;
 
-    printf("\nAttack Table for %s:\n\n", color == WHITE ? "WHITE" : "BLACK");
+    printf("\n");
+
+    Bitboard attack_map = game->attack_map_full[color];
 
     for (int rank = 7; rank >= 0; rank--)
     {
-        printf("%d  ", rank + 1); // Print rank numbers (1-8)
+        printf(" +---+---+---+---+---+---+---+---+\n ");
 
         for (int file = 0; file < 8; file++)
         {
             int square = rank * 8 + file;
 
-            if ((bitboard >> square) & 1ULL)
-                printf("x ");
+            if ((attack_map & (1ULL << square)) == 0)
+            {
+                printf("|   ");
+            }
             else
-                printf(". ");
+            {
+                printf("| X ");
+            }
         }
+
+        printf("| %d  ", rank + 1);
+
         printf("\n");
     }
 
-    printf("\n   a b c d e f g h\n\n"); // Print file letters
+    printf(" +---+---+---+---+---+---+---+---+\n ");
+
+    printf("  a   b   c   d   e   f   g   h \n");
+
+    printf("\nFEN: %s\n", board_generate_fen(game));
+    printf("Zobrist Key: %s\n", zobrist_key_to_string(game->zobrist_key));
+    printf("Checkers: '%s'\n", board_get_checkers(game));
+    printf("\n");
 }
 
 void attack_update_incremental(Game *game, Move move)
@@ -222,7 +239,6 @@ void attack_update_incremental(Game *game, Move move)
     int to   = GET_TO(move);
 
     Bitboard occ = game->occupancy[BOTH];
-
     Piece moving_piece = board_get_square(game, to);
     int color = GET_COLOR(moving_piece);
     int opponent = color ^ 1;
@@ -235,14 +251,14 @@ void attack_update_incremental(Game *game, Move move)
         game->attack_map[color][from] = 0ULL;
     }
 
-    // --- Remove enemy attack at 'to' ---
+    // --- 2) Remove enemy attack at 'to' ---
     AttackTable old_att_to_enemy = game->attack_map[opponent][to];
     if (old_att_to_enemy) {
         game->attack_map_full[opponent] &= ~old_att_to_enemy;
         game->attack_map[opponent][to] = 0ULL;
     }
 
-    // --- 2) Capture removal ---
+    // --- 3) Capture removal ---
     int capture_sq = IS_ENPASSANT(move) ? (color == WHITE ? to-8 : to+8) : to;
     Piece captured_piece = board_get_square(game, capture_sq);
     if (captured_piece != EMPTY) {
@@ -254,46 +270,53 @@ void attack_update_incremental(Game *game, Move move)
         }
     }
 
-    // --- 3) Recompute attacks for moved piece ---
-    AttackTable new_att_to;
-    if (IS_SLIDING_PIECE(moved_type))
-        new_att_to = attack_generate_sliders(moved_type, to, occ);
+    // --- 4) Recompute attacks for moved piece using magic bitboards ---
+    AttackTable new_att_to = 0ULL;
+
+    if (moved_type == BISHOP)
+        new_att_to = magic_get_bishop_attacks(to, occ);
+    else if (moved_type == ROOK)
+        new_att_to = magic_get_rook_attacks(to, occ);
+    else if (moved_type == QUEEN)
+        new_att_to = magic_get_bishop_attacks(to, occ) | magic_get_rook_attacks(to, occ);
+    else if (moved_type == PAWN)
+        new_att_to = game->attack_tables_pc_pawn[color][to];
     else
-        new_att_to = (moved_type == PAWN) ? game->attack_tables_pc_pawn[color][to] 
-                                          : game->attack_tables_pc[moved_type][to];
+        new_att_to = game->attack_tables_pc[moved_type][to];
 
     game->attack_map[color][to] = new_att_to;
     if (new_att_to) game->attack_map_full[color] |= new_att_to;
 
-    // --- 4) Sliding pieces affected by move using ray masks ---
-    // Precompute sliding piece bitboards
-    Bitboard sliders = board_get_sliding_pieces_bitboard(game, WHITE) |
-                       board_get_sliding_pieces_bitboard(game, BLACK);
+    // --- 5) Update only sliders affected by this move ---
+    Bitboard all_sliders = board_get_sliding_pieces_bitboard(game, WHITE) |
+                           board_get_sliding_pieces_bitboard(game, BLACK);
 
-    while (sliders) {
-        int sq = __builtin_ctzll(sliders);
-        sliders &= sliders - 1;
+    Bitboard affected_sliders = all_sliders & (magic_get_bishop_attacks(from, game->occupancy[BOTH]) | magic_get_bishop_attacks(to, game->occupancy[BOTH]) |
+                                               magic_get_rook_attacks(from, game->occupancy[BOTH])   | magic_get_rook_attacks(to, game->occupancy[BOTH]));
 
-        Piece p = board_get_square(game, sq);
-        int pt = GET_TYPE(p);
-        int c  = GET_COLOR(p);
+    while (affected_sliders) {
+        int sq = __builtin_ctzll(affected_sliders);
+        affected_sliders &= affected_sliders - 1;
 
-        if (!IS_SLIDING_PIECE(pt)) continue;
+        int pt = GET_TYPE(game->board_ghost[sq]);
+        int c  = GET_COLOR(game->board_ghost[sq]);
 
-        // Only update if move affects piece along precomputed rays
-        Bitboard move_mask = (1ULL << from) | (1ULL << to);
-        if (move_mask & game->attack_tables_pc[pt][sq]) {
-            AttackTable old_att = game->attack_map[c][sq];
-            if (old_att) game->attack_map_full[c] &= ~old_att;
+        AttackTable old_att = game->attack_map[c][sq];
+        if (old_att) game->attack_map_full[c] &= ~old_att;
 
-            AttackTable recalculated = attack_generate_sliders(pt, sq, occ);
-            game->attack_map[c][sq] = recalculated;
+        AttackTable recalculated = 0ULL;
+        if (pt == BISHOP)
+            recalculated = magic_get_bishop_attacks(sq, occ);
+        else if (pt == ROOK)
+            recalculated = magic_get_rook_attacks(sq, occ);
+        else if (pt == QUEEN)
+            recalculated = magic_get_bishop_attacks(sq, occ) | magic_get_rook_attacks(sq, occ);
 
-            if (recalculated) game->attack_map_full[c] |= recalculated;
-        }
+        game->attack_map[c][sq] = recalculated;
+        if (recalculated) game->attack_map_full[c] |= recalculated;
     }
 
-    // --- 5) Pawns and knights (unrolled slightly) ---
+    // --- 6) Pawns and knights ---
     Bitboard piece_bb[2] = { game->board[color][PAWN], game->board[color][KNIGHT] };
     AttackTable *tables[2] = { game->attack_tables_pc_pawn[color], game->attack_tables_pc[KNIGHT] };
 
@@ -319,9 +342,6 @@ void attack_update_incremental(Game *game, Move move)
         }
     }
 
-    // Apply all changes in one memory write
     game->attack_map_full[color] &= ~remove_accum;
     game->attack_map_full[color] |= add_accum;
 }
-
-

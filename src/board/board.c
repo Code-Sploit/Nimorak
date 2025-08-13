@@ -4,6 +4,8 @@
 #include <board/attack.h>
 #include <board/board.h>
 
+#include <table/magic.h>
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -261,6 +263,81 @@ void board_load_fen(Game *game, const char *fen_string)
     }
 }
 
+char *board_get_checkers(Game *game)
+{
+    static char buffer[64]; // stores piece positions as strings like "e4 h5"
+    buffer[0] = '\0';       // start empty
+
+    int us   = game->turn;
+    int them = us ^ 1;
+
+    // Find our king
+    Bitboard king_bb = game->board[us][KING];
+    if (!king_bb) return buffer; // no king (illegal position)
+
+    int king_sq = __builtin_ctzll(king_bb);
+
+    // Current occupancy of all pieces
+    Bitboard occupancy = game->occupancy[BOTH];
+
+    // Bitboard of checking pieces
+    Bitboard checkers_bb = 0ULL;
+
+    for (int pt = PAWN; pt <= KING; pt++) {
+        Bitboard pieces = game->board[them][pt];
+        while (pieces) {
+            int sq = __builtin_ctzll(pieces);
+            pieces &= pieces - 1;
+
+            Bitboard attacks = 0ULL;
+
+            switch (pt) {
+                case PAWN:
+                    attacks = game->attack_tables_pc_pawn[them][sq]; // color-aware pawn attack mask
+                    break;
+
+                case KNIGHT:
+                    attacks = game->attack_tables_pc[KNIGHT][sq];
+                    break;
+
+                case BISHOP:
+                    attacks = magic_get_bishop_attacks(sq, occupancy);
+                    break;
+
+                case ROOK:
+                    attacks = magic_get_rook_attacks(sq, occupancy);
+                    break;
+
+                case QUEEN:
+                    attacks = magic_get_bishop_attacks(sq, occupancy) | magic_get_rook_attacks(sq, occupancy);
+                    break;
+
+                case KING:
+                    attacks = game->attack_tables_pc[KING][sq];
+                    break;
+            }
+
+            if (attacks & (1ULL << king_sq)) {
+                checkers_bb |= (1ULL << sq);
+            }
+        }
+    }
+
+    // Convert checkers bitboard to space-separated string
+    while (checkers_bb) {
+        int sq = __builtin_ctzll(checkers_bb);
+        checkers_bb &= checkers_bb - 1;
+
+        char file = 'a' + (sq % 8);
+        char rank = '1' + (sq / 8);
+        size_t len = strlen(buffer);
+        sprintf(buffer + len, "%c%c ", file, rank);
+    }
+
+    return buffer;
+}
+
+
 void board_print(Game *game)
 {
     if (!game) return;
@@ -306,7 +383,7 @@ void board_print(Game *game)
 
     printf("\nFEN: %s\n", board_generate_fen(game));
     printf("Zobrist Key: %s\n", zobrist_key_to_string(game->zobrist_key));
-
+    printf("Checkers: %s\n", board_get_checkers(game));
     printf("\n");
 }
 
@@ -675,6 +752,5 @@ inline bool board_is_same_ray(int square_a, int square_b)
 
 Bitboard board_get_sliding_pieces_bitboard(Game *game, int color)
 {
-    // do NOT include king
     return game->board[color][BISHOP] | game->board[color][ROOK] | game->board[color][QUEEN];
 }

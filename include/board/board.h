@@ -12,6 +12,7 @@ static inline bool IS_SLIDING_PIECE(int piece_type)
 
 char* board_generate_fen(Game *game);
 void board_load_fen(Game *game, const char *fen_string);
+char *board_get_checkers(Game *game);
 void board_print(Game *game);
 void board_make_move(Game *game, Move move);
 void board_unmake_move(Game *game);
