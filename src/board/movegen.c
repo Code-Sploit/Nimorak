@@ -266,6 +266,8 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
 
     moves->count = 0;
 
+    memset(moves->moves, 0, sizeof(moves->moves));
+
     movegen_generate_pseudo_moves(game, moves, only_captures);
 
     int move_count = moves->count;

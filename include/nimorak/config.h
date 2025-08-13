@@ -1,12 +1,14 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define TT_SIZE (1 << 24)
+#define THREAD_COUNT 4
+
+#define TT_SIZE (1 << 26)
 #define HISTORY_SIZE (1 << 20)
 #define REPETITION_SIZE (1 << 20)
 
 #define SEARCH_ENABLE_QUIESCENSE 1
-#define SEARCH_QUIESCENSE_DEPTH_LIMIT 7
+#define SEARCH_QUIESCENSE_DEPTH_LIMIT 16
 #define SEARCH_MAX_DEPTH 64
 
 #endif

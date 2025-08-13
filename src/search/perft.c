@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 // Recursive perft: counts all leaf nodes
 long long perft(Game *game, int depth)
@@ -83,7 +84,6 @@ void perft_root(Game *game, int depth)
         printf("NPS: %.0f\n", total_nodes / time_spent);
     }
 }
-
 
 // Automated perft test
 void test_perft(Game *game, int depth, long long expected_nodes)

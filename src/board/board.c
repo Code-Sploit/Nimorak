@@ -246,10 +246,6 @@ void board_make_move(Game *game, Move move) {
     memcpy(s.attack_map, game->attack_map, sizeof(game->attack_map));
     memcpy(s.attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
 
-    //memcpy(s.board, game->board, sizeof(game->board));
-    //memcpy(s.occupancy, game->occupancy, sizeof(game->occupancy));
-    //memcpy(s.board_ghost, game->board_ghost, sizeof(game->board_ghost));
-
     game->history[game->history_count++] = s;
 
     // Apply move on bitboards and board_ghost via your existing board_set_square or bitboard ops
@@ -306,7 +302,8 @@ void board_make_move(Game *game, Move move) {
     game->enpassant_square = IS_DOUBLE_PUSH(move) ? (color == WHITE ? to - 8 : to + 8) : -1;
 
     // Update attack tables incrementally
-    attack_generate_all(game);
+    //attack_generate_all(game);
+    attack_update_incremental(game, move);
 
     // Flip side to move
     game->turn ^= 1;
@@ -502,7 +499,7 @@ Move board_parse_move(Game *game, const char *move_str)
         capture = 1;
 
     int enpassant = 0;
-    if (to_sq == game->enpassant_square)
+    if (to_sq == game->enpassant_square && GET_TYPE(game->board_ghost[from_sq]) == PAWN)
     {
         enpassant = 1;
         capture = 1; // En passant is still a capture!

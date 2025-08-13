@@ -57,54 +57,83 @@ ZobristHash zobrist_compute_hash(Game *game)
 void zobrist_update_move(Game *game, Move move, State *old_state) {
     int from = GET_FROM(move);
     int to = GET_TO(move);
-    int color = game->turn;  // side to move before flipping
+    int color = game->turn;  // side to move BEFORE flipping turn
 
-    ZobristHash hash = 0ULL;
+    ZobristHash hash = game->zobrist_key;  // start from current hash for XOR delta
 
     Piece moved_piece = board_get_square(game, from);
-    Piece captured_piece = (IS_ENPASSANT(move)) 
-        ? board_get_square(game, (color == WHITE ? to - 8 : to + 8))
-        : board_get_square(game, to);
 
-    // XOR out moved piece on from square
+    // Captured piece (including en passant special case)
+    Piece captured_piece = EMPTY;
+    if (IS_ENPASSANT(move)) {
+        int ep_capture_sq = (color == WHITE) ? (to - 8) : (to + 8);
+        captured_piece = board_get_square(game, ep_capture_sq);
+    } else {
+        captured_piece = board_get_square(game, to);
+    }
+
+    // 1) XOR out moved piece from 'from' square
     hash ^= zobrist_pieces[piece_to_index[GET_COLOR(moved_piece)][GET_TYPE(moved_piece)]][from];
 
-    // XOR in empty on from square (implicitly no XOR needed, since empty not hashed)
-
-    // XOR out captured piece on to square (or ep square)
+    // 2) XOR out captured piece from capture square (if any)
     if (captured_piece != EMPTY) {
-        int cap_sq = IS_ENPASSANT(move) ? (color == WHITE ? to - 8 : to + 8) : to;
+        int cap_sq = IS_ENPASSANT(move) ? ((color == WHITE) ? to - 8 : to + 8) : to;
         hash ^= zobrist_pieces[piece_to_index[GET_COLOR(captured_piece)][GET_TYPE(captured_piece)]][cap_sq];
     }
 
-    // XOR in moved piece on to square (or promo piece)
+    // 3) XOR in moved piece on 'to' square (handle promotions)
     Piece piece_to_hash = moved_piece;
     if (IS_PROMO(move)) {
         piece_to_hash = MAKE_PIECE(GET_PROMO(move), color);
     }
     hash ^= zobrist_pieces[piece_to_index[GET_COLOR(piece_to_hash)][GET_TYPE(piece_to_hash)]][to];
 
-    // Handle castling rook move XORs similarly if castle
+    // 4) Handle castling rook moves
+    if (IS_CASTLE(move)) {
+        int rook_from = -1, rook_to = -1;
+        if (color == WHITE) {
+            if (to == 6) {       // White kingside castle
+                rook_from = 7; 
+                rook_to = 5;
+            } else if (to == 2) { // White queenside castle
+                rook_from = 0;
+                rook_to = 3;
+            }
+        } else {
+            if (to == 62) {       // Black kingside castle
+                rook_from = 63;
+                rook_to = 61;
+            } else if (to == 58) { // Black queenside castle
+                rook_from = 56;
+                rook_to = 59;
+            }
+        }
+        if (rook_from != -1 && rook_to != -1) {
+            // XOR out rook from old square
+            hash ^= zobrist_pieces[piece_to_index[color][ROOK]][rook_from];
+            // XOR in rook on new square
+            hash ^= zobrist_pieces[piece_to_index[color][ROOK]][rook_to];
+        }
+    }
 
-    // XOR out old castling rights and XOR in new castling rights
+    // 5) XOR out old castling rights and XOR in new castling rights
     hash ^= zobrist_castling[old_state->castling_rights];
     hash ^= zobrist_castling[game->castling_rights];
 
-    // XOR out old en passant (if any) and XOR in new en passant (if any)
+    // 6) XOR out old en passant file and XOR in new en passant file (if any)
     if (old_state->enpassant_square != -1) {
-        int file = old_state->enpassant_square & 7;
-        hash ^= zobrist_enpassant[file];
+        int old_file = old_state->enpassant_square & 7;
+        hash ^= zobrist_enpassant[old_file];
     }
     if (game->enpassant_square != -1) {
-        int file = game->enpassant_square & 7;
-        hash ^= zobrist_enpassant[file];
+        int new_file = game->enpassant_square & 7;
+        hash ^= zobrist_enpassant[new_file];
     }
 
-    // XOR side to move
+    // 7) XOR side to move (always toggle)
     hash ^= zobrist_turn;
 
-    // Update game->zobrist_key = hash;
-
+    // 8) Update the game hash key
     game->zobrist_key = hash;
 }
 

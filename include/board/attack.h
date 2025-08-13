@@ -16,4 +16,6 @@ AttackTable attack_get_table(Game *game, int color);
 
 void attack_generate_all(Game *game);
 
+void attack_update_incremental(Game *game, Move move);
+
 #endif

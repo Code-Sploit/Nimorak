@@ -9,50 +9,61 @@
 const int piece_values[] = {0, 100, 300, 350, 500, 900};
 
 int eval_pst_table[5][64] = {
-    {0,  0,  0,   0,   0,  0,  0,  0,
-    60, 60, 60,  60,  60, 60, 60, 60,
-    20, 30, 40,  60,  60, 40, 30, 20,
-    10, 20, 40, 120, 120, 40, 20, 10,
-     0, 10, 30,  90,  90, 30, 10,  0,
-    10,  0,-10,  20,  20,-10,  0, 10,
-    10, 20, 20, -30, -30, 20, 20, 10,
-     0,  0,  0,   0,   0,  0,  0,  0},
-
-    {-50,-40,-30,-30,-30,-30,-40,-50,
-    -40,-20,  0,  5,  5,  0,-20,-40,
-    -30,  5, 10, 15, 15, 10,  5,-30,
-    -30,  0, 15, 20, 20, 15,  0,-30,
-    -30,  5, 15, 20, 20, 15,  5,-30,
-    -30,  0, 10, 15, 15, 10,  0,-30,
-    -40,-20,  0,  0,  0,  0,-20,-40,
-    -50,-40,-30,-30,-30,-30,-40,-50},
-
-    {-20,-10,-10,-10,-10,-10,-10,-20,
-    -10,  5,  0,  0,  0,  0,  5,-10,
-    -10, 10, 10, 10, 10, 10, 10,-10,
-    -10,  0, 10, 10, 10, 10,  0,-10,
-    -10,  5,  5, 10, 10,  5,  5,-10,
-    -10,  0,  5, 10, 10,  5,  0,-10,
-    -10,  0,  0,  0,  0,  0,  0,-10,
-    -20,-10,-10,-10,-10,-10,-10,-20},
-
-    {0,  0,  0,  5,  5,  0,  0,  0,
-    -5,  0,  0,  0,  0,  0,  0, -5,
-    -5,  0,  0,  0,  0,  0,  0, -5,
-    -5,  0,  0,  0,  0,  0,  0, -5,
-    -5,  0,  0,  0,  0,  0,  0, -5,
-    -5,  0,  0,  0,  0,  0,  0, -5,
-     5, 10, 10, 10, 10, 10, 10,  5,
-     0,  0,  0,  0,  0,  0,  0,  0},
-
-    {-20,-10,-10, -5, -5,-10,-10,-20,
-    -10,  0,  5,  0,  0,  0,  0,-10,
-    -10,  5,  5,  5,  5,  5,  0,-10,
-     -5,  0,  5,  5,  5,  5,  0, -5,
-      0,  0,  5,  5,  5,  5,  0, -5,
-    -10,  0,  5,  5,  5,  5,  0,-10,
-    -10,  0,  0,  0,  0,  0,  0,-10,
-    -20,-10,-10, -5, -5,-10,-10,-20}
+    // Pawn PST
+    {
+        0,  0,  0,   0,   0,  0,  0,  0,
+        60, 60, 60,  60,  60, 60, 60, 60,
+        20, 30, 40,  60,  60, 40, 30, 20,
+        10, 20, 40, 120, 120, 40, 20, 10,
+         0, 10, 30,  90,  90, 30, 10,  0,
+        10,  0,-10,  20,  20,-10,  0, 10,
+        10, 20, 20, -50, -50, 20, 20, 10,
+         0,  0,  0,   0,   0,  0,  0,  0
+    },
+    // Knight PST
+    {
+        -50,-40,-30,-30,-30,-30,-40,-50,
+        -40,-20,  0,  5,  5,  0,-20,-40,
+        -30,  5, 10, 15, 15, 10,  5,-30,
+        -30,  0, 15, 20, 20, 15,  0,-30,
+        -30,  5, 15, 20, 20, 15,  5,-30,
+        -30,  0, 10, 15, 15, 10,  0,-30,
+        -40,-20,  0,  0,  0,  0,-20,-40,
+        -50,-40,-30,-30,-30,-30,-40,-50
+    },
+    // Bishop PST
+    {
+        -20,-10,-10,-10,-10,-10,-10,-20,
+        -10,  5,  0,  0,  0,  0,  5,-10,
+        -10, 10, 10, 10, 10, 10, 10,-10,
+        -10,  0, 10, 10, 10, 10,  0,-10,
+        -10,  5,  5, 10, 10,  5,  5,-10,
+        -10,  0,  5, 10, 10,  5,  0,-10,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -20,-10,-10,-10,-10,-10,-10,-20
+    },
+    // Rook PST
+    {
+         0,  0,  0,  5,  5,  0,  0,  0,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+         5, 10, 10, 10, 10, 10, 10,  5,
+         0,  0,  0,  0,  0,  0,  0,  0
+    },
+    // Queen PST
+    {
+        -20,-10,-10, -5, -5,-10,-10,-20,
+        -10,  0,  5,  0,  0,  0,  0,-10,
+        -10,  5,  5,  5,  5,  5,  0,-10,
+         -5,  0,  5,  5,  5,  5,  0, -5,
+          0,  0,  5,  5,  5,  5,  0, -5,
+        -10,  0,  5,  5,  5,  5,  0,-10,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -20,-10,-10, -5, -5,-10,-10,-20
+    }
 };
 
 int eval_king_mid_pst[64] = {
@@ -88,43 +99,6 @@ int mirror[64] = {
      0, 1, 2, 3, 4, 5, 6, 7
 };
 
-static inline const char *color_to_text(int color)
-{
-    switch (color)
-    {
-        case WHITE: return "White";
-        case BLACK: return "Black";
-    }
-
-    return "-";
-}
-
-static inline const char *piece_to_text(int piece_type)
-{
-    switch (piece_type)
-    {
-        case PAWN: return "Pawn";
-        case KNIGHT: return "Knight";
-        case BISHOP: return "Bishop";
-        case ROOK: return "Rook";
-        case QUEEN: return "Queen";
-    }
-
-    return "-";
-}
-
-static inline const char *square_to_text(int square) {
-    static char square_str[3];
-    int file = square % 8;
-    int rank = square / 8;
-
-    square_str[0] = 'a' + file;
-    square_str[1] = '1' + rank;
-    square_str[2] = '\0';
-
-    return square_str;
-}
-
 static inline double eval_calculate_endgame_weight(Game *game)
 {
     if (!game) return 0.0;
@@ -146,42 +120,11 @@ static inline double eval_calculate_endgame_weight(Game *game)
     return 1.0 / (1.0 + exp(0.5 * (piece_count - 12)));
 }
 
-int eval_endgame_king_to_corner(Game *game) {
-    if (!game) return 0;
+static inline int count_legal_moves(Game *game, int color)
+{
+    Bitboard mobility = game->attack_map_full[color] & ~game->occupancy[color];
 
-    double endgame_weight = eval_calculate_endgame_weight(game);
-    if (endgame_weight == 0.0) return 0;
-
-    // Determine the attacker — assume it's the side with more material (excluding kings)
-    int material_white = 0, material_black = 0;
-    for (int piece_type = PAWN; piece_type <= QUEEN; piece_type++) {
-        material_white += __builtin_popcountll(game->board[WHITE][piece_type]) * piece_values[piece_type];
-        material_black += __builtin_popcountll(game->board[BLACK][piece_type]) * piece_values[piece_type];
-    }
-
-    int attacker = (material_white > material_black) ? WHITE : BLACK;
-    int defender = attacker ^ 1;
-
-    // Defender king position
-    int ksq = board_find_king(game, defender);
-    int rank = ksq / 8;
-    int file = ksq % 8;
-
-    // Manhattan distance to nearest corner
-    int corners[4][2] = {{0,0}, {0,7}, {7,0}, {7,7}};
-    int min_dist = 14;
-    for (int i = 0; i < 4; i++) {
-        int dist = abs(rank - corners[i][0]) + abs(file - corners[i][1]);
-        if (dist < min_dist) min_dist = dist;
-    }
-
-    // Scale score: closer to corner = higher bonus
-    int max_dist = 14;
-    int base_score = 200 * (max_dist - min_dist) / max_dist;
-    double weighted_score = base_score * endgame_weight;
-
-    // Always return from White's perspective
-    return (attacker == WHITE) ? (int)(weighted_score + 0.5) : -(int)(weighted_score + 0.5);
+    return __builtin_popcountll(mobility);
 }
 
 int eval_center_control(Game *game)
@@ -189,20 +132,23 @@ int eval_center_control(Game *game)
     if (!game) return 0;
 
     int score = 0;
+   
     const int center_squares[4] = {27, 28, 35, 36}; /* d4, e4, d5, e5 */
 
     for (int i = 0; i < 4; i++)
     {
         int sq = center_squares[i];
+
         Piece piece = board_get_square(game, sq);
+        
         int type = GET_TYPE(piece);
         int color = GET_COLOR(piece);
+        int perspective = (color == WHITE) ? 1 : -1;
 
         // Bonus for occupying the center with a pawn
         if (type == PAWN)
         {
-            if (color == WHITE) score += PAWN_CENTER_CONTROL_BONUS;
-            else if (color == BLACK) score -= PAWN_CENTER_CONTROL_BONUS;
+            score += PAWN_CENTER_CONTROL_BONUS * perspective;
         }
 
         // Bonus for controlling center square via attack
@@ -220,7 +166,7 @@ int eval_material(Game *game)
 {
     if (!game) return 0;
 
-    int piece_count[2][7];
+    int piece_count[2][7] = {{0}};
 
     int score = 0;
 
@@ -233,8 +179,6 @@ int eval_material(Game *game)
             while (pieces)
             {
                 piece_count[color][piece_type]++;
-
-               // printf("[EVAL]: Found %s %s on square %s\n", color_to_text(color), piece_to_text(piece_type), square_to_text(square));
 
                 score += piece_values[piece_type] * ((color == WHITE) ? 1 : -1);
 
@@ -261,21 +205,18 @@ int eval_piece_squares(Game *game)
             while (pieces)
             {
                 int square = __builtin_ctzll(pieces);
+                int real_square = (color == BLACK) ? square : mirror[square];
+                int perspective = (color == WHITE) ? 1 : -1;
 
                 if (piece == KING)
                 {
-                    int endgame_weight = eval_calculate_endgame_weight(game);
-                    int real_square = (color == WHITE) ? square : mirror[square];
-
-                    score += eval_king_mid_pst[real_square] + (endgame_weight * eval_king_end_pst[real_square]);
+                    double endgame_weight = eval_calculate_endgame_weight(game); // Should be float between 0 and 1
+                    
+                    score += (int)((1.0f - endgame_weight) * eval_king_mid_pst[real_square]
+                                  + endgame_weight * eval_king_end_pst[real_square]) * perspective;
                 }
                 else
                 {
-                    int real_square = (color == WHITE) ? square : mirror[square];
-                    int perspective = (color == WHITE) ? 1 : -1;
-
-                    //if (piece == PAWN) printf("evaluating black pawn for square %d transforming to real square gives %d with eval %d\n", square, real_square, eval_pst_table[piece - 1][real_square] * perspective);
-
                     score += eval_pst_table[piece - 1][real_square] * perspective;
                 }
 
@@ -289,15 +230,10 @@ int eval_piece_squares(Game *game)
 
 int eval_position(Game *game)
 {
-    if (!game) return 0;
-
-    //printf("Evaluating position...\n\n");
-
     int score = 0;
 
     score += eval_material(game);
     score += eval_piece_squares(game);
-    //score += eval_endgame_king_to_corner(game);
     score += eval_center_control(game);
 
     return (game->turn == WHITE) ? score : -score;

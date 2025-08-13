@@ -69,6 +69,7 @@ void search_order_moves(Game *game, MoveList *movelist, int ply)
     if (!game || movelist->count == 0) return;
 
     MoveScore scored_moves[MAX_MOVES];
+
     int count = movelist->count;
 
     for (int i = 0; i < count; i++)
@@ -160,7 +161,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
     return alpha;
 }
 
-int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta, int ply)
+int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
 {
     if (!game) return 0;
 
@@ -174,10 +175,10 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
             search_quiescense(game, alpha, beta, 0, ply) :
             eval_position(game);
 
-        // Mate score adjustment for distance pruning
-        if (score > MATE_SCORE - SEARCH_MAX_DEPTH)
+        // Mate score adjustment for distance pruning (using a large constant threshold)
+        if (score > MATE_SCORE - 1000)
             score -= ply;
-        else if (score < -MATE_SCORE + SEARCH_MAX_DEPTH)
+        else if (score < -MATE_SCORE + 1000)
             score += ply;
 
         return score;
@@ -212,7 +213,7 @@ int search_negamax(Game *game, int initial_depth, int depth, int alpha, int beta
         Move move = movelist.moves[i];
         board_make_move(game, move);
 
-        int eval = -search_negamax(game, initial_depth, depth - 1, -beta, -alpha, ply + 1);
+        int eval = -search_negamax(game, depth - 1, -beta, -alpha, ply + 1);
 
         board_unmake_move(game);
 
@@ -261,7 +262,6 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
     clock_t start_time = clock();
 
     Move best_move_so_far = 0;
-
     MoveList movelist;
 
     for (int depth = 1; depth <= max_depth; depth++)
@@ -289,7 +289,8 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
             Move move = movelist.moves[i];
             board_make_move(game, move);
 
-            int score = -search_negamax(game, depth, depth - 1, -INF, INF, 1);
+            // Call negamax with ply=0 at root
+            int score = -search_negamax(game, depth - 1, -INF, INF, 0);
 
             board_unmake_move(game);
 

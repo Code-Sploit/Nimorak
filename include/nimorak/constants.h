@@ -58,7 +58,7 @@ typedef uint8_t Piece;
 
 /* Evaluation */
 
-#define PAWN_CENTER_CONTROL_BONUS 15
+#define PAWN_CENTER_CONTROL_BONUS 80
 #define CENTER_CONTROL_ATTACK_BONUS 10
 
 #define MATE_SCORE 32000
