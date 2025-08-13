@@ -72,6 +72,99 @@ void board_array_from_bitboards(Game *game) {
     }
 }
 
+char* board_generate_fen(Game *game)
+{
+    if (!game) return NULL;
+
+    // Buffer to hold the FEN string (max length should be 256)
+    static char fen_string[256];
+    int index = 0;
+
+    // 1. Generate piece placement
+    for (int rank = 7; rank >= 0; rank--) // Iterate from top (rank 8) to bottom (rank 1)
+    {
+        int empty_count = 0;
+
+        for (int file = 0; file < 8; file++) // Iterate from left (file A) to right (file H)
+        {
+            int square = rank * 8 + file;
+            Piece piece = board_get_square(game, square); // Get the piece on this square
+
+            if (GET_TYPE(piece) == EMPTY)
+            {
+                empty_count++;
+            }
+            else
+            {
+                if (empty_count > 0)
+                {
+                    // Add empty squares count to FEN string
+                    fen_string[index++] = '0' + empty_count;
+                    empty_count = 0;
+                }
+
+                // Append the piece (uppercase for white, lowercase for black)
+                char piece_char;
+                switch (GET_TYPE(piece))
+                {
+                    case PAWN:   piece_char = (GET_COLOR(piece) == WHITE) ? 'P' : 'p'; break;
+                    case KNIGHT: piece_char = (GET_COLOR(piece) == WHITE) ? 'N' : 'n'; break;
+                    case BISHOP: piece_char = (GET_COLOR(piece) == WHITE) ? 'B' : 'b'; break;
+                    case ROOK:   piece_char = (GET_COLOR(piece) == WHITE) ? 'R' : 'r'; break;
+                    case QUEEN:  piece_char = (GET_COLOR(piece) == WHITE) ? 'Q' : 'q'; break;
+                    case KING:   piece_char = (GET_COLOR(piece) == WHITE) ? 'K' : 'k'; break;
+                    default:     piece_char = ' '; break;
+                }
+                fen_string[index++] = piece_char;
+            }
+        }
+
+        // If there are empty squares at the end of the rank, add the count
+        if (empty_count > 0)
+        {
+            fen_string[index++] = '0' + empty_count;
+        }
+
+        if (rank > 0)
+        {
+            fen_string[index++] = '/'; // Separator between ranks
+        }
+    }
+
+    fen_string[index++] = ' ';
+
+    // 2. Add turn (white or black)
+    fen_string[index++] = (game->turn == WHITE) ? 'w' : 'b';
+    fen_string[index++] = ' ';
+
+    // 3. Add castling rights
+    if (game->castling_rights == 0)
+    {
+        fen_string[index++] = '-';
+    }
+    else
+    {
+        if (game->castling_rights & 0x1) fen_string[index++] = 'K'; // White kingside
+        if (game->castling_rights & 0x2) fen_string[index++] = 'Q'; // White queenside
+        if (game->castling_rights & 0x4) fen_string[index++] = 'k'; // Black kingside
+        if (game->castling_rights & 0x8) fen_string[index++] = 'q'; // Black queenside
+    }
+    fen_string[index++] = ' ';
+
+    // 4. Add en passant, halfmove clock, and fullmove number (optional, can be skipped for now)
+    // We'll leave it blank for now, as this data isn't specified.
+    fen_string[index++] = '-';
+    fen_string[index++] = ' ';
+    fen_string[index++] = '0'; // Halfmove clock
+    fen_string[index++] = ' ';
+    fen_string[index++] = '1'; // Fullmove number
+
+    // Null-terminate the FEN string
+    fen_string[index] = '\0';
+
+    return fen_string;
+}
+
 void board_load_fen(Game *game, const char *fen_string)
 {
     if (!game || !fen_string) return;
@@ -164,6 +257,7 @@ void board_load_fen(Game *game, const char *fen_string)
     {
         attack_generate_table(game, WHITE);
         attack_generate_table(game, BLACK);
+        zobrist_update_board(game);
     }
 }
 
@@ -177,7 +271,7 @@ void board_print(Game *game)
 
     for (int rank = 7; rank >= 0; rank--)
     {
-        printf("%d  ", rank + 1);
+        printf(" +---+---+---+---+---+---+---+---+\n ");
 
         for (int file = 0; file < 8; file++)
         {
@@ -187,7 +281,7 @@ void board_print(Game *game)
 
             if (p == 0)
             {
-                printf(". ");
+                printf("|   ");
             }
             else
             {
@@ -197,23 +291,21 @@ void board_print(Game *game)
                 char c = piece_chars[type];
                 if (color == 1) c = tolower(c);
 
-                printf("%c ", c);
+                printf("| %c ", c);
             }
         }
+
+        printf("| %d  ", rank + 1);
 
         printf("\n");
     }
 
-    printf("\n   a b c d e f g h\n");
+    printf(" +---+---+---+---+---+---+---+---+\n ");
 
-    printf("\nTurn: %s\n", game->turn == 0 ? "White" : "Black");
+    printf("  a   b   c   d   e   f   g   h \n");
 
-    printf("Castling rights: ");
-    if (game->castling_rights & 0x1) printf("K");
-    if (game->castling_rights & 0x2) printf("Q");
-    if (game->castling_rights & 0x4) printf("k");
-    if (game->castling_rights & 0x8) printf("q");
-    if (game->castling_rights == 0) printf("-");
+    printf("\nFEN: %s\n", board_generate_fen(game));
+    printf("Zobrist Key: %s\n", zobrist_key_to_string(game->zobrist_key));
 
     printf("\n");
 }

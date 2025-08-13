@@ -38,6 +38,8 @@ void uci_loop(Game *game)
         else if (strcmp(input, "ucinewgame") == 0)
         {
             game->history_count = 0;
+            game->zobrist_key = 0ULL;
+            game->board_is_first_load = 0;
             
             repetition_clear(game);
             tt_clear(game);
@@ -176,13 +178,25 @@ void uci_loop(Game *game)
 
                 if (movestogo <= 0) movestogo = 30;
 
-                int think_time = time_left / movestogo;
+                // Base think time
+                int base_time = time_left / movestogo;
+                int think_time = base_time + increment / 2;
 
-                think_time += increment / 2;        // optional: use part of increment
-                if (think_time > time_left - 50)    // never use all time
-                    think_time = time_left - 50;
+                // Cap to 60% of remaining time
+                int max_time = time_left * 60 / 100;
+                if (think_time > max_time)
+                    think_time = max_time;
 
-                if (think_time < 10) think_time = 10;  // minimum think time
+                // Minimum think time
+                if (think_time < 10)
+                    think_time = 10;
+
+                // Critical low time scaling (<1 min)
+                if (time_left < 60000) // less than 1 minute
+                {
+                    think_time = time_left / 10; // only 10% of remaining time
+                    if (think_time < 5) think_time = 5; // at least 5ms
+                }
 
                 best_move = search_start(game, 64, think_time);
             }

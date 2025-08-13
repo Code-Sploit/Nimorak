@@ -4,6 +4,8 @@
 #include <board/board.h>
 
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <time.h>
 
 ZobristHash zobrist_pieces[NUM_PIECE_TYPES][NUM_SQUARES];
@@ -159,4 +161,17 @@ void zobrist_update_board(Game *game)
     if (!game) return;
 
     game->zobrist_key = zobrist_compute_hash(game);
+}
+
+char *zobrist_key_to_string(ZobristHash hash)
+{
+    // Allocate space for 20 characters: "0x" + 16 hex digits + null terminator
+    char *str = malloc(20 * sizeof(char));
+
+    if (str) {
+        // Use %016lx for long unsigned int (ZobristHash)
+        sprintf(str, "0x%016lx", hash);
+    }
+
+    return str;
 }

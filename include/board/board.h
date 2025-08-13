@@ -10,6 +10,7 @@ static inline bool IS_SLIDING_PIECE(int piece_type)
     return (piece_type == BISHOP || piece_type == ROOK || piece_type == QUEEN);
 }
 
+char* board_generate_fen(Game *game);
 void board_load_fen(Game *game, const char *fen_string);
 void board_print(Game *game);
 void board_make_move(Game *game, Move move);

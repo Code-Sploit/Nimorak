@@ -120,11 +120,25 @@ static inline double eval_calculate_endgame_weight(Game *game)
     return 1.0 / (1.0 + exp(0.5 * (piece_count - 12)));
 }
 
-static inline int count_legal_moves(Game *game, int color)
+int eval_check_bishop_pairs(Game *game)
 {
-    Bitboard mobility = game->attack_map_full[color] & ~game->occupancy[color];
+    if (!game) return 0;
 
-    return __builtin_popcountll(mobility);
+    int score = 0;
+
+    Bitboard bishops[2] = {game->board[WHITE][BISHOP], game->board[BLACK][BISHOP]};
+
+    for (int color = WHITE; color <= BLACK; color++)
+    {
+        Bitboard board = bishops[color];
+
+        int count = __builtin_popcountll(board);
+        int perspective = (color == WHITE) ? 1 : -1;
+
+        if (count == 2) score += BISHOP_PAIR_BONUS * perspective;
+    }
+
+    return score;
 }
 
 int eval_center_control(Game *game)
@@ -235,6 +249,7 @@ int eval_position(Game *game)
     score += eval_material(game);
     score += eval_piece_squares(game);
     score += eval_center_control(game);
+    score += eval_check_bishop_pairs(game);
 
     return (game->turn == WHITE) ? score : -score;
 }

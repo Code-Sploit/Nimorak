@@ -15,4 +15,6 @@ void zobrist_update_move(Game *game, Move move, State *old_state);
 void zobrist_update_board(Game *game);
 void zobrist_init();
 
+char *zobrist_key_to_string(ZobristHash hash);
+
 #endif
