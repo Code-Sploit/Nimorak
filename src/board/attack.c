@@ -23,15 +23,6 @@ static inline AttackTable attack_generate_sliders(int piece_type, int square, Bi
     }
 }
 
-static inline bool attack_sliding_piece_line_intersects_square(Game *game, int slider_square, int target_square, int piece_type, Bitboard occupancy)
-{
-    if (!IS_SLIDING_PIECE(piece_type)) return false;
-    
-    AttackTable attacks = game->attack_tables_pc[piece_type][slider_square];
-    
-    return (attacks & (1ULL << target_square)) != 0;
-}
-
 void attack_generate_pawn(Game *game, int color)
 {
     if (!game) return;
