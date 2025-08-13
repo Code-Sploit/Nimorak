@@ -581,3 +581,9 @@ inline bool board_is_same_ray(int square_a, int square_b)
     
     return (rank_a == rank_b || file_a == file_b || abs(rank_a - rank_b) == abs(file_a - file_b));
 }
+
+Bitboard board_get_sliding_pieces_bitboard(Game *game, int color)
+{
+    // do NOT include king
+    return game->board[color][BISHOP] | game->board[color][ROOK] | game->board[color][QUEEN];
+}

@@ -5,6 +5,11 @@
 
 #include <nimorak.h>
 
+static inline bool IS_SLIDING_PIECE(int piece_type)
+{
+    return (piece_type == BISHOP || piece_type == ROOK || piece_type == QUEEN);
+}
+
 void board_load_fen(Game *game, const char *fen_string);
 void board_print(Game *game);
 void board_make_move(Game *game, Move move);
@@ -33,5 +38,7 @@ bool board_is_same_line(int from, int to, int offset);
 bool board_move_gives_check(Game *game, Move move);
 
 bool board_is_same_ray(int square_a, int square_b);
+
+Bitboard board_get_sliding_pieces_bitboard(Game *game, int color);
 
 #endif

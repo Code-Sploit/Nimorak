@@ -11,6 +11,26 @@
 #include <stdio.h>
 #include <string.h>
 
+static inline AttackTable attack_generate_sliders(int piece_type, int square, Bitboard occupancy)
+{
+    switch (piece_type)
+    {
+        case BISHOP: return magic_get_bishop_attacks(square, occupancy);
+        case ROOK:   return magic_get_rook_attacks(square, occupancy);
+        case QUEEN:  return magic_get_bishop_attacks(square, occupancy) | magic_get_rook_attacks(square, occupancy);
+        default:     return 0ULL;
+    }
+}
+
+static inline bool attack_sliding_piece_line_intersects_square(int slider_square, int target_square, int piece_type, Bitboard occupancy)
+{
+    if (!IS_SLIDING_PIECE(piece_type)) return false;
+    
+    AttackTable attacks = attack_generate_sliders(piece_type, slider_square, occupancy);
+    
+    return (attacks & (1ULL << target_square)) != 0;
+}
+
 void attack_generate_pawn(Game *game, int color)
 {
     if (!game) return;
@@ -196,76 +216,34 @@ void attack_print_table(Game *game, int color)
     printf("\n   a b c d e f g h\n\n"); // Print file letters
 }
 
-static inline bool IS_SLIDING_PIECE(int piece_type)
-{
-    return (piece_type == BISHOP || piece_type == ROOK || piece_type == QUEEN);
-}
-
-static inline AttackTable generate_sliding_attacks(int piece_type, int square, Bitboard occupancy)
-{
-    switch (piece_type)
-    {
-        case BISHOP: return magic_get_bishop_attacks(square, occupancy);
-        case ROOK:   return magic_get_rook_attacks(square, occupancy);
-        case QUEEN:  return magic_get_bishop_attacks(square, occupancy) | magic_get_rook_attacks(square, occupancy);
-        default:     return 0ULL;
-    }
-}
-
-static inline bool sliding_piece_line_intersects_square(int slider_square, int target_square, int piece_type, Bitboard occupancy)
-{
-    if (!IS_SLIDING_PIECE(piece_type)) return false;
-    AttackTable attacks = generate_sliding_attacks(piece_type, slider_square, occupancy);
-    return (attacks & (1ULL << target_square)) != 0;
-}
-
-static inline Bitboard get_sliding_pieces_bitboard(Game *game, int color)
-{
-    // do NOT include king
-    return game->board[color][BISHOP] | game->board[color][ROOK] | game->board[color][QUEEN];
-}
-
 void attack_update_incremental(Game *game, Move move)
 {
     int from = GET_FROM(move);
     int to   = GET_TO(move);
 
-    // ---------- Preconditions ----------
-    // Board and occupancy must already reflect the move (i.e. piece removed from `from`, placed on `to`,
-    // captured piece removed, en-passant captured pawn removed if applicable).
-    // -----------------------------------
-
     Bitboard occ = game->occupancy[BOTH];
 
-    // Moving piece is now on 'to'
     Piece moving_piece = board_get_square(game, to);
     int color = GET_COLOR(moving_piece);
     int opponent = color ^ 1;
     int moved_type = GET_TYPE(moving_piece);
 
-    // --- 1) Remove contribution of the origin square 'from' (it is now empty) ---
-    // Clear that origin's attack bitboard and remove its attacked squares from full map.
+    // --- 1) Remove origin attack contribution ---
     AttackTable old_att_from = game->attack_map[color][from];
     if (old_att_from) {
         game->attack_map_full[color] &= ~old_att_from;
         game->attack_map[color][from] = 0ULL;
     }
 
-    // Also clear enemy attack contribution at 'to' square (where piece just moved in)
-    AttackTable old_att_to_enemy = game->attack_map[!color][to];
-    if (old_att_to_enemy)
-    {
-        game->attack_map_full[!color] &= ~old_att_to_enemy;
-        game->attack_map[!color][to] = 0ULL;
+    // --- Remove enemy attack at 'to' ---
+    AttackTable old_att_to_enemy = game->attack_map[opponent][to];
+    if (old_att_to_enemy) {
+        game->attack_map_full[opponent] &= ~old_att_to_enemy;
+        game->attack_map[opponent][to] = 0ULL;
     }
 
-    // --- 2) Handle capture removal (normal capture or en-passant) ---
-    int capture_sq = to;
-    if (IS_ENPASSANT(move)) {
-        // If en-passant, captured pawn is behind the 'to' square
-        capture_sq = (color == WHITE) ? (to - 8) : (to + 8);
-    }
-
+    // --- 2) Capture removal ---
+    int capture_sq = IS_ENPASSANT(move) ? (color == WHITE ? to-8 : to+8) : to;
     Piece captured_piece = board_get_square(game, capture_sq);
     if (captured_piece != EMPTY) {
         int cap_color = GET_COLOR(captured_piece);
@@ -276,78 +254,56 @@ void attack_update_incremental(Game *game, Move move)
         }
     }
 
-    // --- 3) Recompute attacks for the moved piece at its new 'to' square and add to full map ---
-    AttackTable new_att_to = 0ULL;
-    if (IS_SLIDING_PIECE(moved_type)) {
-        new_att_to = generate_sliding_attacks(moved_type, to, occ);
-    } else {
-        if (moved_type == PAWN) {
-            new_att_to = game->attack_tables_pc_pawn[color][to];
-        } else {
-            // knights, king, etc. use static precomputed masks
-            new_att_to = game->attack_tables_pc[moved_type][to];
-        }
-    }
+    // --- 3) Recompute attacks for moved piece ---
+    AttackTable new_att_to;
+    if (IS_SLIDING_PIECE(moved_type))
+        new_att_to = attack_generate_sliders(moved_type, to, occ);
+    else
+        new_att_to = (moved_type == PAWN) ? game->attack_tables_pc_pawn[color][to] 
+                                          : game->attack_tables_pc[moved_type][to];
 
-    // Store new attacks and add to full map
     game->attack_map[color][to] = new_att_to;
     if (new_att_to) game->attack_map_full[color] |= new_att_to;
 
-    // --- 3.5) Recalculate attacks for pawns potentially affected ---
-
-    // --- 4) Sliding pieces that might be affected by the move (open/close lines) ---
-    // Only sliding pieces (rooks/bishops/queens) can have their attack set changed by blockers moving.
-    Bitboard sliders = get_sliding_pieces_bitboard(game, WHITE) | get_sliding_pieces_bitboard(game, BLACK);
-
-    // We'll iterate each sliding piece and only recalc if its attack ray intersects `from` or `to`
+    // --- 4) Sliding pieces affected by move ---
+    Bitboard sliders = board_get_sliding_pieces_bitboard(game, WHITE) | board_get_sliding_pieces_bitboard(game, BLACK);
     while (sliders) {
         int sq = __builtin_ctzll(sliders);
         sliders &= sliders - 1;
 
         Piece p = board_get_square(game, sq);
-        if (p == EMPTY) continue;                    // defensive
         int pt = GET_TYPE(p);
         int c  = GET_COLOR(p);
 
-        // Only recalc for real sliding pieces
         if (!IS_SLIDING_PIECE(pt)) continue;
 
-        // If the move changed a square on this piece's ray, we must recalc
-        if (sliding_piece_line_intersects_square(sq, from, pt, occ)
-         || sliding_piece_line_intersects_square(sq, to, pt, occ))
+        if (attack_sliding_piece_line_intersects_square(sq, from, pt, occ) ||
+            attack_sliding_piece_line_intersects_square(sq, to, pt, occ)) 
         {
-            AttackTable old_att = game->attack_map[c][sq];
+            AttackTable *map_sq = &game->attack_map[c][sq]; // small pointer trick
+            AttackTable old_att = *map_sq;
             if (old_att) game->attack_map_full[c] &= ~old_att;
 
-            AttackTable recalculated = generate_sliding_attacks(pt, sq, occ);
-            game->attack_map[c][sq] = recalculated;
+            AttackTable recalculated = attack_generate_sliders(pt, sq, occ);
+            *map_sq = recalculated;
             if (recalculated) game->attack_map_full[c] |= recalculated;
         }
     }
 
-    Bitboard pawns = game->board[color][PAWN];
-    while (pawns) {
-        int sq = __builtin_ctzll(pawns);
-        pawns &= pawns - 1;
+    // --- 5) Pawns and knights (unrolled slightly) ---
+    for (int pt = PAWN; pt <= KNIGHT; pt += (pt==PAWN?1:2)) {
+        Bitboard pieces = game->board[color][pt];
+        while (pieces) {
+            int sq = __builtin_ctzll(pieces);
+            pieces &= pieces - 1;
 
-        AttackTable old_att_pawn = game->attack_map[color][sq];
-        if (old_att_pawn) game->attack_map_full[color] &= ~old_att_pawn;
+            AttackTable *map_sq = &game->attack_map[color][sq];
+            if (*map_sq) game->attack_map_full[color] &= ~(*map_sq);
 
-        AttackTable new_att_pawn = game->attack_tables_pc_pawn[color][sq];
-        game->attack_map[color][sq] = new_att_pawn;
-        if (new_att_pawn) game->attack_map_full[color] |= new_att_pawn;
-    }
-
-    Bitboard knights = game->board[color][KNIGHT];
-    while (knights) {
-        int sq = __builtin_ctzll(knights);
-        knights &= knights - 1;
-
-        AttackTable old_att_knight = game->attack_map[color][sq];
-        if (old_att_knight) game->attack_map_full[color] &= ~old_att_knight;
-
-        AttackTable new_att_knight = game->attack_tables_pc[KNIGHT][sq];
-        game->attack_map[color][sq] = new_att_knight;
-        if (new_att_knight) game->attack_map_full[color] |= new_att_knight;
+            AttackTable new_att = (pt==PAWN) ? game->attack_tables_pc_pawn[color][sq]
+                                             : game->attack_tables_pc[KNIGHT][sq];
+            *map_sq = new_att;
+            if (new_att) game->attack_map_full[color] |= new_att;
+        }
     }
 }
