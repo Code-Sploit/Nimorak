@@ -78,10 +78,10 @@ CMakeFiles/nimorak.dir/src/board/attack.c.o: src/board/attack.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/board/board.c.o: src/board/board.c \
   include/board/attack.h \
@@ -161,10 +161,10 @@ CMakeFiles/nimorak.dir/src/board/board.c.o: src/board/board.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/board/movegen.c.o: src/board/movegen.c \
   include/board/attack.h \
@@ -242,10 +242,10 @@ CMakeFiles/nimorak.dir/src/board/movegen.c.o: src/board/movegen.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/main.c.o: src/main.c \
   include/board/attack.h \
@@ -330,10 +330,10 @@ CMakeFiles/nimorak.dir/src/main.c.o: src/main.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o: src/nimorak/nimorak.c \
   include/nimorak.h \
@@ -406,9 +406,9 @@ CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o: src/nimorak/nimorak.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/search/eval.c.o: src/search/eval.c \
   include/board/board.h \
@@ -490,10 +490,10 @@ CMakeFiles/nimorak.dir/src/search/eval.c.o: src/search/eval.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/search/perft.c.o: src/search/perft.c \
   include/board/board.h \
@@ -569,10 +569,10 @@ CMakeFiles/nimorak.dir/src/search/perft.c.o: src/search/perft.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/search/search.c.o: src/search/search.c \
   include/board/board.h \
@@ -649,10 +649,10 @@ CMakeFiles/nimorak.dir/src/search/search.c.o: src/search/search.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/table/repetition.c.o: src/table/repetition.c \
   include/nimorak.h \
@@ -726,9 +726,9 @@ CMakeFiles/nimorak.dir/src/table/repetition.c.o: src/table/repetition.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/table/table.c.o: src/table/table.c \
   include/nimorak.h \
@@ -802,9 +802,9 @@ CMakeFiles/nimorak.dir/src/table/table.c.o: src/table/table.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/table/transposition.c.o: src/table/transposition.c \
   include/nimorak.h \
@@ -868,9 +868,9 @@ CMakeFiles/nimorak.dir/src/table/transposition.c.o: src/table/transposition.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 CMakeFiles/nimorak.dir/src/table/zobrist.c.o: src/table/zobrist.c \
   include/board/board.h \
@@ -946,10 +946,10 @@ CMakeFiles/nimorak.dir/src/table/zobrist.c.o: src/table/zobrist.c \
   /usr/include/sys/select.h \
   /usr/include/sys/types.h \
   /usr/include/time.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h
 
 nimorak: /usr/lib/Scrt1.o \
   /usr/lib/crti.o \
@@ -958,10 +958,10 @@ nimorak: /usr/lib/Scrt1.o \
   /usr/lib/libgcc_s.so \
   /usr/lib/libgcc_s.so.1 \
   /usr/lib/libm.so \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtbeginS.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtendS.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtfastmath.o \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/libgcc.a \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtfastmath.o \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a \
   /usr/lib/ld-linux-x86-64.so.2 \
   /usr/lib/libc.so.6 \
   /usr/lib/libc_nonshared.a \
@@ -1021,17 +1021,19 @@ CMakeFiles/nimorak.dir/src/board/movegen.c.o:
 
 include/table/zobrist.h:
 
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtendS.o:
+
 /usr/include/bits/types.h:
 
 /usr/lib/libc_nonshared.a:
+
+/usr/include/bits/endian.h:
 
 /usr/include/bits/thread-shared-types.h:
 
 /usr/include/bits/types/time_t.h:
 
 /usr/include/bits/struct_mutex.h:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtfastmath.o:
 
 /usr/include/bits/struct_rwlock.h:
 
@@ -1044,8 +1046,6 @@ include/table/zobrist.h:
 include/table/magic_bitboards.h:
 
 /usr/lib/libm.so:
-
-include/nimorak/constants.h:
 
 /usr/include/bits/floatn.h:
 
@@ -1075,8 +1075,6 @@ CMakeFiles/nimorak.dir/src/search/eval.c.o:
 
 /usr/include/bits/stdint-intn.h:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/libgcc.a:
-
 /usr/include/bits/libc-header-start.h:
 
 include/board/board.h:
@@ -1090,8 +1088,6 @@ include/board/board.h:
 /usr/include/bits/mathcalls-helper-functions.h:
 
 /usr/include/string.h:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stddef.h:
 
 /usr/include/bits/types/__mbstate_t.h:
 
@@ -1121,19 +1117,19 @@ include/table/magic.h:
 
 /usr/include/bits/select.h:
 
+/usr/include/alloca.h:
+
 /usr/include/bits/stdint-least.h:
 
 /usr/include/bits/stdio.h:
-
-/usr/include/bits/endian.h:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdarg.h:
 
 CMakeFiles/nimorak.dir/src/board/attack.c.o:
 
 /usr/include/bits/timesize.h:
 
 /usr/include/bits/waitstatus.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h:
 
 /usr/include/bits/wordsize.h:
 
@@ -1177,13 +1173,21 @@ src/table/transposition.c:
 
 /usr/lib/libm.so.6:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdint.h:
+include/nimorak/constants.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtfastmath.o:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/libgcc.a:
 
 include/table/repetition.h:
 
 /usr/include/bits/waitflags.h:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtendS.o:
 
 /usr/include/ctype.h:
 
@@ -1211,21 +1215,19 @@ src/board/attack.c:
 
 /usr/include/bits/libm-simd-decl-stubs.h:
 
+src/table/repetition.c:
+
+/usr/include/bits/mathcalls-macros.h:
+
 /usr/include/bits/types/clock_t.h:
 
 /usr/include/bits/types/__fpos_t.h:
 
 /usr/include/bits/mathcalls.h:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/include/stdbool.h:
-
 src/search/perft.c:
 
 src/search/search.c:
-
-/usr/include/bits/mathcalls-macros.h:
-
-src/table/repetition.c:
 
 src/main.c:
 
@@ -1245,9 +1247,7 @@ src/board/movegen.c:
 
 /usr/lib/libgcc_s.so.1:
 
-/usr/include/alloca.h:
-
-/usr/lib/gcc/x86_64-pc-linux-gnu/15.1.1/crtbeginS.o:
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/crtbeginS.o:
 
 /usr/lib/libc.so.6:
 

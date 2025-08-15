@@ -247,11 +247,11 @@ static inline int attack_count_square(Game *game, int target, int color)
 void attack_update_incremental(Game *game, Move move)
 {
     const int from = GET_FROM(move);
-    const int to   = GET_TO(move);
+    const int to = GET_TO(move);
     const Bitboard occ = game->occupancy[BOTH];
 
     const Piece moving_piece = board_get_square(game, to);
-    const int color    = GET_COLOR(moving_piece);
+    const int color = GET_COLOR(moving_piece);
     const int opponent = color ^ 1;
     const int moved_type = GET_TYPE(moving_piece);
 
@@ -259,26 +259,37 @@ void attack_update_incremental(Game *game, Move move)
 
     // Remove moving piece's old square attacks
     old_att = game->attack_map[color][from];
-    
-    game->attack_map_full[color] &= ~old_att;
+    //game->attack_map_full[color] &= ~old_att;
     game->attack_map[color][from] = 0ULL;
 
     // Remove opponent's attacks from 'to' (they no longer attack here)
     old_att = game->attack_map[opponent][to];
-    
-    game->attack_map_full[opponent] &= ~old_att;
-    
+    //game->attack_map_full[opponent] &= ~old_att;
     game->attack_map[opponent][to] = 0ULL;
 
+    // Handle en passant capture
+    int capture_sq = to;
+    if (IS_ENPASSANT(move)) {
+        capture_sq = (color == WHITE) ? to - 8 : to + 8;  // En passant capture square
+        //printf("En passant capture detected. Capture square: %d\n", capture_sq);  // Debug point
+    }
+
     // Remove captured piece attacks (direct or en passant)
-    const int capture_sq = IS_ENPASSANT(move) ? (color == WHITE ? to - 8 : to + 8) : to;
     const Piece captured_piece = board_get_square(game, capture_sq);
     if (GET_TYPE(captured_piece) != EMPTY) {
         int cap_color = GET_COLOR(captured_piece);
-        game->attack_map_full[cap_color] &= ~game->attack_map[cap_color][capture_sq];
+        // Debug print the capture info
+        //printf("Captured piece: Type=%d, Color=%d, Square=%d\n", GET_TYPE(captured_piece), cap_color, capture_sq);
+        
+        // Clear the attack map for the captured piece (whether regular or en passant)
+        //game->attack_map_full[cap_color] &= ~game->attack_map[cap_color][capture_sq];
         game->attack_map[cap_color][capture_sq] = 0ULL;
+    } else {
+        // This block is where the issue may lie: En Passant means there's no piece, but we still need to clear the attack map.
+        //printf("No piece at capture square %d, but still clearing attack map (en passant).\n", capture_sq);
+        //game->attack_map_full[opponent] &= ~game->attack_map[opponent][capture_sq];  // Remove opponent's attack map at capture square
+        game->attack_map[opponent][capture_sq] = 0ULL;  // Explicitly clear attack map at the en passant square
     }
-
 
     // Add moved piece's new attacks
     if (moved_type == BISHOP)
@@ -293,7 +304,7 @@ void attack_update_incremental(Game *game, Move move)
         new_att = game->attack_tables_pc[moved_type][to];
 
     game->attack_map[color][to] = new_att;
-    game->attack_map_full[color] |= new_att;
+    //game->attack_map_full[color] |= new_att;
 
     // Update sliders affected by opening/closing lines
     Bitboard affected = (game->board[WHITE][BISHOP] | game->board[WHITE][ROOK] | game->board[WHITE][QUEEN] |
@@ -306,10 +317,10 @@ void attack_update_incremental(Game *game, Move move)
         affected &= affected - 1;
 
         Piece p = board_get_square(game, sq);
-        int c   = GET_COLOR(p);
-        int pt  = GET_TYPE(p);
+        int c = GET_COLOR(p);
+        int pt = GET_TYPE(p);
 
-        game->attack_map_full[c] &= ~game->attack_map[c][sq];
+        //game->attack_map_full[c] &= ~game->attack_map[c][sq];
 
         if (pt == BISHOP)
             new_att = magic_get_bishop_attacks(sq, occ);
@@ -319,7 +330,7 @@ void attack_update_incremental(Game *game, Move move)
             new_att = magic_get_bishop_attacks(sq, occ) | magic_get_rook_attacks(sq, occ);
 
         game->attack_map[c][sq] = new_att;
-        game->attack_map_full[c] |= new_att;
+        //game->attack_map_full[c] |= new_att;
     }
 
     // Refresh pawns / knights / king for moving color
@@ -328,28 +339,38 @@ void attack_update_incremental(Game *game, Move move)
     while (pcs) {
         int sq = __builtin_ctzll(pcs);
         pcs &= pcs - 1;
-        game->attack_map_full[color] &= ~game->attack_map[color][sq];
+        //game->attack_map_full[color] &= ~game->attack_map[color][sq];
         new_att = game->attack_tables_pc_pawn[color][sq];
         game->attack_map[color][sq] = new_att;
-        game->attack_map_full[color] |= new_att;
+        //game->attack_map_full[color] |= new_att;
     }
 
     pcs = game->board[color][KNIGHT];
     while (pcs) {
         int sq = __builtin_ctzll(pcs);
         pcs &= pcs - 1;
-        game->attack_map_full[color] &= ~game->attack_map[color][sq];
+        //game->attack_map_full[color] &= ~game->attack_map[color][sq];
         new_att = game->attack_tables_pc[KNIGHT][sq];
         game->attack_map[color][sq] = new_att;
-        game->attack_map_full[color] |= new_att;
+        //game->attack_map_full[color] |= new_att;
     }
 
     pcs = game->board[color][KING];
     if (pcs) {
         int sq = __builtin_ctzll(pcs);
-        game->attack_map_full[color] &= ~game->attack_map[color][sq];
+        //game->attack_map_full[color] &= ~game->attack_map[color][sq];
         new_att = game->attack_tables_pc[KING][sq];
         game->attack_map[color][sq] = new_att;
-        game->attack_map_full[color] |= new_att;
+        //game->attack_map_full[color] |= new_att;
+    }
+
+    for (int c = 0; c < 2; c++)
+    {
+        game->attack_map_full[c] = 0ULL;
+        
+        for (int s = 0; s < 64; s++)
+        {
+            game->attack_map_full[c] |= game->attack_map[c][s];
+        }
     }
 }

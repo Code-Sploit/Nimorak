@@ -297,7 +297,7 @@ int eval_piece_squares(Game *game)
                     double endgame_weight = eval_calculate_endgame_weight(game); // Should be float between 0 and 1
                     
                     score += (int)((1.0 - endgame_weight) * eval_king_mid_pst[real_square]
-              + endgame_weight * eval_king_end_pst[real_square]) * perspective;
+                            + endgame_weight * eval_king_end_pst[real_square]) * perspective;
                 }
                 else
                 {
