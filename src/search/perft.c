@@ -149,10 +149,12 @@ void perft_run_tests(Game *game)
 {
     if (!game) return;
 
-    int total_nodes = 0;  // To accumulate total nodes searched
+    int total_nodes = 0;
     bool stop = false;
 
-    clock_t start_time = clock();  // Start the overall timer for all tests
+    clock_t start_time = clock();
+
+    printf("\n========== PERFT TESTS START ==========\n");
 
     for (int index = 0; index < PERFT_TEST_COUNT; index++)
     {
@@ -160,48 +162,43 @@ void perft_run_tests(Game *game)
 
         PerftTest test = perft_tests[index];
 
-        printf("\nPosition [%s]\n", test.fen);
+        printf("\n--- Test %d: FEN ---\n%s\n", index + 1, test.fen);
 
-        clock_t start_time_test = clock();  // Start the timer for this specific test
+        clock_t start_time_test = clock();
 
         for (int depth = test.start_depth; depth <= test.end_depth; depth++)
         {
-            clock_t start_time_depth = clock();  // Start the timer for this specific depth
+            clock_t start_time_depth = clock();
 
-            board_load_fen(game, test.fen);  // Load FEN into the game board
+            board_load_fen(game, test.fen);
 
-            int nodes = perft(game, depth);  // Run the perft calculation for this depth
-            total_nodes += nodes;  // Accumulate the nodes searched for this test
+            int nodes = perft(game, depth);
+            total_nodes += nodes;
+
+            double elapsed_time = (double)(clock() - start_time_depth) * 1000.0 / CLOCKS_PER_SEC;
 
             if (depth - 1 < 8 && nodes == test.expected_nodes[depth - 1])
             {
-                clock_t end_time_this_depth = clock();  // End timer for this depth
-
-                double elapsed_time = (double)(end_time_this_depth - start_time_depth) * 1000.0 / CLOCKS_PER_SEC;
-                printf("OK\t| Test: %d\tDepth: %d\tNodes: %d/%d\tTime: %.2f ms\n", 
-                       index + 1, depth, nodes, test.expected_nodes[depth - 1], elapsed_time);
+                printf(" ✅ OK    | Depth: %2d | Nodes: %8d / %8d | Time: %7.2f ms\n",
+                       depth, nodes, test.expected_nodes[depth - 1], elapsed_time);
             }
             else
             {
-                printf("FAILED\t| Test: %d\tDepth: %d\tNodes: %d/%d\n", 
-                       index + 1, depth, nodes, test.expected_nodes[depth - 1]);
+                printf(" ❌ FAILED| Depth: %2d | Nodes: %8d / %8d | Time: %7.2f ms\n",
+                       depth, nodes, test.expected_nodes[depth - 1], elapsed_time);
                 stop = true;
                 break;
             }
         }
 
-        clock_t end_time_test = clock();  // End the timer for this specific test
-        double elapsed_time_test = (double)(end_time_test - start_time_test) * 1000.0 / CLOCKS_PER_SEC;
-        printf("Test %d completed in %.2f ms\n", index + 1, elapsed_time_test);
+        double elapsed_time_test = (double)(clock() - start_time_test) * 1000.0 / CLOCKS_PER_SEC;
+        printf(">>> Test %d completed in %.2f ms <<<\n", index + 1, elapsed_time_test);
     }
 
-    clock_t end_time = clock();  // End the overall timer
+    double elapsed_time_total = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
 
-    double elapsed_time_total = (double)(end_time - start_time) * 1000.0 / CLOCKS_PER_SEC;
-    printf("\nTotal nodes searched: %d\n", total_nodes);
+    printf("\n========== PERFT TESTS END ==========\n");
+    printf("Total nodes searched: %d\n", total_nodes);
     printf("Total time for all tests: %.2f ms\n", elapsed_time_total);
-
-    double average_nps = total_nodes / elapsed_time_total * 1000.0;
-
-    printf("Average NPS: %.2f\n", average_nps);
+    printf("Average NPS: %.2f\n\n", total_nodes / elapsed_time_total * 1000.0);
 }
