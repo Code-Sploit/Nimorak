@@ -5,6 +5,8 @@
 #include <nimorak/helpers.h>
 #include <nimorak/config.h>
 
+#include <time.h>
+
 typedef struct {
     int   count;
     Move  moves[256];
@@ -49,6 +51,7 @@ typedef struct {
 
 typedef struct {
     ZobristHash stack[REPETITION_SIZE];
+    int         start;
     int         count;
 } RepetitionTable;
 
@@ -70,7 +73,8 @@ typedef struct {
     Bitboard         attack_map_full[2];       // [color]
     AttackTable      attack_tables_pc[7][64];  // [piece_type][square]
     AttackTable      attack_tables_pc_pawn[2][64];
-
+    uint8_t          attack_map_count[2][64];
+    
     // Move generation
     MoveList        *movelist;
 
@@ -81,11 +85,21 @@ typedef struct {
     // Transposition
     TTEntry          transposition_table[TT_SIZE];
 
+    // Castling rights
+    uint8_t castling_rights_lookup[64][64];
+
     // Zobrist hashing
     ZobristHash      zobrist_key;
 
     // Repetition detection
     RepetitionTable *repetition_table;
+
+    // Search
+    clock_t          search_start_time;
+    clock_t          search_last_depth_started_at;
+    clock_t          search_last_depth_finished_at;
+    int              search_think_time;
+    int              search_stop;
 } Game;
 
 Game *game_new();

@@ -30,4 +30,12 @@
 
 #define REMOVE_CASTLE_RIGHTS(rights, side) (rights &= ~side)
 
+#define MIN(a, b) ((a < b) ? a : b)
+
+static inline int pop_lsb(Bitboard *bb) {
+    int sq = __builtin_ctzll(*bb);
+    *bb &= *bb - 1;
+    return sq;
+}
+
 #endif

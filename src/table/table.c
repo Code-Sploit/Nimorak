@@ -155,6 +155,32 @@ void table_precompute_pawn_attacks(Game *game, int color)
     }
 }
 
+void table_precompute_castling_rights(Game *game) {
+    for (int from = 0; from < 64; from++) {
+        for (int to = 0; to < 64; to++) {
+            uint8_t rights = CASTLING_ALL;
+
+            // Moving king removes both rights for that color
+            if (from == 4)   rights &= ~(WHITE_KINGSIDE | WHITE_QUEENSIDE);
+            if (from == 60)  rights &= ~(BLACK_KINGSIDE | BLACK_QUEENSIDE);
+
+            // Moving rooks removes that side’s rights
+            if (from == 0)   rights &= ~WHITE_QUEENSIDE;
+            if (from == 7)   rights &= ~WHITE_KINGSIDE;
+            if (from == 56)  rights &= ~BLACK_QUEENSIDE;
+            if (from == 63)  rights &= ~BLACK_KINGSIDE;
+
+            // Capturing rook removes that side’s rights
+            if (to == 0)     rights &= ~WHITE_QUEENSIDE;
+            if (to == 7)     rights &= ~WHITE_KINGSIDE;
+            if (to == 56)    rights &= ~BLACK_QUEENSIDE;
+            if (to == 63)    rights &= ~BLACK_KINGSIDE;
+
+            game->castling_rights_lookup[from][to] = rights;
+        }
+    }
+}
+
 void table_precompute_all_attacks(Game *game)
 {
     if (!game) return;
@@ -167,4 +193,5 @@ void table_precompute_all_attacks(Game *game)
     table_precompute_sliding_attacks(game, KING);
     table_precompute_pawn_attacks(game, WHITE);
     table_precompute_pawn_attacks(game, BLACK);
+    table_precompute_castling_rights(game);
 }

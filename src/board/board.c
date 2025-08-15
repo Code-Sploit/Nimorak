@@ -11,48 +11,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Set a piece on a square, updating both bitboards and board_ghost
-// Inline-able, branch-minimized set_square function
-inline void board_set_square(Game *game, int square, Piece piece)
+void board_array_from_bitboards(Game *game)
 {
-    // Assume caller ensures square in [0,63] for max speed.
-    // If safety needed, keep this:
-    if ((unsigned)square >= 64) return;
-
-    const uint64_t bit = 1ULL << square;
-    const uint64_t mask = ~bit;
-
-    Piece old_piece = game->board_ghost[square];
-    int old_type = GET_TYPE(old_piece);
-
-    if (old_type != EMPTY) {
-        int old_color = GET_COLOR(old_piece);
-        game->board[old_color][old_type] &= mask;
-        game->occupancy[old_color] &= mask;
-    }
-
-    game->board_ghost[square] = piece;
-
-    int new_type = GET_TYPE(piece);
-    if (new_type != EMPTY) {
-        int new_color = GET_COLOR(piece);
-        game->board[new_color][new_type] |= bit;
-        game->occupancy[new_color] |= bit;
-    }
-
-    // Update combined occupancy at the end
-    game->occupancy[BOTH] = game->occupancy[WHITE] | game->occupancy[BLACK];
-}
-
-// Inline fast get_square without checks (if caller guarantees valid input)
-inline Piece board_get_square(const Game *game, int square)
-{
-    // Optionally keep safety check if needed:
-    // if (!game || (unsigned)square >= 64) return MAKE_PIECE(EMPTY, EMPTY);
-    return game->board_ghost[square];
-}
-
-void board_array_from_bitboards(Game *game) {
     if (!game) return;
 
     for (int sq = 0; sq < 64; sq++) {
@@ -337,7 +297,6 @@ char *board_get_checkers(Game *game)
     return buffer;
 }
 
-
 void board_print(Game *game)
 {
     if (!game) return;
@@ -387,103 +346,81 @@ void board_print(Game *game)
     printf("\n");
 }
 
-void board_make_move(Game *game, Move move) {
+void board_make_move(Game *game, Move move, int generation_type)
+{
     if (!game) return;
 
     const int from = GET_FROM(move);
-    const int to = GET_TO(move);
+    const int to   = GET_TO(move);
 
-    Piece piece = board_get_square(game, from);
+    const Piece piece = board_get_square(game, from);
+    const int color   = GET_COLOR(piece);
 
-    const int color = GET_COLOR(piece);
-
-    // Calculate en passant capture square if needed
+    const bool is_ep        = IS_ENPASSANT(move);
     const int ep_capture_sq = (color == WHITE) ? to - 8 : to + 8;
-    
-    Piece captured = IS_ENPASSANT(move) ? board_get_square(game, ep_capture_sq) : board_get_square(game, to);
+    const Piece captured    = board_get_square(game, is_ep ? ep_capture_sq : to);
 
-    // Save full state snapshot
-    State s;
+    // Save state
+    State *s = &game->history[game->history_count++];
+    s->castling_rights  = game->castling_rights;
+    s->enpassant_square = game->enpassant_square;
+    s->captured_piece   = captured;
+    s->move             = move;
+    if (generation_type) s->zobrist_key      = game->zobrist_key;
+    s->turn             = game->turn;
 
-    s.castling_rights = game->castling_rights;
-    s.enpassant_square = game->enpassant_square;
-    s.captured_piece = captured;
-    s.move = move;
-    s.zobrist_key = game->zobrist_key;
-    s.turn = game->turn;
+    memcpy(s->attack_map, game->attack_map, sizeof(game->attack_map));
+    memcpy(s->attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
 
-    memcpy(s.attack_map, game->attack_map, sizeof(game->attack_map));
-    memcpy(s.attack_map_full, game->attack_map_full, sizeof(game->attack_map_full));
-
-    game->history[game->history_count++] = s;
-
-    // Apply move on bitboards and board_ghost via your existing board_set_square or bitboard ops
+    // Apply move
     board_set_square(game, from, EMPTY);
-
     if (IS_PROMO(move)) {
-        const int promo_type = GET_PROMO(move);
-        board_set_square(game, to, MAKE_PIECE(promo_type, color));
+        board_set_square(game, to, MAKE_PIECE(GET_PROMO(move), color));
     } else {
         board_set_square(game, to, piece);
     }
 
-    if (IS_ENPASSANT(move)) {
-        board_set_square(game, ep_capture_sq, EMPTY);
-    }
+    if (is_ep) board_set_square(game, ep_capture_sq, EMPTY);
 
+    // Castling — keep branch logic to preserve correctness
     if (IS_CASTLE(move)) {
-        int rook_from, rook_to;
-        if (to == from + 2) {  // Kingside
-            rook_from = from + 3;
-            rook_to = from + 1;
-        } else {  // Queenside
-            rook_from = from - 4;
-            rook_to = from - 1;
+        int rook_from = 0, rook_to = 0;
+
+        if (from == 4 && to == 6) {         // White kingside
+            rook_from = 7;  rook_to = 5;
+        } else if (from == 60 && to == 62) { // Black kingside
+            rook_from = 63; rook_to = 61;
+        } else if (from == 4 && to == 2) {   // White queenside
+            rook_from = 0;  rook_to = 3;
+        } else if (from == 60 && to == 58) { // Black queenside
+            rook_from = 56; rook_to = 59;
         }
+
         Piece rook = board_get_square(game, rook_from);
         board_set_square(game, rook_from, EMPTY);
         board_set_square(game, rook_to, rook);
     }
 
     // Update castling rights
-    const int piece_type = GET_TYPE(piece);
+    game->castling_rights &= game->castling_rights_lookup[from][to];
 
-    if (piece_type == KING) {
-        game->castling_rights &= ~(color == WHITE ? (WHITE_KINGSIDE | WHITE_QUEENSIDE) : (BLACK_KINGSIDE | BLACK_QUEENSIDE));
-    } else if (piece_type == ROOK) {
-        switch (from) {
-            case 0:  game->castling_rights &= ~WHITE_QUEENSIDE; break;
-            case 7:  game->castling_rights &= ~WHITE_KINGSIDE; break;
-            case 56: game->castling_rights &= ~BLACK_QUEENSIDE; break;
-            case 63: game->castling_rights &= ~BLACK_KINGSIDE; break;
-        }
-    }
-    if (captured != EMPTY && GET_TYPE(captured) == ROOK) {
-        switch (to) {
-            case 0:  game->castling_rights &= ~WHITE_QUEENSIDE; break;
-            case 7:  game->castling_rights &= ~WHITE_KINGSIDE; break;
-            case 56: game->castling_rights &= ~BLACK_QUEENSIDE; break;
-            case 63: game->castling_rights &= ~BLACK_KINGSIDE; break;
-        }
-    }
-
-    // Set en passant target square or clear it
+    // Update en passant square
     game->enpassant_square = IS_DOUBLE_PUSH(move) ? (color == WHITE ? to - 8 : to + 8) : -1;
 
-    // Update attack tables incrementally
+    // Incremental attack update
     attack_update_incremental(game, move);
 
-    // Flip side to move
+    // Switch turn
     game->turn ^= 1;
 
-    // Update zobrist hash incrementally
-    zobrist_update_move(game, move, &s);
+    // Zobrist update
+    if (generation_type) zobrist_update_move(game, move, s);
 
     // Push repetition key
-    repetition_push(game, game->zobrist_key);
+    if (generation_type) repetition_push(game, game->zobrist_key);
 }
 
-void board_unmake_move(Game *game)
+void board_unmake_move(Game *game, int generation_type)
 {
     if (!game) return;
     if (game->history_count <= 0) {
@@ -540,12 +477,12 @@ void board_unmake_move(Game *game)
     // Restore castling rights, en passant, zobrist key, and attack tables
     game->castling_rights = s->castling_rights;
     game->enpassant_square = s->enpassant_square;
-    game->zobrist_key = s->zobrist_key;
+    if (generation_type) game->zobrist_key = s->zobrist_key;
 
     memcpy(game->attack_map, s->attack_map, sizeof(game->attack_map));
     memcpy(game->attack_map_full, s->attack_map_full, sizeof(game->attack_map_full));
 
-    repetition_pop(game);
+    if (generation_type) repetition_pop(game);
 }
 
 inline int board_is_on_rank(int square, int rank)
@@ -559,15 +496,6 @@ inline int board_find_king(const Game *game, int color)
     // Assuming game->board[color][KING] always valid
     uint64_t king_bb = game->board[color][KING];
     return king_bb ? __builtin_ctzll(king_bb) : -1;
-}
-
-inline int board_is_king_in_check(const Game *game, int color)
-{
-    int king_square = board_find_king(game, color);
-    if ((unsigned)king_square >= 64) return 0;  // safer cast & check
-
-    AttackTable attacks = game->attack_map_full[!color];
-    return (attacks & (1ULL << king_square)) != 0;
 }
 
 const char *board_square_to_name(int square)
@@ -704,7 +632,8 @@ inline int board_has_castling_rights_side(Game *game, int side)
     return (game->castling_rights & side) != 0;
 }
 
-inline bool board_is_same_line(int from, int to, int offset) {
+inline bool board_is_same_line(int from, int to, int offset)
+{
     int from_rank = from / 8, from_file = from % 8;
     int to_rank = to / 8, to_file = to % 8;
 
@@ -730,11 +659,11 @@ inline bool board_move_gives_check(Game *game, Move move)
 {
     if (!game) return false;
 
-    board_make_move(game, move);
+    board_make_move(game, move, MAKE_MOVE_LIGHT);
 
     bool check = board_is_king_in_check(game, game->turn);
 
-    board_unmake_move(game);
+    board_unmake_move(game, MAKE_MOVE_LIGHT);
 
     return check;
 }

@@ -141,6 +141,77 @@ int eval_check_bishop_pairs(Game *game)
     return score;
 }
 
+int eval_king_safety(Game *game)
+{
+    if (!game) return 0;
+
+    int score = 0;
+
+    // Endgame weight inverse (more important in middlegame, less in endgame)
+    float endgame_weight_inv = 1.0f - eval_calculate_endgame_weight(game);
+
+    // Find kings
+    int king_square[2];
+    king_square[WHITE] = board_find_king(game, WHITE);
+    king_square[BLACK] = board_find_king(game, BLACK);
+
+    // King attack masks
+    Bitboard king_attacks[2] = {
+        game->attack_tables_pc[KING][king_square[WHITE]],
+        game->attack_tables_pc[KING][king_square[BLACK]]
+    };
+
+    // Overlap with enemy attacks
+    Bitboard overlap_enemy_attacks[2] = {
+        king_attacks[WHITE] & game->attack_map_full[BLACK],
+        king_attacks[BLACK] & game->attack_map_full[WHITE]
+    };
+
+    // Count enemy attacks near king
+    int overlap_enemy_attack_count[2] = {
+        __builtin_popcountll(overlap_enemy_attacks[WHITE]),
+        __builtin_popcountll(overlap_enemy_attacks[BLACK])
+    };
+
+    // Penalty for each attacked square near king (scaled by endgame weight)
+    score -= (int)(overlap_enemy_attack_count[WHITE] * 20 * endgame_weight_inv);
+    score += (int)(overlap_enemy_attack_count[BLACK] * 20 * endgame_weight_inv);
+
+    // Pawn shield penalty
+    for (int color = WHITE; color <= BLACK; color++) {
+        int sq = king_square[color];
+        int file = sq % 8;
+        int rank = sq / 8;
+
+        // Determine forward direction
+        int forward = (color == WHITE) ? 1 : -1;
+
+        // Pawn shield: check 3 files around king
+        int pawn_penalty = 0;
+        for (int df = -1; df <= 1; df++) {
+            int f = file + df;
+            if (f < 0 || f > 7) continue;
+
+            int pawn_sq = sq + forward * 8 + df; // one rank ahead
+            int pawn_sq2 = sq + forward * 16 + df; // two ranks ahead
+
+            // Ignore central pawns (files 3-4) if requested
+            if (f >= 3 && f <= 4) continue;
+
+            if (!(board_get_square(game, pawn_sq) == MAKE_PIECE(PAWN, color)) &&
+                !(board_get_square(game, pawn_sq2) == MAKE_PIECE(PAWN, color))) {
+                pawn_penalty += 15; // missing pawn in shield
+            }
+        }
+
+        // Apply penalty
+        if (color == WHITE) score -= (int)(pawn_penalty * endgame_weight_inv);
+        else score += (int)(pawn_penalty * endgame_weight_inv);
+    }
+
+    return score;
+}
+
 int eval_center_control(Game *game)
 {
     if (!game) return 0;
@@ -250,6 +321,7 @@ int eval_position(Game *game)
     score += eval_piece_squares(game);
     score += eval_center_control(game);
     score += eval_check_bishop_pairs(game);
+    score += eval_king_safety(game);
 
     return (game->turn == WHITE) ? score : -score;
 }

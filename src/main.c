@@ -12,6 +12,8 @@
 #include <search/perft.h>
 #include <search/eval.h>
 
+#include <nimorak/helpers.h>
+
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
@@ -87,7 +89,7 @@ void uci_loop(Game *game)
 
                     Move move = board_parse_move(game, move_str);
 
-                    board_make_move(game, move);
+                    board_make_move(game, move, MAKE_MOVE_FULL);
 
                     // Advance to next move
                     moves += strcspn(moves, " ");
@@ -165,11 +167,12 @@ void uci_loop(Game *game)
 
             if (movetime > 0)
             {
+                printf("starting search with movetime %d\n", movetime);
                 best_move = search_start(game, 64, movetime);
             }
             else if (depth > 0)
             {
-                best_move = search_start(game, depth, INFINITE_TIME);
+                best_move = search_start(game, MIN(SEARCH_MAX_DEPTH, depth), INFINITE_TIME);
             }
             else if (wtime > 0 && btime > 0)
             {

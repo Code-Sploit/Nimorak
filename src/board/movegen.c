@@ -33,72 +33,71 @@ static inline void movegen_add_promotion_moves(Game *game, int from, int to, int
 
 void movegen_generate_pawn_moves(Game *game, MoveList *moves, int only_captures)
 {
-    if (!game) return;
-
     const int color = game->turn;
-    const int perspective = (color == WHITE) ? 1 : -1;
-    const int start_rank = (color == WHITE) ? 1 : 6;
-    const int promote_rank = (color == WHITE) ? 7 : 0;
-    const int capture_offsets[2] = { (color == WHITE) ? 7 : -9, (color == WHITE) ? 9 : -7 };
-    const int single_push = PAWN_OFFSETS[0] * perspective;
-    const int double_push = PAWN_OFFSETS[1] * perspective;
+    const Bitboard own_occ   = game->occupancy[color];
+    const Bitboard opp_occ   = game->occupancy[!color];
+    const Bitboard all_occ   = own_occ | opp_occ;
 
     Bitboard pawns = game->board[color][PAWN];
 
-    while (pawns)
-    {
-        int from = __builtin_ctzll(pawns);
-        pawns &= pawns - 1;
+    // Direction and special rank masks
+    int push_dir = (color == WHITE) ? 8 : -8;
+    int dbl_push_dir = (color == WHITE) ? 16 : -16;
+    Bitboard promote_mask = (color == WHITE) ? RANK_8 : RANK_1;
+    Bitboard start_rank_mask = (color == WHITE) ? RANK_2 : RANK_7;
 
-        int rank = from / 8;
-        int file = from % 8;
+    while (pawns) {
+        int from = pop_lsb(&pawns);
+        Bitboard from_bb = 1ULL << from;
 
-        int to_single = from + single_push;
+        // Quiet moves
+        if (!only_captures) {
+            int to_sq = from + push_dir;
+            Bitboard to_bb = 1ULL << to_sq;
 
-        // Quiet pawn pushes
-        if (!only_captures)
-        {
-            if (to_single >= 0 && to_single < 64 && board_get_square(game, to_single) == EMPTY)
-            {
-                if (board_is_on_rank(to_single, promote_rank))
-                    movegen_add_promotion_moves(game, from, to_single, 0, moves);
-                else
-                {
-                    movegen_add_move(game, MOVE(from, to_single, 0, 0, 0, 0, 0, 0, 0), moves);
+            if (!(to_bb & all_occ)) {
+                if (to_bb & promote_mask) {
+                    movegen_add_promotion_moves(game, from, to_sq, 0, moves);
+                } else {
+                    movegen_add_move(game, MOVE(from, to_sq, 0, 0, 0, 0, 0, 0, 0), moves);
 
                     // Double push
-                    int to_double = from + double_push;
-                    if (rank == start_rank && board_get_square(game, to_double) == EMPTY)
-                    {
-                        movegen_add_move(game, MOVE(from, to_double, 0, 0, 0, 0, 0, 1, 0), moves);
+                    if (from_bb & start_rank_mask) {
+                        int to_sq2 = from + dbl_push_dir;
+                        Bitboard to_bb2 = 1ULL << to_sq2;
+                        if (!(to_bb2 & all_occ)) {
+                            movegen_add_move(game, MOVE(from, to_sq2, 0, 0, 0, 0, 0, 1, 0), moves);
+                        }
                     }
                 }
             }
         }
 
-        // Captures and en passant
-        for (int i = 0; i < 2; i++)
-        {
-            int to = from + capture_offsets[i];
-            if (to < 0 || to >= 64)
-                continue;
+        // Captures
+        Bitboard left_captures, right_captures;
+        if (color == WHITE) {
+            left_captures  = (from_bb & ~FILE_A) << 7;
+            right_captures = (from_bb & ~FILE_H) << 9;
+        } else {
+            left_captures  = (from_bb & ~FILE_A) >> 9;
+            right_captures = (from_bb & ~FILE_H) >> 7;
+        }
 
-            if ((i == 0 && file == 0) || (i == 1 && file == 7))
-                continue;
+        Bitboard attacks = (left_captures | right_captures) & opp_occ;
 
-            Piece target = board_get_square(game, to);
+        while (attacks) {
+            int to_sq = pop_lsb(&attacks);
+            if ((1ULL << to_sq) & promote_mask)
+                movegen_add_promotion_moves(game, from, to_sq, 1, moves);
+            else
+                movegen_add_move(game, MOVE(from, to_sq, 0, 1, 0, 0, 0, 0, 0), moves);
+        }
 
-            if (target != EMPTY && GET_COLOR(target) != color)
-            {
-                if (board_is_on_rank(to, promote_rank))
-                    movegen_add_promotion_moves(game, from, to, 1, moves);
-                else
-                    movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0), moves);
-            }
-
-            if (game->enpassant_square == to)
-            {
-                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 1, 0, 0, 0), moves);
+        // En passant
+        if (game->enpassant_square != -1) {
+            Bitboard ep_bb = 1ULL << game->enpassant_square;
+            if (left_captures & ep_bb || right_captures & ep_bb) {
+                movegen_add_move(game, MOVE(from, game->enpassant_square, 0, 1, 0, 1, 0, 0, 0), moves);
             }
         }
     }
@@ -106,134 +105,137 @@ void movegen_generate_pawn_moves(Game *game, MoveList *moves, int only_captures)
 
 void movegen_generate_knight_moves(Game *game, MoveList *moves, int only_captures)
 {
-    if (!game) return;
+    const int color = game->turn;
+    const Bitboard knights = game->board[color][KNIGHT];
+    const Bitboard friendly = game->occupancy[color];
+    const Bitboard opp_occ = game->occupancy[!color];
 
-    int color = game->turn;
-    Bitboard knights = game->board[color][KNIGHT];
-    Bitboard friendly = game->occupancy[color];
+    Bitboard k = knights;
 
-    while (knights)
+    while (k)
     {
-        int from = __builtin_ctzll(knights);
-        knights &= knights - 1;
+        int from = pop_lsb(&k);
 
+        // Remove friendly pieces from attack set immediately
         Bitboard attacks = game->attack_tables_pc[KNIGHT][from] & ~friendly;
 
-        while (attacks)
-        {
-            int to = __builtin_ctzll(attacks);
-            attacks &= attacks - 1;
-
-            Piece target = board_get_square(game, to);
-            int is_capture = GET_TYPE(target) != EMPTY;
-
-            if (only_captures && !is_capture)
-                continue;
-
-            movegen_add_move(game, MOVE(from, to, 0, is_capture, 0, 0, 0, 0, 0), moves);
+        if (only_captures) {
+            // Keep only opponent pieces
+            attacks &= opp_occ;
+            while (attacks) {
+                int to = pop_lsb(&attacks);
+                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0), moves);
+            }
+        } else {
+            while (attacks) {
+                int to = pop_lsb(&attacks);
+                int is_capture = (opp_occ >> to) & 1ULL;
+                movegen_add_move(game, MOVE(from, to, 0, is_capture, 0, 0, 0, 0, 0), moves);
+            }
         }
     }
 }
 
 void movegen_generate_sliding_moves(Game *game, int piece_type, MoveList *moves, int only_captures)
 {
-    if (!game) return;
+    const int color = game->turn;
+    const Bitboard sliders = game->board[color][piece_type];
+    const Bitboard occupancy = game->occupancy[BOTH];
+    const Bitboard friendly = game->occupancy[color];
+    const Bitboard opp_occ = game->occupancy[!color];
 
-    int color = game->turn;
-    Bitboard sliders = game->board[color][piece_type];
-    Bitboard occupancy = game->occupancy[BOTH];
+    Bitboard s = sliders;
 
-    while (sliders)
+    while (s)
     {
-        int square = __builtin_ctzll(sliders);
-        sliders &= sliders - 1;
+        int from = pop_lsb(&s);
 
         Bitboard attacks = 0ULL;
-
         switch (piece_type)
         {
             case BISHOP:
-                attacks = magic_get_bishop_attacks(square, occupancy);
+                attacks = magic_get_bishop_attacks(from, occupancy);
                 break;
             case ROOK:
-                attacks = magic_get_rook_attacks(square, occupancy);
+                attacks = magic_get_rook_attacks(from, occupancy);
                 break;
             case QUEEN:
-                attacks = magic_get_bishop_attacks(square, occupancy)
-                        | magic_get_rook_attacks(square, occupancy);
+                attacks = magic_get_bishop_attacks(from, occupancy)
+                        | magic_get_rook_attacks(from, occupancy);
                 break;
             case KING:
-                attacks = game->attack_tables_pc[KING][square];
+                attacks = game->attack_tables_pc[KING][from];
                 break;
             default:
-                continue; // Skip non-sliders
+                continue; // Not a sliding piece
         }
 
-        Bitboard attack_targets = attacks;
-        while (attack_targets)
-        {
-            int target = __builtin_ctzll(attack_targets);
-            attack_targets &= attack_targets - 1;
+        // Remove own pieces
+        attacks &= ~friendly;
 
-            Piece target_piece = board_get_square(game, target);
-            int target_color = GET_COLOR(target_piece);
-
-            if (GET_TYPE(target_piece) == EMPTY)
-            {
-                if (!only_captures)
-                {
-                    movegen_add_move(game, MOVE(square, target, 0, 0, 0, 0, 0, 0, 0), moves);
-                }
+        if (only_captures) {
+            // Captures only → keep only opponent pieces
+            Bitboard caps = attacks & opp_occ;
+            while (caps) {
+                int to = pop_lsb(&caps);
+                movegen_add_move(game, MOVE(from, to, 0, 1, 0, 0, 0, 0, 0), moves);
             }
-            else if (target_color != color)
-            {
-                movegen_add_move(game, MOVE(square, target, 0, 1, 0, 0, 0, 0, 0), moves);
+        } else {
+            while (attacks) {
+                int to = pop_lsb(&attacks);
+                int is_capture = (opp_occ >> to) & 1ULL;
+                movegen_add_move(game, MOVE(from, to, 0, is_capture, 0, 0, 0, 0, 0), moves);
             }
         }
     }
 }
 
-static int movegen_can_castle_through(Game *game, int sq)
+static inline int movegen_can_castle_through_bb(Game *game, int sq, Bitboard occupied, Bitboard enemy_attacks)
 {
-    AttackTable enemy_attack = game->attack_map_full[!game->turn];
-
-    if (board_get_square(game, sq) != EMPTY) return 0; // square not empty
-    
-    if ((enemy_attack >> sq) & 1ULL) return 0; // attacked by enemy
-
-    return 1;
+    // Square must be empty and not attacked
+    return !((occupied >> sq) & 1ULL) && !((enemy_attacks >> sq) & 1ULL);
 }
 
 void movegen_generate_castle_moves(Game *game, MoveList *moves)
 {
-    if (!game || !board_has_castling_rights(game, game->turn)) return;
+    if (!game) return;
 
-    int king_square = board_find_king(game, game->turn);
-    int is_white = (game->turn == WHITE);
+    int color = game->turn;
+    if (!board_has_castling_rights(game, color)) return;
 
-    // Check if king is currently in check
-    if (game->attack_map_full[!game->turn] & (1ULL << king_square)) return;
+    int king_square = board_find_king(game, color);
+    Bitboard occupied = game->occupancy[BOTH];
+    Bitboard enemy_attacks = game->attack_map_full[!color];
 
-    // Kingside castling
-    int kingside_right = is_white ? WHITE_KINGSIDE : BLACK_KINGSIDE;
+    // If king is in check, no castling
+    if ((enemy_attacks >> king_square) & 1ULL) return;
+
+    // Kingside
+    int kingside_right = (color == WHITE) ? WHITE_KINGSIDE : BLACK_KINGSIDE;
     if (board_has_castling_rights_side(game, kingside_right)) {
-        int f1 = king_square + 1;
-        int g1 = king_square + 2;
+        int f_sq = king_square + 1;
+        int g_sq = king_square + 2;
 
-        if (movegen_can_castle_through(game, f1) && movegen_can_castle_through(game, g1)) {
-            movegen_add_move(game, MOVE(king_square, g1, 0, 0, 0, 0, 0, 0, 1), moves);
+        if (movegen_can_castle_through_bb(game, f_sq, occupied, enemy_attacks) &&
+            movegen_can_castle_through_bb(game, g_sq, occupied, enemy_attacks))
+        {
+            movegen_add_move(game, MOVE(king_square, g_sq, 0, 0, 0, 0, 0, 0, 1), moves);
         }
     }
 
-    // Queenside castling
-    int queenside_right = is_white ? WHITE_QUEENSIDE : BLACK_QUEENSIDE;
+    // Queenside
+    int queenside_right = (color == WHITE) ? WHITE_QUEENSIDE : BLACK_QUEENSIDE;
     if (board_has_castling_rights_side(game, queenside_right)) {
-        int d1 = king_square - 1;
-        int c1 = king_square - 2;
-        int b1 = king_square - 3;
+        int d_sq = king_square - 1;
+        int c_sq = king_square - 2;
+        int b_sq = king_square - 3;
 
-        if (movegen_can_castle_through(game, d1) && movegen_can_castle_through(game, c1) && (GET_TYPE(board_get_square(game, b1)) == EMPTY)) {
-            movegen_add_move(game, MOVE(king_square, c1, 0, 0, 0, 0, 0, 0, 1), moves);
+        // b_sq only needs to be empty, no attack requirement
+        if (movegen_can_castle_through_bb(game, d_sq, occupied, enemy_attacks) &&
+            movegen_can_castle_through_bb(game, c_sq, occupied, enemy_attacks) &&
+            !((occupied >> b_sq) & 1ULL))
+        {
+            movegen_add_move(game, MOVE(king_square, c_sq, 0, 0, 0, 0, 0, 0, 1), moves);
         }
     }
 }
@@ -266,18 +268,15 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
 
     moves->count = 0;
 
-    memset(moves->moves, 0, sizeof(moves->moves));
-
     movegen_generate_pseudo_moves(game, moves, only_captures);
 
-    int move_count = moves->count;
     int legal_move_count = 0;
 
-    for (int i = 0; i < move_count; i++)
+    for (int i = 0; i < moves->count; i++)
     {
         Move move = moves->moves[i];
 
-        board_make_move(game, move);
+        board_make_move(game, move, MAKE_MOVE_LIGHT);
 
         if (!board_is_king_in_check(game, !game->turn))
         {
@@ -285,7 +284,9 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
             legal_move_count++;
         }
         
-        board_unmake_move(game);
+        board_unmake_move(game, MAKE_MOVE_LIGHT);
+
+        continue;
     }
 
     moves->count = legal_move_count;

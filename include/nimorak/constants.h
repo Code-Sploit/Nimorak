@@ -27,13 +27,26 @@ typedef uint8_t Piece;
 #define DOUBLE_PUSH   0x00080000      // bit 19
 #define CASTLE        0x00100000      // bit 20
 
-#define WHITE_KINGSIDE 0x1
-#define WHITE_QUEENSIDE 0x2
-#define BLACK_KINGSIDE 0x4
-#define BLACK_QUEENSIDE 0x8
+#define WHITE_KINGSIDE  (1 << 0)
+#define WHITE_QUEENSIDE (1 << 1)
+#define BLACK_KINGSIDE  (1 << 2)
+#define BLACK_QUEENSIDE (1 << 3)
+#define CASTLING_ALL    (WHITE_KINGSIDE | WHITE_QUEENSIDE | BLACK_KINGSIDE | BLACK_QUEENSIDE)
 
 #define PIECE_TYPE_MASK 0x07  // 00000111
 #define PIECE_COLOR_MASK 0x08 // 00001000
+
+// Precomputed masks for files
+#define FILE_A 0x0101010101010101ULL
+#define FILE_H 0x8080808080808080ULL
+
+// Precomputed masks for ranks
+#define RANK_2 0x000000000000FF00ULL
+#define RANK_7 0x00FF000000000000ULL
+
+// Promotion ranks
+#define RANK_8 0xFF00000000000000ULL
+#define RANK_1 0x00000000000000FFULL
 
 /* Piece types */
 
@@ -64,5 +77,9 @@ typedef uint8_t Piece;
 
 #define MATE_SCORE 32000
 #define MATE_THRESHOLD (MATE_SCORE - 1000)
+
+/* Make & Unmake move types */
+#define MAKE_MOVE_LIGHT 0
+#define MAKE_MOVE_FULL  1
 
 #endif

@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #define MAX_MOVES 256
+#define SEARCH_THINK_TIME_MARGIN 10
 
 Move search_killer_moves[SEARCH_MAX_DEPTH][2];
 
@@ -34,6 +35,24 @@ typedef struct
     Move move;
     int score;
 } MoveScore;
+
+static inline void search_check_timer(Game *game)
+{
+    double elapsed_ms = (double)(clock() - game->search_start_time) * 1000.0 / CLOCKS_PER_SEC;
+    if (elapsed_ms >= game->search_think_time - SEARCH_THINK_TIME_MARGIN) {
+        game->search_stop = 1;
+    }
+}
+
+static inline double search_get_timer(Game *game)
+{
+    return (double)(game->search_last_depth_finished_at - game->search_last_depth_started_at) * 1000.0 / CLOCKS_PER_SEC;
+}
+
+static inline double search_get_elasped_time(Game *game)
+{
+    return (double)(clock() - game->search_start_time) * 1000.0 / CLOCKS_PER_SEC;
+}
 
 static inline int clamp(int val, int min, int max)
 {
@@ -146,11 +165,15 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
 
     for (int i = 0; i < captures.count; i++)
     {
-        board_make_move(game, captures.moves[i]);
+        search_check_timer(game);
+
+        if (game->search_stop) break;
+
+        board_make_move(game, captures.moves[i], MAKE_MOVE_LIGHT);
 
         int score = -search_quiescense(game, -beta, -alpha, depth + 1, ply + 1);
 
-        board_unmake_move(game);
+        board_unmake_move(game, MAKE_MOVE_LIGHT);
 
         if (score >= beta)
             return beta;
@@ -210,12 +233,14 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
 
     for (int i = 0; i < movelist.count; i++)
     {
+        search_check_timer(game);
+        if (game->search_stop) break;
         Move move = movelist.moves[i];
-        board_make_move(game, move);
+        board_make_move(game, move, MAKE_MOVE_FULL);
 
         int eval = -search_negamax(game, depth - 1, -beta, -alpha, ply + 1);
 
-        board_unmake_move(game);
+        board_unmake_move(game, MAKE_MOVE_LIGHT);
 
         if (eval > best_eval)
         {
@@ -259,40 +284,45 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
 {
     if (!game) return 0;
 
-    clock_t start_time = clock();
+    game->search_start_time = clock();
+    game->search_think_time = think_time_ms;
+    game->search_stop = 0;
 
     Move best_move_so_far = 0;
     MoveList movelist;
 
     for (int depth = 1; depth <= max_depth; depth++)
     {
-        double elapsed_ms = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
-        if (elapsed_ms >= think_time_ms)
-            break;
+        search_check_timer(game);
+        
+        if (game->search_stop) break;
 
         Move best_this_depth = 0;
         int eval_this_depth = -INF;
         bool completed = true;
+
+        game->search_last_depth_started_at = clock();
 
         movegen_generate_legal_moves(game, &movelist, 0);
         search_order_moves(game, &movelist, 0); // root ply = 0
 
         for (int i = 0; i < movelist.count; i++)
         {
-            elapsed_ms = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
-            if (elapsed_ms >= think_time_ms)
+            search_check_timer(game);
+
+            if (game->search_stop)
             {
                 completed = false;
                 break;
             }
 
             Move move = movelist.moves[i];
-            board_make_move(game, move);
+            board_make_move(game, move, MAKE_MOVE_FULL);
 
             // Call negamax with ply=0 at root
             int score = -search_negamax(game, depth - 1, -INF, INF, 0);
 
-            board_unmake_move(game);
+            board_unmake_move(game, MAKE_MOVE_FULL);
 
             if (score > eval_this_depth)
             {
@@ -300,6 +330,8 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
                 best_this_depth = move;
             }
         }
+
+        game->search_last_depth_finished_at = clock();
 
         if (completed)
         {
@@ -310,14 +342,14 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
 
                 printf("info depth %d score mate %d time %.0f ms pv %s\n",
                     depth, mate_in,
-                    elapsed_ms,
+                    search_get_timer(game),
                     board_move_to_string(best_this_depth));
             }
             else
             {
                 printf("info depth %d score cp %d time %.0f ms pv %s\n",
                     depth, eval_this_depth,
-                    elapsed_ms,
+                    search_get_timer(game),
                     board_move_to_string(best_this_depth));
             }
         }
@@ -328,6 +360,8 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
 
         best_move_so_far = best_this_depth;
     }
+
+    printf("info search time %.0f ms\n", search_get_elasped_time(game));
 
     return best_move_so_far;
 }

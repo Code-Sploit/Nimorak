@@ -26,11 +26,11 @@ long long perft(Game *game, int depth)
     {
         Move move = moves.moves[i];
 
-        board_make_move(game, move);
+        board_make_move(game, move, MAKE_MOVE_LIGHT);
 
         nodes += perft(game, depth - 1);
         
-        board_unmake_move(game);
+        board_unmake_move(game, MAKE_MOVE_LIGHT);
     }
 
     return nodes;
@@ -57,11 +57,11 @@ void perft_root(Game *game, int depth)
     {
         Move move = moves.moves[i];
 
-        board_make_move(game, move);
+        board_make_move(game, move, MAKE_MOVE_LIGHT);
 
         long long nodes = perft(game, depth - 1);
         
-        board_unmake_move(game);
+        board_unmake_move(game, MAKE_MOVE_LIGHT);
 
         printf("%s: %lld\n", board_move_to_string(move), nodes);
 
