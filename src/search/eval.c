@@ -107,17 +107,16 @@ static inline double eval_calculate_endgame_weight(Game *game)
 
     for (int color = WHITE; color <= BLACK; color++)
     {
-        Bitboard occupancy = game->occupancy[color];
-
-        while (occupancy)
-        {
-            occupancy &= occupancy - 1;
-            piece_count++;
+        for (int pt = PAWN; pt <= QUEEN; pt++) {
+            piece_count += __builtin_popcountll(game->board[color][pt]);
         }
     }
 
-    // Sigmoid function centered around 12 pieces, steeper curve with factor 0.5
-    return 1.0 / (1.0 + exp(0.5 * (piece_count - 12)));
+    // Simpler linear scaling instead of steep sigmoid
+    double weight = (14.0 - piece_count) / 8.0; // 0..1 when piece_count 14->6
+    if (weight < 0) weight = 0;
+    if (weight > 1) weight = 1;
+    return weight;
 }
 
 int eval_check_bishop_pairs(Game *game)
@@ -297,8 +296,8 @@ int eval_piece_squares(Game *game)
                 {
                     double endgame_weight = eval_calculate_endgame_weight(game); // Should be float between 0 and 1
                     
-                    score += (int)((1.0f - endgame_weight) * eval_king_mid_pst[real_square]
-                                  + endgame_weight * eval_king_end_pst[real_square]) * perspective;
+                    score += (int)((1.0 - endgame_weight) * eval_king_mid_pst[real_square]
+              + endgame_weight * eval_king_end_pst[real_square]) * perspective;
                 }
                 else
                 {

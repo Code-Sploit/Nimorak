@@ -366,7 +366,7 @@ void board_make_move(Game *game, Move move, int generation_type)
     s->enpassant_square = game->enpassant_square;
     s->captured_piece   = captured;
     s->move             = move;
-    if (generation_type) s->zobrist_key      = game->zobrist_key;
+    if (generation_type == MAKE_MOVE_FULL) s->zobrist_key      = game->zobrist_key;
     s->turn             = game->turn;
 
     memcpy(s->attack_map, game->attack_map, sizeof(game->attack_map));
@@ -414,10 +414,10 @@ void board_make_move(Game *game, Move move, int generation_type)
     game->turn ^= 1;
 
     // Zobrist update
-    if (generation_type) zobrist_update_move(game, move, s);
+    if (generation_type == MAKE_MOVE_FULL) zobrist_update_move(game, move, s);
 
     // Push repetition key
-    if (generation_type) repetition_push(game, game->zobrist_key);
+    if (generation_type == MAKE_MOVE_FULL) repetition_push(game, game->zobrist_key);
 }
 
 void board_unmake_move(Game *game, int generation_type)
@@ -477,12 +477,12 @@ void board_unmake_move(Game *game, int generation_type)
     // Restore castling rights, en passant, zobrist key, and attack tables
     game->castling_rights = s->castling_rights;
     game->enpassant_square = s->enpassant_square;
-    if (generation_type) game->zobrist_key = s->zobrist_key;
+    if (generation_type == MAKE_MOVE_FULL) game->zobrist_key = s->zobrist_key;
 
     memcpy(game->attack_map, s->attack_map, sizeof(game->attack_map));
     memcpy(game->attack_map_full, s->attack_map_full, sizeof(game->attack_map_full));
 
-    if (generation_type) repetition_pop(game);
+    if (generation_type == MAKE_MOVE_FULL) repetition_pop(game);
 }
 
 inline int board_is_on_rank(int square, int rank)

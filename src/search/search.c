@@ -94,6 +94,7 @@ void search_order_moves(Game *game, MoveList *movelist, int ply)
     for (int i = 0; i < count; i++)
     {
         Move move = movelist->moves[i];
+        
         int score = 0;
 
         if (IS_CAPTURE(move))
@@ -240,7 +241,7 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
 
         int eval = -search_negamax(game, depth - 1, -beta, -alpha, ply + 1);
 
-        board_unmake_move(game, MAKE_MOVE_LIGHT);
+        board_unmake_move(game, MAKE_MOVE_FULL);
 
         if (eval > best_eval)
         {

@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/data/Nimorak/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

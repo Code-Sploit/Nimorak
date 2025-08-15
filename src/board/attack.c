@@ -224,6 +224,26 @@ void attack_print_table(Game *game, int color)
     printf("\n");
 }
 
+static inline int attack_count_square(Game *game, int target, int color)
+{
+    AttackTable board = game->attack_map_full[color];
+
+    int count = 0;
+
+    while (board)
+    {
+        int square = __builtin_ctzll(board);
+
+        AttackTable attacked_squares = game->attack_map[color][square];
+
+        if ((attacked_squares & (1ULL << target)) != 0) count++;
+
+        board &= board - 1;
+    }
+
+    return count;
+}
+
 void attack_update_incremental(Game *game, Move move)
 {
     const int from = GET_FROM(move);
@@ -255,10 +275,10 @@ void attack_update_incremental(Game *game, Move move)
     const Piece captured_piece = board_get_square(game, capture_sq);
     if (GET_TYPE(captured_piece) != EMPTY) {
         int cap_color = GET_COLOR(captured_piece);
-        old_att = game->attack_map[cap_color][capture_sq];
-        game->attack_map_full[cap_color] &= ~old_att;
+        game->attack_map_full[cap_color] &= ~game->attack_map[cap_color][capture_sq];
         game->attack_map[cap_color][capture_sq] = 0ULL;
     }
+
 
     // Add moved piece's new attacks
     if (moved_type == BISHOP)
