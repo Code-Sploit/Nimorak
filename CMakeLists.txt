@@ -25,6 +25,7 @@ set(SOURCES
     src/table/repetition.c
     src/table/transposition.c
     src/table/zobrist.c
+    src/nimorak/config.c
 )
 
 # Create executable

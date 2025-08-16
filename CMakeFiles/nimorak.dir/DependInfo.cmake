@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/data/Nimorak/src/board/board.c" "CMakeFiles/nimorak.dir/src/board/board.c.o" "gcc" "CMakeFiles/nimorak.dir/src/board/board.c.o.d"
   "/data/Nimorak/src/board/movegen.c" "CMakeFiles/nimorak.dir/src/board/movegen.c.o" "gcc" "CMakeFiles/nimorak.dir/src/board/movegen.c.o.d"
   "/data/Nimorak/src/main.c" "CMakeFiles/nimorak.dir/src/main.c.o" "gcc" "CMakeFiles/nimorak.dir/src/main.c.o.d"
+  "/data/Nimorak/src/nimorak/config.c" "CMakeFiles/nimorak.dir/src/nimorak/config.c.o" "gcc" "CMakeFiles/nimorak.dir/src/nimorak/config.c.o.d"
   "/data/Nimorak/src/nimorak/nimorak.c" "CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o" "gcc" "CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o.d"
   "/data/Nimorak/src/search/eval.c" "CMakeFiles/nimorak.dir/src/search/eval.c.o" "gcc" "CMakeFiles/nimorak.dir/src/search/eval.c.o.d"
   "/data/Nimorak/src/search/perft.c" "CMakeFiles/nimorak.dir/src/search/perft.c.o" "gcc" "CMakeFiles/nimorak.dir/src/search/perft.c.o.d"

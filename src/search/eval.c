@@ -316,11 +316,11 @@ int eval_position(Game *game)
 {
     int score = 0;
 
-    score += eval_material(game);
-    score += eval_piece_squares(game);
-    score += eval_center_control(game);
-    score += eval_check_bishop_pairs(game);
-    score += eval_king_safety(game);
+    if (game->config->eval.do_material)       score += eval_material(game);
+    if (game->config->eval.do_piece_squares)  score += eval_piece_squares(game);
+    if (game->config->eval.do_center_control) score += eval_center_control(game);
+    if (game->config->eval.do_bishop_pairs)   score += eval_check_bishop_pairs(game);
+    if (game->config->eval.do_king_safety)    score += eval_king_safety(game);
 
     return (game->turn == WHITE) ? score : -score;
 }

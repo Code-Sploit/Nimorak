@@ -94,6 +94,9 @@ typedef struct {
     // Repetition detection
     RepetitionTable *repetition_table;
 
+    // Configuration
+    Configuration *config;
+
     // Search
     clock_t          search_start_time;
     clock_t          search_last_depth_started_at;
@@ -105,5 +108,8 @@ typedef struct {
 Game *game_new();
 
 void game_del(Game *game);
+
+int config_set_option(Game *game, const char *name, const char *value);
+void config_handle_input(Game *game, const char *input);
 
 #endif

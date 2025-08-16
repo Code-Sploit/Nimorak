@@ -13,7 +13,9 @@ CMakeFiles/nimorak.dir/src/search/search.c.o: \
  /usr/include/bits/time64.h /usr/include/bits/wchar.h \
  /usr/include/bits/stdint-intn.h /usr/include/bits/stdint-uintn.h \
  /usr/include/bits/stdint-least.h /data/Nimorak/include/nimorak/helpers.h \
- /data/Nimorak/include/nimorak/config.h /usr/include/time.h \
+ /data/Nimorak/include/nimorak/config.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+ /usr/include/time.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
  /usr/include/bits/time.h /usr/include/bits/types/clock_t.h \
  /usr/include/bits/types/time_t.h /usr/include/bits/types/struct_tm.h \
@@ -22,7 +24,6 @@ CMakeFiles/nimorak.dir/src/search/search.c.o: \
  /usr/include/bits/types/timer_t.h \
  /usr/include/bits/types/struct_itimerspec.h \
  /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h \
- /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
  /data/Nimorak/include/table/repetition.h \
  /data/Nimorak/include/board/movegen.h \
  /data/Nimorak/include/board/board.h \

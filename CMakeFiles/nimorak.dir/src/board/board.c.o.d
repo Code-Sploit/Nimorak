@@ -12,7 +12,9 @@ CMakeFiles/nimorak.dir/src/board/board.c.o: \
  /usr/include/bits/time64.h /usr/include/bits/wchar.h \
  /usr/include/bits/stdint-intn.h /usr/include/bits/stdint-uintn.h \
  /usr/include/bits/stdint-least.h /data/Nimorak/include/nimorak/helpers.h \
- /data/Nimorak/include/nimorak/config.h /usr/include/time.h \
+ /data/Nimorak/include/nimorak/config.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
+ /usr/include/time.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h \
  /usr/include/bits/time.h /usr/include/bits/types/clock_t.h \
  /usr/include/bits/types/time_t.h /usr/include/bits/types/struct_tm.h \
@@ -22,9 +24,8 @@ CMakeFiles/nimorak.dir/src/board/board.c.o: \
  /usr/include/bits/types/struct_itimerspec.h \
  /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h \
  /data/Nimorak/include/table/zobrist.h \
- /data/Nimorak/include/board/attack.h \
- /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdbool.h \
- /data/Nimorak/include/board/board.h /data/Nimorak/include/table/magic.h \
+ /data/Nimorak/include/board/attack.h /data/Nimorak/include/board/board.h \
+ /data/Nimorak/include/table/magic.h \
  /data/Nimorak/include/table/magic_bitboards.h /usr/include/stdio.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdarg.h \
  /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h \

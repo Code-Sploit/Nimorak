@@ -14,6 +14,7 @@ nimorak: \
   CMakeFiles/nimorak.dir/src/table/repetition.c.o \
   CMakeFiles/nimorak.dir/src/table/transposition.c.o \
   CMakeFiles/nimorak.dir/src/table/zobrist.c.o \
+  CMakeFiles/nimorak.dir/src/nimorak/config.c.o \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
   /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so \
@@ -71,6 +72,8 @@ CMakeFiles/nimorak.dir/src/table/repetition.c.o:
 CMakeFiles/nimorak.dir/src/table/transposition.c.o:
 
 CMakeFiles/nimorak.dir/src/table/zobrist.c.o:
+
+CMakeFiles/nimorak.dir/src/nimorak/config.c.o:
 
 /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../lib/libm.so:
 

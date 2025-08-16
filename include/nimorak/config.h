@@ -1,14 +1,38 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define THREAD_COUNT 4
+#include <stdbool.h>
 
 #define TT_SIZE (1 << 26)
 #define HISTORY_SIZE (1 << 20)
 #define REPETITION_SIZE (1 << 20)
 
-#define SEARCH_ENABLE_QUIESCENSE 1
-#define SEARCH_QUIESCENSE_DEPTH_LIMIT 16
-#define SEARCH_MAX_DEPTH 64
+typedef struct
+{
+    struct {
+        bool do_legal_move_filtering;
+        bool do_only_captures;
+    } movegen;
+
+    struct {
+        bool do_material;
+        bool do_piece_squares;
+        bool do_center_control;
+        bool do_bishop_pairs;
+        bool do_king_safety;
+    } eval;
+
+    struct {
+        bool do_quiescense;
+        bool do_transpositions;
+        bool do_killer_moves;
+        bool do_heuristics;
+        bool do_info;
+        
+        int initial_depth;
+        int maximum_depth;
+        int maximum_quiescense_depth;
+    } search;
+} Configuration;
 
 #endif

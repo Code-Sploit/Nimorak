@@ -268,7 +268,9 @@ void movegen_generate_legal_moves(Game *game, MoveList *moves, int only_captures
 
     moves->count = 0;
 
-    movegen_generate_pseudo_moves(game, moves, only_captures);
+    movegen_generate_pseudo_moves(game, moves, only_captures || game->config->movegen.do_only_captures);
+
+    if (!game->config->movegen.do_legal_move_filtering) return;
 
     int legal_move_count = 0;
 

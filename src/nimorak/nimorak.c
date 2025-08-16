@@ -27,6 +27,28 @@ Game *game_new()
     game->repetition_table = calloc(1, sizeof(RepetitionTable));
     game->repetition_table->count = 0;
 
+    // Alloc configuration
+    game->config = calloc(1, sizeof(Configuration));
+
+    // Set default configurations
+    game->config->movegen.do_legal_move_filtering = true;
+    game->config->movegen.do_only_captures        = false;
+    
+    game->config->eval.do_material                = true;
+    game->config->eval.do_piece_squares           = true;
+    game->config->eval.do_center_control          = true;
+    game->config->eval.do_bishop_pairs            = true;
+    game->config->eval.do_king_safety             = true;
+
+    game->config->search.do_quiescense            = true;
+    game->config->search.do_transpositions        = true;
+    game->config->search.do_info                  = true;
+    game->config->search.do_killer_moves          = true;
+    game->config->search.do_heuristics            = true;
+    game->config->search.maximum_depth            = 32;
+    game->config->search.initial_depth            = 6;
+    game->config->search.maximum_quiescense_depth = 8;
+
     return game;
 }
 
@@ -34,3 +56,4 @@ void game_del(Game *game)
 {
     if (game) free(game);
 }
+

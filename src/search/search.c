@@ -15,12 +15,10 @@
 #define MAX_MOVES 256
 #define SEARCH_THINK_TIME_MARGIN 10
 
-Move search_killer_moves[SEARCH_MAX_DEPTH][2];
+Move search_killer_moves[64][2];
 
-// Adjust this as needed or implement actual history heuristic later
 static int search_history_heuristic[64][64] = {{0}};
 
-// MVV-LVA scores: [victim][attacker], indexed 0..4 (pawn..queen)
 const int search_mvv_lva_scores[5][5] = {
     /* Attacker: PAWN KNIGHT BISHOP ROOK QUEEN */
     /* Victim: PAWN   */ { 900,   700,    680,   500,   100 },
@@ -33,6 +31,7 @@ const int search_mvv_lva_scores[5][5] = {
 typedef struct
 {
     Move move;
+
     int score;
 } MoveScore;
 
@@ -58,6 +57,7 @@ static inline int clamp(int val, int min, int max)
 {
     if (val < min) return min;
     if (val > max) return max;
+
     return val;
 }
 
@@ -108,19 +108,20 @@ void search_order_moves(Game *game, MoveList *movelist, int ply)
             if (board_move_gives_check(game, move)) 
                 score += 5000; // bonus for checks
         }
-        else if (move == search_killer_moves[ply][0])
+        else if (move == search_killer_moves[ply][0] && game->config->search.do_killer_moves)
         {
             score = 900000;
         }
-        else if (move == search_killer_moves[ply][1])
+        else if (move == search_killer_moves[ply][1] && game->config->search.do_killer_moves)
         {
             score = 800000;
         }
-        else
+        else if (game->config->search.do_heuristics)
         {
             // More precise history heuristic based on (from, to)
             int from = GET_FROM(move);
             int to = GET_TO(move);
+
             score = search_history_heuristic[from][to];
         }
 
@@ -149,7 +150,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
 {
     if (!game) return 0;
 
-    if (depth >= SEARCH_QUIESCENSE_DEPTH_LIMIT)
+    if (depth >= game->config->search.maximum_quiescense_depth)
         return eval_position(game);
 
     int stand_pat = eval_position(game);
@@ -160,6 +161,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
         alpha = stand_pat;
 
     MoveList captures = {0};
+
     movegen_generate_legal_moves(game, &captures, 1);  // generate only captures
 
     search_order_moves(game, &captures, ply);
@@ -195,7 +197,7 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
 
     if (depth == 0)
     {
-        int score = (SEARCH_ENABLE_QUIESCENSE == 1) ?
+        int score = (game->config->search.do_quiescense == 1) ?
             search_quiescense(game, alpha, beta, 0, ply) :
             eval_position(game);
 
@@ -211,7 +213,8 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
     ZobristHash key = game->zobrist_key;
 
     int tt_score;
-    if (tt_probe(game, key, depth, alpha, beta, &tt_score))
+
+    if (tt_probe(game, key, depth, alpha, beta, &tt_score) && game->config->search.do_transpositions)
         return tt_score;
 
     MoveList movelist = {0};
@@ -257,7 +260,7 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
             flag = TT_BETA;
 
             // Update killer moves only for quiet moves (non-captures)
-            if (!IS_CAPTURE(move))
+            if (!IS_CAPTURE(move) && game->config->search.do_killer_moves)
             {
                 if (search_killer_moves[ply][0] != move)
                 {
@@ -270,12 +273,15 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
         }
     }
 
-    if (best_eval > alpha_original && best_eval < beta)
-        flag = TT_EXACT;
-    else if (best_eval <= alpha_original)
-        flag = TT_ALPHA;
+    if (game->config->search.do_transpositions)
+    {
+        if (best_eval > alpha_original && best_eval < beta)
+            flag = TT_EXACT;
+        else if (best_eval <= alpha_original)
+            flag = TT_ALPHA;
 
-    tt_store(game, key, depth, best_eval, flag, best_move);
+        tt_store(game, key, depth, best_eval, flag, best_move);
+    }
 
     return best_eval;
 }
@@ -334,7 +340,7 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
 
         game->search_last_depth_finished_at = clock();
 
-        if (completed)
+        if (completed && game->config->search.do_info)
         {
             if (abs(eval_this_depth) > MATE_THRESHOLD)
             {
@@ -354,7 +360,7 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
                     board_move_to_string(best_this_depth));
             }
         }
-        else
+        else if (!completed)
         {
             break;
         }

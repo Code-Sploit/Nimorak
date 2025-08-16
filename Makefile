@@ -225,6 +225,30 @@ src/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nimorak.dir/build.make CMakeFiles/nimorak.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/nimorak/config.o: src/nimorak/config.c.o
+.PHONY : src/nimorak/config.o
+
+# target to build an object file
+src/nimorak/config.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nimorak.dir/build.make CMakeFiles/nimorak.dir/src/nimorak/config.c.o
+.PHONY : src/nimorak/config.c.o
+
+src/nimorak/config.i: src/nimorak/config.c.i
+.PHONY : src/nimorak/config.i
+
+# target to preprocess a source file
+src/nimorak/config.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nimorak.dir/build.make CMakeFiles/nimorak.dir/src/nimorak/config.c.i
+.PHONY : src/nimorak/config.c.i
+
+src/nimorak/config.s: src/nimorak/config.c.s
+.PHONY : src/nimorak/config.s
+
+# target to generate assembly for a file
+src/nimorak/config.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nimorak.dir/build.make CMakeFiles/nimorak.dir/src/nimorak/config.c.s
+.PHONY : src/nimorak/config.c.s
+
 src/nimorak/nimorak.o: src/nimorak/nimorak.c.o
 .PHONY : src/nimorak/nimorak.o
 
@@ -438,6 +462,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/nimorak/config.o"
+	@echo "... src/nimorak/config.i"
+	@echo "... src/nimorak/config.s"
 	@echo "... src/nimorak/nimorak.o"
 	@echo "... src/nimorak/nimorak.i"
 	@echo "... src/nimorak/nimorak.s"

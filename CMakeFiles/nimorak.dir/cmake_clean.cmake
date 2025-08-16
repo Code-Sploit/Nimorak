@@ -8,6 +8,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/nimorak.dir/src/board/movegen.c.o.d"
   "CMakeFiles/nimorak.dir/src/main.c.o"
   "CMakeFiles/nimorak.dir/src/main.c.o.d"
+  "CMakeFiles/nimorak.dir/src/nimorak/config.c.o"
+  "CMakeFiles/nimorak.dir/src/nimorak/config.c.o.d"
   "CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o"
   "CMakeFiles/nimorak.dir/src/nimorak/nimorak.c.o.d"
   "CMakeFiles/nimorak.dir/src/search/eval.c.o"

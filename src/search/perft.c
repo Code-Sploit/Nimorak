@@ -198,7 +198,7 @@ void perft_run_tests(Game *game)
     double elapsed_time_total = (double)(clock() - start_time) * 1000.0 / CLOCKS_PER_SEC;
 
     printf("\n========== PERFT TESTS END ==========\n");
-    printf("Total nodes searched: %d\n", total_nodes);
-    printf("Total time for all tests: %.2f ms\n", elapsed_time_total);
+    printf("Total nodes: %d\n", total_nodes);
+    printf("Suite time: %.2f ms\n", elapsed_time_total);
     printf("Average NPS: %.2f\n\n", total_nodes / elapsed_time_total * 1000.0);
 }
