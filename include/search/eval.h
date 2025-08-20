@@ -5,4 +5,10 @@
 
 int eval_position(Game *game);
 
+void eval_init(Game *game);
+
+void eval_quit(Game *game);
+
+void eval_reinit(Game *game);
+
 #endif

@@ -345,6 +345,9 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
             if (abs(eval_this_depth) > MATE_THRESHOLD)
             {
                 int mate_in = (MATE_SCORE - abs(eval_this_depth) + 1) / 2;
+                
+                mate_in = (mate_in == 0) ? 1 : mate_in;
+
                 if (eval_this_depth < 0) mate_in = -mate_in;
 
                 printf("info depth %d score mate %d time %.0f ms pv %s\n",

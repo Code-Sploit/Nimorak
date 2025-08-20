@@ -165,7 +165,7 @@ void uci_loop(Game *game)
             printf("bestmove %s\n", board_move_to_string(best_move));
             fflush(stdout);
         }
-        else if (strcmp(input, "quit") == 0)
+        else if (strcmp(input, "quit") == 0 || strcmp(input, "stop") == 0)
         {
             break;
         }

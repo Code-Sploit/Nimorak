@@ -7,6 +7,25 @@
 
 #include <time.h>
 
+typedef void (* ModuleFunction) (void *);
+
+typedef struct
+{
+    ModuleFunction function;
+
+    void *arg;
+
+    char *identifier;
+} ModuleCall;
+
+typedef struct
+{
+    ModuleCall *items;
+
+    size_t size;
+    size_t capacity;
+} ModuleList;
+
 typedef struct {
     int   count;
     Move  moves[256];
@@ -103,6 +122,11 @@ typedef struct {
     clock_t          search_last_depth_finished_at;
     int              search_think_time;
     int              search_stop;
+
+    // Evaluation
+    int eval;
+
+    ModuleList eval_module_list;
 } Game;
 
 Game *game_new();
@@ -110,6 +134,7 @@ Game *game_new();
 void game_del(Game *game);
 
 int config_set_option(Game *game, const char *name, const char *value);
+
 void config_handle_input(Game *game, const char *input);
 
 #endif

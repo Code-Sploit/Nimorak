@@ -18,7 +18,6 @@ typedef struct
         bool do_material;
         bool do_piece_squares;
         bool do_center_control;
-        bool do_bishop_pairs;
         bool do_king_safety;
     } eval;
 

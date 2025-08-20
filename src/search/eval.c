@@ -2,6 +2,8 @@
 
 #include <board/board.h>
 
+#include <nimorak/module.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -99,228 +101,182 @@ int mirror[64] = {
      0, 1, 2, 3, 4, 5, 6, 7
 };
 
-static inline double eval_calculate_endgame_weight(Game *game)
+/* Eval modules */
+
+void eval_module_material(void *arg)
 {
-    if (!game) return 0.0;
+    Game *game = (Game *) arg;
 
-    int piece_count = 0;
+    int eval = 0;
 
-    for (int color = WHITE; color <= BLACK; color++)
-    {
-        for (int pt = PAWN; pt <= QUEEN; pt++) {
-            piece_count += __builtin_popcountll(game->board[color][pt]);
-        }
-    }
+    Bitboard occupancy = game->occupancy[BOTH];
 
-    // Simpler linear scaling instead of steep sigmoid
-    double weight = (14.0 - piece_count) / 8.0; // 0..1 when piece_count 14->6
-    if (weight < 0) weight = 0;
-    if (weight > 1) weight = 1;
-    return weight;
-}
+    while (occupancy) {
+        int square = __builtin_ctzll(occupancy);
+        occupancy &= occupancy - 1;
 
-int eval_check_bishop_pairs(Game *game)
-{
-    if (!game) return 0;
-
-    int score = 0;
-
-    Bitboard bishops[2] = {game->board[WHITE][BISHOP], game->board[BLACK][BISHOP]};
-
-    for (int color = WHITE; color <= BLACK; color++)
-    {
-        Bitboard board = bishops[color];
-
-        int count = __builtin_popcountll(board);
+        Piece piece = game->board_ghost[square];
+        int type   = GET_TYPE(piece);
+        int color  = GET_COLOR(piece);
         int perspective = (color == WHITE) ? 1 : -1;
 
-        if (count == 2) score += BISHOP_PAIR_BONUS * perspective;
-    }
-
-    return score;
-}
-
-int eval_king_safety(Game *game)
-{
-    if (!game) return 0;
-
-    int score = 0;
-
-    // Endgame weight inverse (more important in middlegame, less in endgame)
-    float endgame_weight_inv = 1.0f - eval_calculate_endgame_weight(game);
-
-    // Find kings
-    int king_square[2];
-    king_square[WHITE] = board_find_king(game, WHITE);
-    king_square[BLACK] = board_find_king(game, BLACK);
-
-    // King attack masks
-    Bitboard king_attacks[2] = {
-        game->attack_tables_pc[KING][king_square[WHITE]],
-        game->attack_tables_pc[KING][king_square[BLACK]]
-    };
-
-    // Overlap with enemy attacks
-    Bitboard overlap_enemy_attacks[2] = {
-        king_attacks[WHITE] & game->attack_map_full[BLACK],
-        king_attacks[BLACK] & game->attack_map_full[WHITE]
-    };
-
-    // Count enemy attacks near king
-    int overlap_enemy_attack_count[2] = {
-        __builtin_popcountll(overlap_enemy_attacks[WHITE]),
-        __builtin_popcountll(overlap_enemy_attacks[BLACK])
-    };
-
-    // Penalty for each attacked square near king (scaled by endgame weight)
-    score -= (int)(overlap_enemy_attack_count[WHITE] * 20 * endgame_weight_inv);
-    score += (int)(overlap_enemy_attack_count[BLACK] * 20 * endgame_weight_inv);
-
-    // Pawn shield penalty
-    for (int color = WHITE; color <= BLACK; color++) {
-        int sq = king_square[color];
-        int file = sq % 8;
-        int rank = sq / 8;
-
-        // Determine forward direction
-        int forward = (color == WHITE) ? 1 : -1;
-
-        // Pawn shield: check 3 files around king
-        int pawn_penalty = 0;
-        for (int df = -1; df <= 1; df++) {
-            int f = file + df;
-            if (f < 0 || f > 7) continue;
-
-            int pawn_sq = sq + forward * 8 + df; // one rank ahead
-            int pawn_sq2 = sq + forward * 16 + df; // two ranks ahead
-
-            // Ignore central pawns (files 3-4) if requested
-            if (f >= 3 && f <= 4) continue;
-
-            if (!(board_get_square(game, pawn_sq) == MAKE_PIECE(PAWN, color)) &&
-                !(board_get_square(game, pawn_sq2) == MAKE_PIECE(PAWN, color))) {
-                pawn_penalty += 15; // missing pawn in shield
-            }
+        switch (type) {
+            case PAWN:   eval += piece_values[PAWN]   * perspective; break;
+            case KNIGHT: eval += piece_values[KNIGHT] * perspective; break;
+            case BISHOP: eval += piece_values[BISHOP] * perspective; break;
+            case ROOK:   eval += piece_values[ROOK]   * perspective; break;
+            case QUEEN:  eval += piece_values[QUEEN]  * perspective; break;
+            default: break;
         }
-
-        // Apply penalty
-        if (color == WHITE) score -= (int)(pawn_penalty * endgame_weight_inv);
-        else score += (int)(pawn_penalty * endgame_weight_inv);
     }
 
-    return score;
+    game->eval += eval;
 }
 
-int eval_center_control(Game *game)
+void eval_module_pst(void *arg)
 {
-    if (!game) return 0;
+    Game *game = (Game *) arg;
 
-    int score = 0;
-   
-    const int center_squares[4] = {27, 28, 35, 36}; /* d4, e4, d5, e5 */
+    int eval = 0;
+
+    Bitboard occupancy = game->occupancy[BOTH];
+
+    while (occupancy) {
+        int square = __builtin_ctzll(occupancy);
+        occupancy &= occupancy - 1;
+
+        Piece piece = game->board_ghost[square];
+        int type   = GET_TYPE(piece);
+        int color  = GET_COLOR(piece);
+        int perspective = (color == WHITE) ? 1 : -1;
+        int real_square = (color == WHITE) ? mirror[square] : square;
+
+        switch (type) {
+            case PAWN:   eval += eval_pst_table[PAWN][real_square]   * perspective; break;
+            case KNIGHT: eval += eval_pst_table[KNIGHT][real_square] * perspective; break;
+            case BISHOP: eval += eval_pst_table[BISHOP][real_square] * perspective; break;
+            case ROOK:   eval += eval_pst_table[ROOK][real_square]   * perspective; break;
+            case QUEEN:  eval += eval_pst_table[QUEEN][real_square]  * perspective; break;
+            default: break;
+        }
+    }
+
+    game->eval += eval;
+}
+
+void eval_module_center_control(void *arg)
+{
+    Game *game = (Game *) arg;
+
+    int eval = 0;
+
+    int center_squares[4] = {27, 28, 35, 36};
 
     for (int i = 0; i < 4; i++)
     {
-        int sq = center_squares[i];
+        int square = center_squares[i];
 
-        Piece piece = board_get_square(game, sq);
-        
-        int type = GET_TYPE(piece);
-        int color = GET_COLOR(piece);
-        int perspective = (color == WHITE) ? 1 : -1;
+        Piece piece = game->board_ghost[square];
 
-        // Bonus for occupying the center with a pawn
-        if (type == PAWN)
+        int perspective = (GET_COLOR(piece) == WHITE) ? 1 : -1;
+
+        if (GET_TYPE(piece) == PAWN)
         {
-            score += PAWN_CENTER_CONTROL_BONUS * perspective;
+            eval += PAWN_CENTER_CONTROL_BONUS * perspective;
         }
-
-        // Bonus for controlling center square via attack
-        if (game->attack_map_full[WHITE] & (1ULL << sq))
-            score += CENTER_CONTROL_ATTACK_BONUS;
-
-        if (game->attack_map_full[BLACK] & (1ULL << sq))
-            score -= CENTER_CONTROL_ATTACK_BONUS;
     }
 
-    return score;
+    game->eval += eval;
 }
 
-int eval_material(Game *game)
-{
-    if (!game) return 0;
+void eval_module_king_safety(void *arg) {
+    Game *game = (Game *) arg;
 
-    int piece_count[2][7] = {{0}};
+    int eval = 0;
 
-    int score = 0;
+    int king_squares[2] = {
+        board_find_king(game, WHITE),
+        board_find_king(game, BLACK)
+    };
 
-    for (int color = WHITE; color <= BLACK; color++)
-    {
-        for (int piece_type = PAWN; piece_type <= QUEEN; piece_type++)
-        {
-            Bitboard pieces = game->board[color][piece_type];
+    int directions[8] = {-1, 1, -8, 8, -9, -7, 7, 9};
 
-            while (pieces)
-            {
-                piece_count[color][piece_type]++;
+    for (int side = WHITE; side <= BLACK; side++) {
+        int king_sq = king_squares[side];
 
-                score += piece_values[piece_type] * ((color == WHITE) ? 1 : -1);
+        for (int i = 0; i < 8; i++) {
+            int target_sq = king_sq + directions[i];
 
-                pieces &= pieces - 1;
+            // Bounds check (skip if off board)
+            if (target_sq < 0 || target_sq >= 64) continue;
+
+            // Prevent wrap around (e.g. from h-file to a-file)
+            int king_file   = king_sq % 8;
+            int target_file = target_sq % 8;
+    
+            if (abs(target_file - king_file) > 1) continue;
+
+            Piece p = game->board_ghost[target_sq];
+    
+            if (p == EMPTY) continue;
+
+            int ptype  = GET_TYPE(p);
+            int pcolor = GET_COLOR(p);
+
+            // Example: pawns near own king = bonus
+            if (ptype == PAWN && pcolor == side) {
+                eval += (side == WHITE ? 15 : -15);
             }
         }
     }
 
-    return score;
+    game->eval += eval;
 }
 
-int eval_piece_squares(Game *game)
-{
-    if (!game) return 0;
-
-    int score = 0;
-
-    for (int color = WHITE; color <= BLACK; color++)
-    {
-        for (int piece = PAWN; piece <= KING; piece++)
-        {
-            Bitboard pieces = game->board[color][piece];
-
-            while (pieces)
-            {
-                int square = __builtin_ctzll(pieces);
-                int real_square = (color == BLACK) ? square : mirror[square];
-                int perspective = (color == WHITE) ? 1 : -1;
-
-                if (piece == KING)
-                {
-                    double endgame_weight = eval_calculate_endgame_weight(game); // Should be float between 0 and 1
-                    
-                    score += (int)((1.0 - endgame_weight) * eval_king_mid_pst[real_square]
-                            + endgame_weight * eval_king_end_pst[real_square]) * perspective;
-                }
-                else
-                {
-                    score += eval_pst_table[piece - 1][real_square] * perspective;
-                }
-
-                pieces &= pieces - 1;
-            }
-        }
-    }
-
-    return score;
-}
+/* --- Eval entry point --- */
 
 int eval_position(Game *game)
 {
-    int score = 0;
+    // Reset eval each time
+    game->eval = 0;
 
-    if (game->config->eval.do_material)       score += eval_material(game);
-    if (game->config->eval.do_piece_squares)  score += eval_piece_squares(game);
-    if (game->config->eval.do_center_control) score += eval_center_control(game);
-    if (game->config->eval.do_bishop_pairs)   score += eval_check_bishop_pairs(game);
-    if (game->config->eval.do_king_safety)    score += eval_king_safety(game);
+    // Run all modules
+    module_run_list(&game->eval_module_list);
 
-    return (game->turn == WHITE) ? score : -score;
+    // Return from perspective of side to move
+    return (game->turn == WHITE) ? game->eval : -game->eval;
+}
+
+/* --- Eval initialization --- */
+
+void eval_init(Game *game)
+{
+    int size = 0;
+
+    if (game->config->eval.do_material)       size++;
+    if (game->config->eval.do_piece_squares)  size++;
+    if (game->config->eval.do_center_control) size++;
+    if (game->config->eval.do_king_safety)    size++;
+
+    module_init_list(&game->eval_module_list, size);
+
+    if (game->config->eval.do_material)       module_add(&game->eval_module_list, eval_module_material, game, "eval_module_material");
+    if (game->config->eval.do_piece_squares)  module_add(&game->eval_module_list, eval_module_pst, game, "eval_module_pst");
+    if (game->config->eval.do_center_control) module_add(&game->eval_module_list, eval_module_center_control, game, "eval_module_center_control");
+    if (game->config->eval.do_king_safety)    module_add(&game->eval_module_list, eval_module_king_safety, game, "eval_module_king_safety");
+}
+
+/* --- Eval deinitialization --- */
+
+void eval_quit(Game *game)
+{
+    module_free_list(&game->eval_module_list);
+}
+
+/* --- Eval reinitialization --- */
+
+void eval_reinit(Game *game)
+{
+    eval_quit(game);
+    eval_init(game);
 }

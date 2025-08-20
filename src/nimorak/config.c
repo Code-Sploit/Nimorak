@@ -1,5 +1,6 @@
 #include <nimorak.h>
 #include <nimorak/config.h>
+#include <search/eval.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,18 +27,23 @@ void set_movegen_captures(Game *game, const char *value) {
 // --- Setters for eval ---
 void set_eval_material(Game *game, const char *value) {
     game->config->eval.do_material = atoi(value) != 0;
+
+    eval_reinit(game);
 }
 void set_eval_piece_squares(Game *game, const char *value) {
     game->config->eval.do_piece_squares = atoi(value) != 0;
+
+    eval_reinit(game);
 }
 void set_eval_center(Game *game, const char *value) {
     game->config->eval.do_center_control = atoi(value) != 0;
-}
-void set_eval_bishops(Game *game, const char *value) {
-    game->config->eval.do_bishop_pairs = atoi(value) != 0;
+    
+    eval_reinit(game);
 }
 void set_eval_king_safety(Game *game, const char *value) {
     game->config->eval.do_king_safety = atoi(value) != 0;
+
+    eval_reinit(game);
 }
 
 // --- Setters for search ---
@@ -56,7 +62,6 @@ void set_search_heuristics(Game *game, const char *value) {
 void set_search_info(Game *game, const char *value) {
     game->config->search.do_info = atoi(value) != 0;
 }
-
 void set_search_initial_depth(Game *game, const char *value) {
     game->config->search.initial_depth = atoi(value);
 }
@@ -77,7 +82,6 @@ OptionHandler option_table[] = {
     { "eval_do_material",        set_eval_material },
     { "eval_do_piece_squares",   set_eval_piece_squares },
     { "eval_do_center_control",  set_eval_center },
-    { "eval_do_bishop_pairs",    set_eval_bishops },
     { "eval_do_king_safety",     set_eval_king_safety },
 
     // search

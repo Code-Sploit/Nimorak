@@ -1,4 +1,4 @@
-#include <table/magic.h>
+#include <search/eval.h>
 
 #include <nimorak.h>
 
@@ -37,7 +37,6 @@ Game *game_new()
     game->config->eval.do_material                = true;
     game->config->eval.do_piece_squares           = true;
     game->config->eval.do_center_control          = true;
-    game->config->eval.do_bishop_pairs            = true;
     game->config->eval.do_king_safety             = true;
 
     game->config->search.do_quiescense            = true;
@@ -48,6 +47,8 @@ Game *game_new()
     game->config->search.maximum_depth            = 32;
     game->config->search.initial_depth            = 6;
     game->config->search.maximum_quiescense_depth = 8;
+
+    eval_init(game);
 
     return game;
 }
