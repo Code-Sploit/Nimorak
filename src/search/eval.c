@@ -182,7 +182,7 @@ void eval_module_center_control(void *arg)
 
         if (GET_TYPE(piece) == PAWN)
         {
-            eval += PAWN_CENTER_CONTROL_BONUS * perspective;
+            eval += EVAL_PAWN_CENTER_CONTROL_BONUS * perspective;
         }
     }
 

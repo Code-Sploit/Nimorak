@@ -140,7 +140,7 @@ void uci_loop(Game *game)
             if (movetime > 0)
                 best_move = search_start(game, game->config->search.maximum_depth, movetime);
             else if (depth > 0)
-                best_move = search_start(game, MIN(game->config->search.maximum_depth, depth), INFINITE_TIME);
+                best_move = search_start(game, MIN(game->config->search.maximum_depth, depth), INF);
             else if (wtime > 0 && btime > 0)
             {
                 int time_left = (game->turn == WHITE) ? wtime : btime;
@@ -159,7 +159,7 @@ void uci_loop(Game *game)
             }
             else
             {
-                best_move = search_start(game, MIN(game->config->search.initial_depth, game->config->search.maximum_depth), INFINITE_TIME);
+                best_move = search_start(game, MIN(game->config->search.initial_depth, game->config->search.maximum_depth), INF);
             }
 
             printf("bestmove %s\n", (best_move == 0) ? "(none)" : board_move_to_string(best_move));

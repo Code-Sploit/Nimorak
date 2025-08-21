@@ -65,21 +65,29 @@ typedef uint8_t Piece;
 #define BLACK   1
 #define BOTH    2
 
-/* Time controls */
+/* Make & Unmake move types */
 
-#define INFINITE_TIME 1000000000
+#define MAKE_MOVE_LIGHT 0
+#define MAKE_MOVE_FULL  1
+
+#define MAX_MOVES 256
 
 /* Evaluation */
 
-#define PAWN_CENTER_CONTROL_BONUS 80
-#define CENTER_CONTROL_ATTACK_BONUS 10
-#define BISHOP_PAIR_BONUS 40
+#define EVAL_PAWN_CENTER_CONTROL_BONUS 80
+#define EVAL_CENTER_CONTROL_ATTACK_BONUS 10
+#define EVAL_BISHOP_PAIR_BONUS 40
 
 #define MATE_SCORE 32000
 #define MATE_THRESHOLD (MATE_SCORE - 1000)
 
-/* Make & Unmake move types */
-#define MAKE_MOVE_LIGHT 0
-#define MAKE_MOVE_FULL  1
+/* Search */
+
+#define SEARCH_THINK_TIME_MARGIN 10
+
+#define SEARCH_ORDERING_PROMO_BONUS 10000
+#define SEARCH_ORDERING_CHECK_BONUS 5000
+#define SEARCH_ORDERING_KILLER_MOVE1_SCORE 900000
+#define SEARCH_ORDERING_KILLER_MOVE2_SCORE 800000
 
 #endif
