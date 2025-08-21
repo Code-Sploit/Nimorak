@@ -242,7 +242,11 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
         Move move = movelist.moves[i];
         board_make_move(game, move, MAKE_MOVE_FULL);
 
-        int eval = -search_negamax(game, depth - 1, -beta, -alpha, ply + 1);
+        int extension = 0;
+
+        if (board_is_king_in_check(game, game->turn)) extension = 1;
+
+        int eval = -search_negamax(game, depth - 1 + extension, -beta, -alpha, ply + 1);
 
         board_unmake_move(game, MAKE_MOVE_FULL);
 
