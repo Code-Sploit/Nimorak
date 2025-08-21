@@ -170,7 +170,7 @@ char *zobrist_key_to_string(ZobristHash hash)
 
     if (str) {
         // Use %016lx for long unsigned int (ZobristHash)
-        sprintf(str, "0x%016lx", hash);
+        sprintf(str, "0x%016llx", hash);
     }
 
     return str;

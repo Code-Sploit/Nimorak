@@ -1,6 +1,9 @@
 @echo off
 echo Compiling Nimorak chess engine...
 
+REM Prompt user for version name
+set /p VERSION=Enter version name (e.g., v1, test, beta): 
+
 REM Set compiler flags for optimization, debugging, and warnings
 set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g -DNDEBUG -funroll-loops -fomit-frame-pointer
 
@@ -10,8 +13,8 @@ set INCLUDE=-Iinclude
 REM Source files with relative paths
 set SOURCES=src/nimorak/module.c src/board/attack.c src/board/board.c src/search/eval.c src/main.c src/board/movegen.c src/nimorak/nimorak.c src/search/perft.c src/table/table.c src/search/search.c src/table/repetition.c src/table/transposition.c src/table/zobrist.c src/nimorak/config.c
 
-REM Output file
-set OUTPUT=-o nimorak
+REM Output file uses version name
+set OUTPUT=-o nimorak_%VERSION%.exe
 
 REM Compile
 gcc %FLAGS% %INCLUDE% %SOURCES% %OUTPUT%
@@ -20,5 +23,5 @@ if %errorlevel% neq 0 (
     echo ❌ Build failed.
     exit /b %errorlevel%
 ) else (
-    echo ✅ Build succeeded. Output: nimorak
+    echo ✅ Build succeeded. Output: nimorak_%VERSION%.exe
 )

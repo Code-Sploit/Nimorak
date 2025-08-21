@@ -311,6 +311,12 @@ Move search_start(Game *game, int max_depth, int think_time_ms)
         game->search_last_depth_started_at = clock();
 
         movegen_generate_legal_moves(game, &movelist, 0);
+        
+        if (movelist.count == 1)
+        {            
+            return movelist.moves[0];
+        }
+        
         search_order_moves(game, &movelist, 0); // root ply = 0
 
         for (int i = 0; i < movelist.count; i++)

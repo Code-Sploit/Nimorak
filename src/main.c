@@ -162,7 +162,7 @@ void uci_loop(Game *game)
                 best_move = search_start(game, MIN(game->config->search.initial_depth, game->config->search.maximum_depth), INFINITE_TIME);
             }
 
-            printf("bestmove %s\n", board_move_to_string(best_move));
+            printf("bestmove %s\n", (best_move == 0) ? "(none)" : board_move_to_string(best_move));
             fflush(stdout);
         }
         else if (strcmp(input, "quit") == 0 || strcmp(input, "stop") == 0)
