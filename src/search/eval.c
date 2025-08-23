@@ -10,6 +10,18 @@
 
 const int piece_values[] = {0, 100, 300, 350, 500, 900};
 
+const int eval_pawn_structure_penalties[9] = {
+    0,   // 0 pawns on file
+    0,   // 1 pawn on file = fine
+    20,  // doubled
+    50,  // tripled
+    90,  // quadrupled
+    140, // etc.
+    200,
+    280,
+    360
+};
+
 int eval_pst_table[5][64] = {
     // Pawn PST
     {
@@ -189,50 +201,6 @@ void eval_module_center_control(void *arg)
     game->eval += eval;
 }
 
-void eval_module_king_safety(void *arg) {
-    Game *game = (Game *) arg;
-
-    int eval = 0;
-
-    int king_squares[2] = {
-        board_find_king(game, WHITE),
-        board_find_king(game, BLACK)
-    };
-
-    int directions[8] = {-1, 1, -8, 8, -9, -7, 7, 9};
-
-    for (int side = WHITE; side <= BLACK; side++) {
-        int king_sq = king_squares[side];
-
-        for (int i = 0; i < 8; i++) {
-            int target_sq = king_sq + directions[i];
-
-            // Bounds check (skip if off board)
-            if (target_sq < 0 || target_sq >= 64) continue;
-
-            // Prevent wrap around (e.g. from h-file to a-file)
-            int king_file   = king_sq % 8;
-            int target_file = target_sq % 8;
-    
-            if (abs(target_file - king_file) > 1) continue;
-
-            Piece p = game->board_ghost[target_sq];
-    
-            if (p == EMPTY) continue;
-
-            int ptype  = GET_TYPE(p);
-            int pcolor = GET_COLOR(p);
-
-            // Example: pawns near own king = bonus
-            if (ptype == PAWN && pcolor == side) {
-                eval += (side == WHITE ? 15 : -15);
-            }
-        }
-    }
-
-    game->eval += eval;
-}
-
 /* --- Eval entry point --- */
 
 int eval_position(Game *game)
@@ -256,14 +224,12 @@ void eval_init(Game *game)
     if (game->config->eval.do_material)       size++;
     if (game->config->eval.do_piece_squares)  size++;
     if (game->config->eval.do_center_control) size++;
-    if (game->config->eval.do_king_safety)    size++;
 
     module_init_list(&game->eval_module_list, size);
 
     if (game->config->eval.do_material)       module_add(&game->eval_module_list, eval_module_material, game, "eval_module_material");
     if (game->config->eval.do_piece_squares)  module_add(&game->eval_module_list, eval_module_pst, game, "eval_module_pst");
     if (game->config->eval.do_center_control) module_add(&game->eval_module_list, eval_module_center_control, game, "eval_module_center_control");
-    if (game->config->eval.do_king_safety)    module_add(&game->eval_module_list, eval_module_king_safety, game, "eval_module_king_safety");
 }
 
 /* --- Eval deinitialization --- */

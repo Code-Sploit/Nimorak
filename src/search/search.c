@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdbool.h>
+#include <math.h>
 
 Move search_killer_moves[64][2];
 
@@ -140,7 +141,7 @@ int search_quiescense(Game *game, int alpha, int beta, int depth, int ply)
     if (stand_pat > alpha) alpha = stand_pat;
 
     MoveList captures = {0};
-    
+
     movegen_generate_legal_moves(game, &captures, 1);
     search_order_moves(game, &captures, ply);
 
@@ -225,7 +226,14 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
        
         if (board_is_king_in_check(game, game->turn)) extension = 1;
 
-        int eval = -search_negamax(game, depth - 1 + extension, -beta, -alpha, ply + 1);
+        int reduction = 0;
+
+        if (extension == 0 && depth >= 3 && i >= 5 && !IS_CAPTURE(move) && !IS_PROMO(move) && !board_is_king_in_check(game, game->turn))
+            reduction = (int) (log(depth) * log(i)) / 2.5;
+
+        int real_depth = depth - 1 - reduction + extension;
+
+        int eval = -search_negamax(game, real_depth, -beta, -alpha, ply + 1);
        
         board_unmake_move(game, MAKE_MOVE_FULL);
 

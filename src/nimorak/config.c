@@ -45,6 +45,11 @@ void set_eval_king_safety(Game *game, const char *value) {
 
     eval_reinit(game);
 }
+void set_eval_pawn_structure(Game *game, const char *value) {
+    game->config->eval.do_pawn_structure = atoi(value) != 0;
+
+    eval_reinit(game);
+}
 
 // --- Setters for search ---
 void set_search_quiescense(Game *game, const char *value) {

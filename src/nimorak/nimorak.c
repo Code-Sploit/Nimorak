@@ -38,6 +38,7 @@ Game *game_new()
     game->config->eval.do_piece_squares           = true;
     game->config->eval.do_center_control          = true;
     game->config->eval.do_king_safety             = true;
+    game->config->eval.do_pawn_structure          = true;
 
     game->config->search.do_quiescense            = true;
     game->config->search.do_transpositions        = true;
