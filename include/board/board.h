@@ -46,6 +46,8 @@ void board_load_fen(Game *game, const char *fen_string);
 void board_print(Game *game);
 void board_make_move(Game *game, Move move, int generation_type);
 void board_unmake_move(Game *game, int generation_type);
+void board_make_null_move(Game *game);
+void board_unmake_null_move(Game *game);
 
 int board_is_on_rank(int square, int rank);
 int board_find_king(const Game *game, int color);
