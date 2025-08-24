@@ -22,6 +22,17 @@ const int eval_pawn_structure_penalties[9] = {
     360
 };
 
+static const Bitboard FILE_MASKS[8] = {
+    0x0101010101010101ULL,
+    0x0202020202020202ULL,
+    0x0404040404040404ULL,
+    0x0808080808080808ULL,
+    0x1010101010101010ULL,
+    0x2020202020202020ULL,
+    0x4040404040404040ULL,
+    0x8080808080808080ULL
+};
+
 int eval_pst_table[5][64] = {
     // Pawn PST
     {
@@ -285,6 +296,110 @@ void eval_module_endgame(void *arg)
     game->eval += eval;
 }
 
+// Rook open files
+void eval_module_rook_open_files(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+
+    static const int open_file_bonus = 25;
+    static const int semi_open_file_bonus = 15;
+
+    for (int color = WHITE; color <= BLACK; color++)
+    {
+        Bitboard rooks = game->board[color][ROOK];
+
+        while (rooks)
+        {
+            int square = __builtin_ctzll(rooks);
+            rooks &= rooks - 1;
+
+            int file = FILE_OF(square);
+            Bitboard file_mask = FILE_MASKS[file];
+
+            Bitboard friendly_pawns = file_mask & game->board[color][PAWN];
+            Bitboard enemy_pawns = file_mask & game->board[color ^ 1][PAWN];
+
+            if (!friendly_pawns && !enemy_pawns)
+                eval += (color == WHITE) ? open_file_bonus : -open_file_bonus;
+            else if (!friendly_pawns && enemy_pawns)
+                eval += (color == WHITE) ? semi_open_file_bonus : -semi_open_file_bonus;
+        }
+    }
+
+    game->eval += eval;
+}
+
+void eval_module_bishop_pair(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+    const int bishop_pair_bonus = 30;
+
+    for (int color = WHITE; color <= BLACK; color++)
+    {
+        int count = __builtin_popcountll(game->board[color][BISHOP]);
+        if (count >= 2)
+            eval += (color == WHITE) ? bishop_pair_bonus : -bishop_pair_bonus;
+    }
+
+    game->eval += eval;
+}
+
+void eval_module_knight_outposts(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+    const int outpost_bonus = 20;
+
+    // central ranks mask (ranks 3..6)
+    const Bitboard central_mask = 0x00003C3C3C3C0000ULL;
+
+    for (int color = WHITE; color <= BLACK; color++)
+    {
+        Bitboard knights = game->board[color][KNIGHT];
+
+        while (knights)
+        {
+            int square = __builtin_ctzll(knights);
+            knights &= knights - 1;
+
+            Bitboard sq_mask = 1ULL << square;
+
+            // Only consider central squares
+            if (!(sq_mask & central_mask))
+                continue;
+
+            // Pawns protecting the square
+            Bitboard friendly_pawns = game->board[color][PAWN];
+            Bitboard enemy_pawns = game->board[color ^ 1][PAWN];
+
+            int rank = RANK_OF(square);
+            int file = FILE_OF(square);
+
+            Bitboard protected_by_pawn = 0ULL;
+
+            if (color == WHITE)
+            {
+                if (file > 0) protected_by_pawn |= 1ULL << (square - 9);
+                if (file < 7) protected_by_pawn |= 1ULL << (square - 7);
+            }
+            else
+            {
+                if (file > 0) protected_by_pawn |= 1ULL << (square + 7);
+                if (file < 7) protected_by_pawn |= 1ULL << (square + 9);
+            }
+
+            if ((protected_by_pawn & friendly_pawns) && !(protected_by_pawn & enemy_pawns))
+            {
+                eval += (color == WHITE) ? outpost_bonus : -outpost_bonus;
+            }
+        }
+    }
+
+    game->eval += eval;
+}
+
 /* --- Eval entry point --- */
 
 int eval_position(Game *game)
@@ -305,19 +420,30 @@ void eval_init(Game *game)
 {
     int size = 0;
 
-    if (game->config->eval.do_material)      size++;
-    if (game->config->eval.do_piece_squares) size++;
-    if (game->config->eval.do_endgame)       size++;
-    if (game->config->eval.do_mobility)      size++;
+    // Count active modules
+    if (game->config->eval.do_material)         size++;
+    if (game->config->eval.do_piece_squares)    size++;
+    if (game->config->eval.do_endgame)          size++;
+    if (game->config->eval.do_mobility)         size++;
+    if (game->config->eval.do_pawn_structure)   size++;
+    if (game->config->eval.do_rook_open_files)  size++;
+    if (game->config->eval.do_king_safety)      size++;
+    if (game->config->eval.do_bishop_pair)      size++;
+    if (game->config->eval.do_knight_outposts)   size++;
 
+    // Initialize module list
     module_init_list(&game->eval_module_list, size);
 
-    if (game->config->eval.do_material)       module_add(&game->eval_module_list, eval_module_material, game, "eval_module_material");
-    if (game->config->eval.do_piece_squares)  module_add(&game->eval_module_list, eval_module_pst, game, "eval_module_pst");
-    if (game->config->eval.do_endgame)        module_add(&game->eval_module_list, eval_module_endgame, game, "eval_module_endgame");
-    if (game->config->eval.do_mobility)       module_add(&game->eval_module_list, eval_module_mobility, game, "eval_module_mobility");
-    if (game->config->eval.do_king_safety)    module_add(&game->eval_module_list, eval_module_king_safety, game, "eval_module_king_safety");
-    if (game->config->eval.do_pawn_structure) module_add(&game->eval_module_list, eval_module_pawn_structure, game, "eval_module_pawn_structure");
+    // Add modules
+    if (game->config->eval.do_material)         module_add(&game->eval_module_list, eval_module_material, game, "eval_module_material");
+    if (game->config->eval.do_piece_squares)    module_add(&game->eval_module_list, eval_module_pst, game, "eval_module_pst");
+    if (game->config->eval.do_endgame)          module_add(&game->eval_module_list, eval_module_endgame, game, "eval_module_endgame");
+    if (game->config->eval.do_mobility)         module_add(&game->eval_module_list, eval_module_mobility, game, "eval_module_mobility");
+    if (game->config->eval.do_king_safety)      module_add(&game->eval_module_list, eval_module_king_safety, game, "eval_module_king_safety");
+    if (game->config->eval.do_pawn_structure)   module_add(&game->eval_module_list, eval_module_pawn_structure, game, "eval_module_pawn_structure");
+    if (game->config->eval.do_rook_open_files)  module_add(&game->eval_module_list, eval_module_rook_open_files, game, "eval_module_rook_open_files");
+    if (game->config->eval.do_bishop_pair)      module_add(&game->eval_module_list, eval_module_bishop_pair, game, "eval_module_bishop_pair");
+    if (game->config->eval.do_knight_outposts)  module_add(&game->eval_module_list, eval_module_knight_outposts, game, "eval_module_knight_outposts");
 }
 
 /* --- Eval deinitialization --- */
