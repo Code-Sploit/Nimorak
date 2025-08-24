@@ -36,7 +36,8 @@ Game *game_new()
     
     game->config->eval.do_material                = true;
     game->config->eval.do_piece_squares           = true;
-    game->config->eval.do_center_control          = true;
+    game->config->eval.do_endgame                 = true;
+    game->config->eval.do_mobility                = true;
     game->config->eval.do_king_safety             = true;
     game->config->eval.do_pawn_structure          = true;
 

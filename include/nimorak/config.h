@@ -17,7 +17,8 @@ typedef struct
     struct {
         bool do_material;
         bool do_piece_squares;
-        bool do_center_control;
+        bool do_endgame;
+        bool do_mobility;
         bool do_king_safety;
         bool do_pawn_structure;
     } eval;
