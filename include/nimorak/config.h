@@ -21,6 +21,9 @@ typedef struct
         bool do_mobility;
         bool do_king_safety;
         bool do_pawn_structure;
+        bool do_rook_open_files;
+        bool do_bishop_pair;
+        bool do_knight_outposts;
     } eval;
 
     struct {

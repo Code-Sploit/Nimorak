@@ -12,7 +12,6 @@ Game *game_new()
     if (!game)
     {
         // Failed to allocate memory for game structure, exit
-
         exit(1);
     }
 
@@ -33,27 +32,33 @@ Game *game_new()
     // Set default configurations
     game->config->movegen.do_legal_move_filtering = true;
     game->config->movegen.do_only_captures        = false;
-    
-    game->config->eval.do_material                = true;
-    game->config->eval.do_piece_squares           = true;
-    game->config->eval.do_endgame                 = true;
-    game->config->eval.do_mobility                = true;
-    game->config->eval.do_king_safety             = true;
-    game->config->eval.do_pawn_structure          = true;
 
-    game->config->search.do_quiescense            = true;
-    game->config->search.do_transpositions        = true;
-    game->config->search.do_info                  = true;
-    game->config->search.do_killer_moves          = true;
-    game->config->search.do_heuristics            = true;
-    game->config->search.maximum_depth            = 32;
-    game->config->search.initial_depth            = 6;
+    game->config->eval.do_material               = true;
+    game->config->eval.do_piece_squares          = true;
+    game->config->eval.do_endgame                = true;
+    game->config->eval.do_mobility               = true;
+    game->config->eval.do_king_safety            = true;
+    game->config->eval.do_pawn_structure         = true;
+
+    // New evaluation modules
+    game->config->eval.do_rook_open_files        = true;
+    game->config->eval.do_bishop_pair            = true;
+    game->config->eval.do_knight_outposts        = true;
+
+    game->config->search.do_quiescense           = true;
+    game->config->search.do_transpositions       = true;
+    game->config->search.do_info                 = true;
+    game->config->search.do_killer_moves         = true;
+    game->config->search.do_heuristics           = true;
+    game->config->search.maximum_depth           = 32;
+    game->config->search.initial_depth           = 6;
     game->config->search.maximum_quiescense_depth = 8;
 
     eval_init(game);
 
     return game;
 }
+
 
 void game_del(Game *game)
 {

@@ -55,6 +55,24 @@ void set_eval_mobility(Game *game, const char *value) {
 
     eval_reinit(game);
 }
+void set_eval_rook_open_files(Game *game, const char *value) {
+    game->config->eval.do_rook_open_files = atoi(value) != 0;
+    
+    eval_reinit(game);
+}
+
+void set_eval_bishop_pair(Game *game, const char *value) {
+    game->config->eval.do_bishop_pair = atoi(value) != 0;
+    
+    eval_reinit(game);
+}
+
+void set_eval_knight_outpost(Game *game, const char *value) {
+    game->config->eval.do_knight_outposts = atoi(value) != 0;
+    
+    eval_reinit(game);
+}
+
 
 // --- Setters for search ---
 void set_search_quiescense(Game *game, const char *value) {
@@ -95,6 +113,9 @@ OptionHandler option_table[] = {
     { "eval_do_mobility",        set_eval_mobility },
     { "eval_do_pawn_structure",  set_eval_pawn_structure },
     { "eval_do_king_safety",     set_eval_king_safety },
+    { "eval_do_rook_open_files",  set_eval_rook_open_files },
+    { "eval_do_bishop_pair",      set_eval_bishop_pair },
+    { "eval_do_knight_outpost",   set_eval_knight_outpost },
 
     // search
     { "search_do_quiescense",           set_search_quiescense },
