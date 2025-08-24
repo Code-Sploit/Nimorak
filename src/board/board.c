@@ -485,6 +485,44 @@ void board_unmake_move(Game *game, int generation_type)
     if (generation_type == MAKE_MOVE_FULL) repetition_pop(game);
 }
 
+void board_make_null_move(Game *game)
+{
+    if (!game) return;
+
+    // Save state
+    State *s = &game->history[game->history_count++];
+    s->castling_rights  = game->castling_rights;
+    s->enpassant_square = game->enpassant_square;
+    s->zobrist_key      = game->zobrist_key;
+    s->turn             = game->turn;
+
+    // Update en passant square
+    game->enpassant_square = -1;
+
+    // Switch turn
+    game->turn ^= 1;
+
+    // Zobrist update
+    zobrist_update_move(game, 0, s);
+}
+
+void board_unmake_null_move(Game *game)
+{
+    if (!game) return;
+    if (game->history_count <= 0) {
+        fprintf(stderr, "Error: unmake_move with empty history!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    State *s = &game->history[--game->history_count];
+
+    // Undo turn flip first (since make_move flips at the end)
+    game->turn = s->turn;
+
+    game->enpassant_square = s->enpassant_square;
+    game->zobrist_key = s->zobrist_key;
+}
+
 inline int board_is_on_rank(int square, int rank)
 {
     // Assuming square is always valid; remove bounds check for speed

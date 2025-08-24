@@ -69,6 +69,25 @@ static inline int search_compare_moves(const void *a, const void *b)
     return mb->score - ma->score;
 }
 
+static inline int search_calculate_extension(Game *game)
+{
+    int extension = 0;
+    
+    if (board_is_king_in_check(game, game->turn)) extension = 1;
+
+    return extension;
+}
+
+static inline int search_calculate_reduction(Game *game, Move move, int depth, int index)
+{
+    int reduction = 0;
+
+    if (depth >= 3 && index >= 5 && !IS_CAPTURE(move) && !IS_PROMO(move) && !board_is_king_in_check(game, game->turn))
+        reduction = (int) (log(depth) * log(index)) / 2.5;
+    
+    return reduction;
+}
+
 void search_order_moves(Game *game, MoveList *movelist, int ply)
 {
     if (!game || movelist->count == 0) return;
@@ -222,14 +241,8 @@ int search_negamax(Game *game, int depth, int alpha, int beta, int ply)
        
         board_make_move(game, move, MAKE_MOVE_FULL);
 
-        int extension = 0;
-       
-        if (board_is_king_in_check(game, game->turn)) extension = 1;
-
-        int reduction = 0;
-
-        if (extension == 0 && depth >= 3 && i >= 5 && !IS_CAPTURE(move) && !IS_PROMO(move) && !board_is_king_in_check(game, game->turn))
-            reduction = (int) (log(depth) * log(i)) / 2.5;
+        int extension = search_calculate_extension(game);
+        int reduction = (extension == 0) ? search_calculate_reduction(game, move, depth, i) : 0;
 
         int real_depth = depth - 1 - reduction + extension;
 

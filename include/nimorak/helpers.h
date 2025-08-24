@@ -31,6 +31,7 @@
 #define REMOVE_CASTLE_RIGHTS(rights, side) (rights &= ~side)
 
 #define MIN(a, b) ((a < b) ? a : b)
+#define MAX(a, b) ((a > b) ? a : b)
 
 static inline int pop_lsb(Bitboard *bb) {
     int sq = __builtin_ctzll(*bb);
