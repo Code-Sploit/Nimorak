@@ -35,8 +35,8 @@ void set_eval_piece_squares(Game *game, const char *value) {
 
     eval_reinit(game);
 }
-void set_eval_center(Game *game, const char *value) {
-    game->config->eval.do_center_control = atoi(value) != 0;
+void set_eval_endgame(Game *game, const char *value) {
+    game->config->eval.do_endgame = atoi(value) != 0;
     
     eval_reinit(game);
 }
@@ -47,6 +47,11 @@ void set_eval_king_safety(Game *game, const char *value) {
 }
 void set_eval_pawn_structure(Game *game, const char *value) {
     game->config->eval.do_pawn_structure = atoi(value) != 0;
+
+    eval_reinit(game);
+}
+void set_eval_mobility(Game *game, const char *value) {
+    game->config->eval.do_mobility = atoi(value) != 0;
 
     eval_reinit(game);
 }
@@ -86,7 +91,9 @@ OptionHandler option_table[] = {
     // eval
     { "eval_do_material",        set_eval_material },
     { "eval_do_piece_squares",   set_eval_piece_squares },
-    { "eval_do_center_control",  set_eval_center },
+    { "eval_do_endgame",         set_eval_endgame },
+    { "eval_do_mobility",        set_eval_mobility },
+    { "eval_do_pawn_structure",  set_eval_pawn_structure },
     { "eval_do_king_safety",     set_eval_king_safety },
 
     // search

@@ -33,6 +33,9 @@
 #define MIN(a, b) ((a < b) ? a : b)
 #define MAX(a, b) ((a > b) ? a : b)
 
+#define RANK_OF(sq) (sq / 8)
+#define FILE_OF(sq) (sq % 8)
+
 static inline int pop_lsb(Bitboard *bb) {
     int sq = __builtin_ctzll(*bb);
     *bb &= *bb - 1;

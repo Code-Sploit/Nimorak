@@ -113,90 +113,174 @@ int mirror[64] = {
      0, 1, 2, 3, 4, 5, 6, 7
 };
 
-/* Eval modules */
+static inline double eval_calculate_endgame_weight(Game *game)
+{
+    int total_material = 0;
+    int max_material = 40; // approximate
+
+    for (int color = 0; color < 2; color++) {
+        total_material += 9 * __builtin_popcountll(game->board[color][QUEEN]);
+        total_material += 5 * __builtin_popcountll(game->board[color][ROOK]);
+        total_material += 3 * __builtin_popcountll(game->board[color][BISHOP]);
+        total_material += 3 * __builtin_popcountll(game->board[color][KNIGHT]);
+        total_material += 1 * __builtin_popcountll(game->board[color][PAWN]);
+    }
+
+    double weight = 1.0 - ((double)total_material / max_material);
+    if (weight < 0.0) weight = 0.0;
+    if (weight > 1.0) weight = 1.0;
+    return weight;
+}
+
+// --- Eval Modules ---
 
 void eval_module_material(void *arg)
 {
     Game *game = (Game *) arg;
-
     int eval = 0;
-
     Bitboard occupancy = game->occupancy[BOTH];
 
     while (occupancy) {
-        int square = __builtin_ctzll(occupancy);
+        int sq = __builtin_ctzll(occupancy);
         occupancy &= occupancy - 1;
 
-        Piece piece = game->board_ghost[square];
-        int type   = GET_TYPE(piece);
-        int color  = GET_COLOR(piece);
+        Piece p = game->board_ghost[sq];
+        int type = GET_TYPE(p);
+        int color = GET_COLOR(p);
         int perspective = (color == WHITE) ? 1 : -1;
 
-        switch (type) {
-            case PAWN:   eval += piece_values[PAWN]   * perspective; break;
-            case KNIGHT: eval += piece_values[KNIGHT] * perspective; break;
-            case BISHOP: eval += piece_values[BISHOP] * perspective; break;
-            case ROOK:   eval += piece_values[ROOK]   * perspective; break;
-            case QUEEN:  eval += piece_values[QUEEN]  * perspective; break;
-            default: break;
-        }
+        eval += piece_values[type] * perspective;
     }
 
     game->eval += eval;
 }
 
+// Piece-square tables + king PST (opening/mid vs endgame)
 void eval_module_pst(void *arg)
 {
     Game *game = (Game *) arg;
-
     int eval = 0;
+    double endgame_weight = eval_calculate_endgame_weight(game);
 
     Bitboard occupancy = game->occupancy[BOTH];
-
     while (occupancy) {
-        int square = __builtin_ctzll(occupancy);
+        int sq = __builtin_ctzll(occupancy);
         occupancy &= occupancy - 1;
 
-        Piece piece = game->board_ghost[square];
-        int type   = GET_TYPE(piece);
-        int color  = GET_COLOR(piece);
+        Piece p = game->board_ghost[sq];
+        int type = GET_TYPE(p);
+        int color = GET_COLOR(p);
         int perspective = (color == WHITE) ? 1 : -1;
-        int real_square = (color == WHITE) ? mirror[square] : square;
+        int real_sq = (color == WHITE) ? mirror[sq] : sq;
 
-        switch (type) {
-            case PAWN:   eval += eval_pst_table[PAWN][real_square]   * perspective; break;
-            case KNIGHT: eval += eval_pst_table[KNIGHT][real_square] * perspective; break;
-            case BISHOP: eval += eval_pst_table[BISHOP][real_square] * perspective; break;
-            case ROOK:   eval += eval_pst_table[ROOK][real_square]   * perspective; break;
-            case QUEEN:  eval += eval_pst_table[QUEEN][real_square]  * perspective; break;
-            default: break;
+        if (type == KING) {
+            int king_val = (int)((1.0 - endgame_weight) * eval_king_mid_pst[real_sq] +
+                                  endgame_weight * eval_king_end_pst[real_sq]);
+            eval += king_val * perspective;
+        } else {
+            eval += eval_pst_table[type][real_sq] * perspective;
         }
     }
 
     game->eval += eval;
 }
 
-void eval_module_center_control(void *arg)
+// King safety module (pawn shield + open files)
+void eval_module_king_safety(void *arg)
 {
     Game *game = (Game *) arg;
-
     int eval = 0;
 
-    int center_squares[4] = {27, 28, 35, 36};
+    for (int color = 0; color < 2; color++) {
+        int king_sq = board_find_king(game, color);
+        Bitboard front = 0ULL;
+        int rank = RANK_OF(king_sq);
+        int file = FILE_OF(king_sq);
 
-    for (int i = 0; i < 4; i++)
-    {
-        int square = center_squares[i];
+        if (color == WHITE) {
+            if (rank < 7) front |= (1ULL << (king_sq + 8));
+            if (rank < 6) front |= (1ULL << (king_sq + 16));
+        } else {
+            if (rank > 0) front |= (1ULL << (king_sq - 8));
+            if (rank > 1) front |= (1ULL << (king_sq - 16));
+        }
 
-        Piece piece = game->board_ghost[square];
+        int shield_pawns = __builtin_popcountll(front & game->board[color][PAWN]);
+        eval += (shield_pawns - 2) * ((color == WHITE) ? 15 : -15);
+    }
 
-        int perspective = (GET_COLOR(piece) == WHITE) ? 1 : -1;
+    game->eval += eval;
+}
 
-        if (GET_TYPE(piece) == PAWN)
-        {
-            eval += EVAL_PAWN_CENTER_CONTROL_BONUS * perspective;
+// Pawn structure: doubled, isolated, passed pawns
+void eval_module_pawn_structure(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+
+    for (int color = 0; color < 2; color++) {
+        for (int file = 0; file < 8; file++) {
+            int count = 0;
+            for (int rank = 0; rank < 8; rank++) {
+                int sq = rank * 8 + file;
+                if (GET_TYPE(game->board_ghost[sq]) == PAWN &&
+                    GET_COLOR(game->board_ghost[sq]) == color) count++;
+            }
+
+            if (count > 1) eval += (count - 1) * ((color == WHITE) ? -20 : 20);
         }
     }
+
+    game->eval += eval;
+}
+
+// Mobility: number of legal moves
+void eval_module_mobility(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+
+    for (int color = 0; color < 2; color++) {
+        int mobility = 0;
+        for (int piece = KNIGHT; piece <= QUEEN; piece++) {
+            Bitboard pcs = game->board[color][piece];
+            while (pcs) {
+                int sq = __builtin_ctzll(pcs);
+                pcs &= pcs - 1;
+                mobility += __builtin_popcountll(game->attack_map[color][sq]);
+            }
+        }
+        eval += ((color == WHITE) ? mobility : -mobility) * 2;
+    }
+
+    game->eval += eval;
+}
+
+// Endgame king centralization
+void eval_module_endgame(void *arg)
+{
+    Game *game = (Game *) arg;
+    int eval = 0;
+    double endgame_weight = eval_calculate_endgame_weight(game);
+    if (endgame_weight < 0.1) return; // skip in opening/midgame
+
+    int center_squares[4] = {27,28,35,36};
+    int friendly_king_sq = board_find_king(game, game->turn);
+    int enemy_king_sq    = board_find_king(game, !game->turn);
+
+    int min_dist_friendly = 1000, min_dist_enemy = 1000;
+    for (int i = 0; i < 4; i++) {
+        int sq = center_squares[i];
+        int fd = abs(RANK_OF(friendly_king_sq) - RANK_OF(sq)) +
+                 abs(FILE_OF(friendly_king_sq) - FILE_OF(sq));
+        int ed = abs(RANK_OF(enemy_king_sq) - RANK_OF(sq)) +
+                 abs(FILE_OF(enemy_king_sq) - FILE_OF(sq));
+        if (fd < min_dist_friendly) min_dist_friendly = fd;
+        if (ed < min_dist_enemy) min_dist_enemy = ed;
+    }
+
+    eval += (6 - min_dist_friendly) * endgame_weight * 10;
+    eval -= (6 - min_dist_enemy) * endgame_weight * 10;
 
     game->eval += eval;
 }
@@ -221,15 +305,19 @@ void eval_init(Game *game)
 {
     int size = 0;
 
-    if (game->config->eval.do_material)       size++;
-    if (game->config->eval.do_piece_squares)  size++;
-    if (game->config->eval.do_center_control) size++;
+    if (game->config->eval.do_material)      size++;
+    if (game->config->eval.do_piece_squares) size++;
+    if (game->config->eval.do_endgame)       size++;
+    if (game->config->eval.do_mobility)      size++;
 
     module_init_list(&game->eval_module_list, size);
 
     if (game->config->eval.do_material)       module_add(&game->eval_module_list, eval_module_material, game, "eval_module_material");
     if (game->config->eval.do_piece_squares)  module_add(&game->eval_module_list, eval_module_pst, game, "eval_module_pst");
-    if (game->config->eval.do_center_control) module_add(&game->eval_module_list, eval_module_center_control, game, "eval_module_center_control");
+    if (game->config->eval.do_endgame)        module_add(&game->eval_module_list, eval_module_endgame, game, "eval_module_endgame");
+    if (game->config->eval.do_mobility)       module_add(&game->eval_module_list, eval_module_mobility, game, "eval_module_mobility");
+    if (game->config->eval.do_king_safety)    module_add(&game->eval_module_list, eval_module_king_safety, game, "eval_module_king_safety");
+    if (game->config->eval.do_pawn_structure) module_add(&game->eval_module_list, eval_module_pawn_structure, game, "eval_module_pawn_structure");
 }
 
 /* --- Eval deinitialization --- */
