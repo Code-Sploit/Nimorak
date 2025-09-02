@@ -1,24 +1,29 @@
 @echo off
-echo Compiling Nimorak chess engine...
+cls
+echo ===============================
+echo Nimorak Chess Engine - Build
+echo ===============================
 
-REM Prompt user for version name
+REM Prompt for version name
 set /p VERSION=Enter version name (e.g., v1, test, beta): 
 
-REM Set compiler flags for optimization, debugging, and warnings
-set FLAGS=-Ofast -march=native -std=c99 -Wall -Wextra -flto -g -DNDEBUG -funroll-loops -fomit-frame-pointer
+REM Compiler flags
+set FLAGS=-std=c++17 -Ofast -march=native -flto -Wall -Wextra -g -DNDEBUG -pipe -fno-omit-frame-pointer -funroll-loops
 
-REM Include directory
+REM Include directories
 set INCLUDE=-Iinclude
 
-REM Source files with relative paths
-set SOURCES=src/nimorak/module.c src/board/attack.c src/board/board.c src/search/eval.c src/main.c src/board/movegen.c src/nimorak/nimorak.c src/search/perft.c src/table/table.c src/search/search.c src/table/repetition.c src/table/transposition.c src/table/zobrist.c src/nimorak/config.c
+REM Source files (all cpp in src recursively)
+set SOURCES=
+for /R src %%f in (*.cpp) do set SOURCES=!SOURCES! %%f
 
-REM Output file uses version name
+REM Output file
 set OUTPUT=-o nimorak_%VERSION%.exe
 
-REM Compile
-gcc %FLAGS% %INCLUDE% %SOURCES% %OUTPUT%
+echo Compiling...
+g++ %FLAGS% %INCLUDE% src/core/*.cpp src/storage/*.cpp src/tables/*.cpp src/utils/*.cpp src/main.cpp %OUTPUT%
 
+REM Check build result
 if %errorlevel% neq 0 (
     echo ❌ Build failed.
     exit /b %errorlevel%

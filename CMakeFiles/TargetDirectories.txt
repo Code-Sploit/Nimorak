@@ -1,3 +1,0 @@
-/data/Nimorak/CMakeFiles/nimorak.dir
-/data/Nimorak/CMakeFiles/edit_cache.dir
-/data/Nimorak/CMakeFiles/rebuild_cache.dir
