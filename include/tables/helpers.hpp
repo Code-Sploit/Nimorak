@@ -34,7 +34,13 @@ namespace Helpers {
     inline int rank_of(int square) { return square / 8; }
     inline int file_of(int square) { return square % 8; }
 
-    int pop_lsb(Bitboard *bitboard);
+    inline int pop_lsb(Bitboard &bb)
+    {
+        if (bb == 0) return -1; // or handle error
+        int sq = __builtin_ctzll(bb);
+        bb &= bb - 1; // clear the least significant bit
+        return sq;
+    }
 
     inline int clamp(int val, int min_val, int max_val) {
         if (val < min_val) return min_val;

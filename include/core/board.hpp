@@ -48,4 +48,9 @@ namespace Board {
 
     Bitboard getSlidingPiecesBitboard(Nimorak::Game& game, int color);
 
+    bool hasNonPawnMaterial(Nimorak::Game& game, int color);
+
+    void skipTurn(Nimorak::Game& game);
+    void undoSkipTurn(Nimorak::Game& game);
+
 } // namespace Board

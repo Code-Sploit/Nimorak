@@ -688,4 +688,24 @@ namespace Board {
     {
         return game.board[color][BISHOP] | game.board[color][ROOK] | game.board[color][QUEEN];
     }
+
+    bool hasNonPawnMaterial(Nimorak::Game& game, int color)
+    {
+        return (game.board[color][KNIGHT] != 0 || game.board[color][BISHOP] != 0 ||
+                game.board[color][ROOK] != 0 || game.board[color][QUEEN] != 0);
+    }
+
+    void skipTurn(Nimorak::Game& game)
+    {
+        game.turn ^= 1;
+
+        Zobrist::updateBoard(game);
+    }
+
+    void undoSkipTurn(Nimorak::Game& game)
+    {
+        game.turn ^= 1;
+
+        Zobrist::updateBoard(game);
+    }
 }

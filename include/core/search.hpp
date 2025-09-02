@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/movegen.hpp>
-#include <core/eval.hpp>
 #include <tables/constants.hpp>
 #include <ctime>
 #include <array>
@@ -18,9 +17,21 @@ namespace Search {
         int score;
     };
 
+    enum MoveRequestType {
+        QUIESCENSE,
+        NEGAMAX
+    };
+
     class Worker {
         private:
-            // Timer
+            const int SEARCH_PV_MOVE_SCORE = 1000000;
+            const int SEARCH_TT_MOVE_SCORE = 100000;
+            const int SEARCH_KILLER1_MOVE_SCORE = 90000;
+            const int SEARCH_KILLER2_MOVE_SCORE = 80000;
+            const int SEARCH_PROMO_MOVE_SCORE = 10000;
+
+            const int DRAW_SCORE = 0;
+
             using Clock = std::chrono::steady_clock;
             using TimePoint = std::chrono::time_point<Clock>;
 
@@ -28,14 +39,13 @@ namespace Search {
             TimePoint lastDepthStartedAt;
             TimePoint lastDepthFinishedAt;
 
-            int thinkTime = 0;  // in milliseconds
-            bool stop = false;
+            int thinkTime = 0;
 
-            // Killer moves and history heuristic
-            std::array<std::array<Move, 2>, 64> killerMoves{};
-            std::array<std::array<int, 64>, 64> historyHeuristic{};
+            bool searchCancelled = false;
 
-            // MVV-LVA table
+            std::array<std::array<Move, 2>, 64> killerMoves {};
+            std::array<std::array<int, 64>, 64> historyHeuristic {};
+
             const int mvvLvaScores[5][5] = {
                 {900, 700, 680, 500, 100},
                 {2700, 2400, 2380, 2200, 1800},
@@ -44,32 +54,28 @@ namespace Search {
                 {8900, 8600, 8580, 8400, 8000}
             };
 
-            // -------------------------------
-            // Private helpers
-            // -------------------------------
+            Move ttMove = 0;
+            Move pvMove = 0;
+
             void checkTimer();
-            double getTimer() const;
-            double getElapsedTime() const;
 
-            int calculateExtension(Nimorak::Game& game) const;
-            int calculateReduction(Nimorak::Game& game, Move move, int depth, int index) const;
-            int getMvvLvaScore(Nimorak::Game& game, Move move) const;
+            double getTimer();
+            double getElapsedTime();
 
+            int calculateSearchExtension(Nimorak::Game& game);
+            int calculateLMRReduction(Nimorak::Game& game, Move move, int currDepth, int index);
+            int calculateNMPReduction();
+            int getMvvLvaScore(Nimorak::Game& game, Move move);
+
+            bool canDoNMP(Nimorak::Game& game, int currDepth);
+            bool canDoLMR(Nimorak::Game& game, Move move, int currDepth, int index);
         public:
-            // -------------------------------
-            // Move ordering
-            // -------------------------------
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
+            void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
 
-            // -------------------------------
-            // Search algorithms
-            // -------------------------------
             int quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply);
             int negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply);
 
-            // -------------------------------
-            // Entry point
-            // -------------------------------
             Move searchPosition(Nimorak::Game& game, int initialDepth, int thinkTimeMs);
     };
 } // namespace Search

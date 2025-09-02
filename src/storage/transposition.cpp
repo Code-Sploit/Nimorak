@@ -8,12 +8,14 @@
 #include <algorithm>
 
 namespace Transposition {
-    bool Table::probe(ZobristHash key, int depth, int alpha, int beta, int& out_score)
+    bool Table::probe(ZobristHash key, int depth, int alpha, int beta, int& out_score, Move& bestMove)
     {
         TTEntry *entry = &this->table[key & (TT_SIZE - 1)];
 
         if (entry->key == key && entry->depth >= depth)
         {
+            bestMove = entry->best_move;
+            
             if (entry->flag == TT_EXACT)
             {
                 out_score = entry->eval;
