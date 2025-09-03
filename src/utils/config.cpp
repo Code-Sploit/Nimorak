@@ -30,39 +30,30 @@ namespace Config {
     // --- Setters for eval ---
     void set_eval_material(Nimorak::Game& game, const char* value) {
         game.config.eval.doMaterial = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_piece_squares(Nimorak::Game& game, const char* value) {
         game.config.eval.doPieceSquares = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_endgame(Nimorak::Game& game, const char* value) {
         game.config.eval.doEndgame = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_king_safety(Nimorak::Game& game, const char* value) {
         game.config.eval.doKingSafety = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_pawn_structure(Nimorak::Game& game, const char* value) {
         game.config.eval.doPawnStructure = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_mobility(Nimorak::Game& game, const char* value) {
         game.config.eval.doMobility = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_rook_open_files(Nimorak::Game& game, const char* value) {
         game.config.eval.doRookOpenFiles = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_bishop_pair(Nimorak::Game& game, const char* value) {
         game.config.eval.doBishopPair = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
     void set_eval_knight_outpost(Nimorak::Game& game, const char* value) {
         game.config.eval.doKnightOutposts = std::atoi(value) != 0;
-        game.evalWorker.reinit(game);
     }
 
     // --- Setters for search ---

@@ -708,4 +708,42 @@ namespace Board {
 
         Zobrist::updateBoard(game);
     }
+
+    bool hasFullMaterial(Nimorak::Game& game, int color)
+    {
+        Bitboard occupancy = game.occupancy[color];
+
+        return (__builtin_popcountll(occupancy) == 20);
+    }
+
+    bool pawnChainsLocked(Nimorak::Game& game)
+    {
+        return (countPieces(game, PAWN) > 11);
+    }
+
+    int countPieces(Nimorak::Game& game, PieceType type)
+    {
+        Bitboard occupancy = game.board[WHITE][type] | game.board[BLACK][type];
+
+        return (__builtin_popcountll(occupancy));
+    }
+
+    int hasPiece(Nimorak::Game& game, PieceType type, PieceColor color)
+    {
+        return (game.board[color][type] != 0);
+    }
+
+    int totalMaterial(Nimorak::Game &game)
+    {
+        int sum = 0;
+        for (int color = 0; color < 2; ++color)
+        {
+            sum += 9 * __builtin_popcountll(game.board[color][QUEEN]);
+            sum += 5 * __builtin_popcountll(game.board[color][ROOK]);
+            sum += 3 * __builtin_popcountll(game.board[color][BISHOP]);
+            sum += 3 * __builtin_popcountll(game.board[color][KNIGHT]);
+            sum += 1 * __builtin_popcountll(game.board[color][PAWN]);
+        }
+        return sum;
+    }
 }

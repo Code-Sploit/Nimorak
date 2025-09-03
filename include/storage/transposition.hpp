@@ -23,8 +23,8 @@ namespace Transposition {
             TTEntry table[TT_SIZE];  // Fixed-size transposition table
 
         public:
-            bool probe(ZobristHash key, int depth, int alpha, int beta, int& out_score, Move& bestMove);
-            void store(ZobristHash key, int depth, int eval, int flag, Move best_move);
+            bool probe(ZobristHash key, int depth, int alpha, int beta, int ply, int& out_score, Move& bestMove);
+            void store(ZobristHash key, int depth, int eval, int flag, Move best_move, int ply);
             void clear();
     };
 

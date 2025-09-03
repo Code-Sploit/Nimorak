@@ -31,9 +31,6 @@ namespace Nimorak {
         // Initialize attack worker precomputed tables
         attackWorker.preComputed.preComputeAll();
 
-        // Initialize eval modules
-        evalWorker.init(*this);
-
         // Ensure attack maps are cleared
         for (int c = 0; c < 2; ++c) {
             attackWorker.attackMapFull[c] = 0ULL;

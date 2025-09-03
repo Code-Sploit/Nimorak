@@ -8,30 +8,35 @@
 #include <algorithm>
 
 namespace Transposition {
-    bool Table::probe(ZobristHash key, int depth, int alpha, int beta, int& out_score, Move& bestMove)
-    {
+    inline int storeEval(int eval, int ply) {
+        if (eval >  MATE_THRESHOLD) return eval + ply;
+        if (eval < -MATE_THRESHOLD) return eval - ply;
+        return eval;
+    }
+
+    // Adjust score back when probing from TT (make it node-relative again)
+    inline int probeEval(int eval, int ply) {
+        if (eval >  MATE_THRESHOLD) return eval - ply;
+        if (eval < -MATE_THRESHOLD) return eval + ply;
+        return eval;
+    }
+
+    bool Table::probe(ZobristHash key, int depth, int alpha, int beta, int ply, int& out_score, Move& bestMove) {
         TTEntry *entry = &this->table[key & (TT_SIZE - 1)];
 
-        if (entry->key == key && entry->depth >= depth)
-        {
+        if (entry->key == key && entry->depth >= depth) {
             bestMove = entry->best_move;
             
-            if (entry->flag == TT_EXACT)
-            {
-                out_score = entry->eval;
+            int corrected = probeEval(entry->eval, ply);
 
+            if (entry->flag == TT_EXACT) {
+                out_score = corrected;
                 return true;
-            }
-            else if (entry->flag == TT_ALPHA && entry->eval <= alpha)
-            {
+            } else if (entry->flag == TT_ALPHA && corrected <= alpha) {
                 out_score = alpha;
-
                 return true;
-            }
-            else if (entry->flag == TT_BETA && entry->eval >= beta)
-            {
+            } else if (entry->flag == TT_BETA && corrected >= beta) {
                 out_score = beta;
-
                 return true;
             }
         }
@@ -39,15 +44,13 @@ namespace Transposition {
         return false;
     }
 
-    void Table::store(ZobristHash key, int depth, int eval, int flag, Move best_move)
-    {
+    void Table::store(ZobristHash key, int depth, int eval, int flag, Move best_move, int ply) {
         TTEntry *entry = &this->table[key & (TT_SIZE - 1)];
 
-        if (entry->depth <= depth || entry->key != key)
-        {
+        if (entry->depth <= depth || entry->key != key) {
             entry->key = key;
             entry->depth = depth;
-            entry->eval = eval;
+            entry->eval = storeEval(eval, ply);
             entry->flag = flag;
             entry->best_move = best_move;
         }

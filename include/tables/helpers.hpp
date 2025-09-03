@@ -61,4 +61,10 @@ namespace Helpers {
                 ((castle) ? CASTLE : 0));
     }
 
+    inline int findLargestOfThree(int a, int b, int c)
+    {
+        if (a >= b && a >= c) return 0;
+        if (b >= a && b >= c) return 1;
+        return 2; // otherwise c is largest
+    }
 } // namespace Helpers

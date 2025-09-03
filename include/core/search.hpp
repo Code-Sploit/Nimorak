@@ -62,7 +62,7 @@ namespace Search {
             double getTimer();
             double getElapsedTime();
 
-            int calculateSearchExtension(Nimorak::Game& game);
+            int calculateFinalExtension(Nimorak::Game& game);
             int calculateLMRReduction(Nimorak::Game& game, Move move, int currDepth, int index);
             int calculateNMPReduction();
             int getMvvLvaScore(Nimorak::Game& game, Move move);

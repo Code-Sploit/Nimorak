@@ -13,80 +13,110 @@ namespace Nimorak {
     class Game;
 }
 
-const int pieceValues[] = {0, 100, 320, 335, 500, 900};
-
-static const Bitboard FILE_MASKS[8] = {
-    0x0101010101010101ULL,
-    0x0202020202020202ULL,
-    0x0404040404040404ULL,
-    0x0808080808080808ULL,
-    0x1010101010101010ULL,
-    0x2020202020202020ULL,
-    0x4040404040404040ULL,
-    0x8080808080808080ULL
-};
-
-int mirror[64] = {
-    56,57,58,59,60,61,62,63,
-    48,49,50,51,52,53,54,55,
-    40,41,42,43,44,45,46,47,
-    32,33,34,35,36,37,38,39,
-    24,25,26,27,28,29,30,31,
-    16,17,18,19,20,21,22,23,
-     8, 9,10,11,12,13,14,15,
-     0, 1, 2, 3, 4, 5, 6, 7
-};
-
-void evalModuleMaterial(void* arg)
-{
-    Nimorak::Game& game = *static_cast<Nimorak::Game*>(arg);
-
-    int moduleEval = 0;
-
-    Bitboard occupancy = game.occupancy[BOTH];
-
-    while (occupancy)
+namespace Evaluation {
+    Worker::GamePhase Worker::getGamePhase(Nimorak::Game& game)
     {
-        int square = Helpers::pop_lsb(occupancy);
+        int scores[3] = {0, 0, 0}; // [OPENING, MIDDLEGAME, ENDGAME]
 
-        Piece piece = game.boardGhost[square];
+        // --- Strong opening indicators ---
+        if (Board::hasFullMaterial(game, WHITE) && Board::hasFullMaterial(game, BLACK))
+            scores[OPENING] += 5; // classic starting position, pure opening
 
-        int perspective = (Helpers::get_color(piece) == WHITE) ? 1 : -1;
+        if (Board::pawnChainsLocked(game))
+            scores[OPENING] += 3; // closed pawn structure, slow transition
 
-        moduleEval += pieceValues[Helpers::get_type(piece) - 1] * perspective;
+        // --- Middlegame indicators ---
+        if (Board::countPieces(game, QUEEN) >= 1 && Board::totalMaterial(game) < 40)
+            scores[MIDDLEGAME] += 4; // reduced but queens still in play → middlegame tension
+
+        if (Board::countPieces(game, ROOK) + Board::countPieces(game, QUEEN) >= 2)
+            scores[MIDDLEGAME] += 2; // heavy pieces present → not yet endgame
+
+        // --- Endgame indicators ---
+        if (!Board::hasNonPawnMaterial(game, WHITE) && !Board::hasNonPawnMaterial(game, BLACK))
+            scores[ENDGAME] += 5; // pawn-only → clear endgame
+
+        if (!Board::hasPiece(game, QUEEN, WHITE) && !Board::hasPiece(game, QUEEN, BLACK))
+            scores[ENDGAME] += 3; // queenless → pushes toward endgame
+
+        int whiteKingRank = Helpers::rank_of(Board::findKing(game, WHITE));
+        int blackKingRank = Helpers::rank_of(Board::findKing(game, BLACK));
+
+        if (whiteKingRank > 4 || blackKingRank < 3)
+            scores[ENDGAME] += 2; // active kings = endgame behavior
+
+        // --- Decide phase ---
+        int index = Helpers::findLargestOfThree(scores[OPENING], scores[MIDDLEGAME], scores[ENDGAME]);
+        return static_cast<GamePhase>(index);
     }
 
-    game.eval += moduleEval;
+    int Worker::getPSTFor(Nimorak::Game& game, PieceType type, int square, GamePhase phase)
+    {
+        const PieceSquareTable& table = pieceSquareTables[type - 1];
+
+        switch (phase)
+        {
+            case OPENING:     return table.openingValue[square];
+            case MIDDLEGAME:  return table.middlegameValue[square];
+            case ENDGAME:     return table.endgameValue[square];
+            default:          return 0;
+        }
 }
 
-namespace Evaluation {
+    void Worker::moduleMaterial(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        for (int color = WHITE; color <= BLACK; color++)
+        {
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            moduleEval += perspective *  pieceValues[PAWN]   * __builtin_popcountll(game.board[color][PAWN]);
+            moduleEval += perspective *  pieceValues[KNIGHT] * __builtin_popcountll(game.board[color][KNIGHT]);
+            moduleEval += perspective *  pieceValues[BISHOP] * __builtin_popcountll(game.board[color][BISHOP]);
+            moduleEval += perspective *  pieceValues[ROOK]   * __builtin_popcountll(game.board[color][ROOK]);
+            moduleEval += perspective *  pieceValues[QUEEN]  * __builtin_popcountll(game.board[color][QUEEN]);
+        }
+
+        this->eval += moduleEval;
+    }
+    
+    void Worker::modulePST(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        // Compute game phase once for the whole position
+        GamePhase phase = getGamePhase(game);
+
+        Bitboard occupancy = game.occupancy[BOTH];
+
+        while (occupancy)
+        {
+            int square = Helpers::pop_lsb(occupancy); // removes LSB
+
+            Piece piece = game.boardGhost[square];
+
+            int type  = Helpers::get_type(piece);
+            int color = Helpers::get_color(piece);
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            // Use mirrored square for black pieces
+            int pstSquare = (color == WHITE) ? square : mirror[square];
+
+            moduleEval += getPSTFor(game, type, pstSquare, phase) * perspective;
+        }
+
+        this->eval += moduleEval;
+    }
+
     // --- Eval entry point ---
     int Worker::evaluate(Nimorak::Game& game)
     {
-        game.eval = 0;
-        game.evalModuleList.run();
-        return (game.turn == WHITE) ? game.eval : -game.eval;
-    }
+        this->eval = 0;
 
-    // --- Eval init / quit / reinit ---
-    void Worker::init(Nimorak::Game& game)
-    {
-        int size = 0;
-        if (game.config.eval.doMaterial)         size++;
-
-        game.evalModuleList.init(size);
-
-        if (game.config.eval.doMaterial)         game.evalModuleList.add(evalModuleMaterial, &game, "evalModuleMaterial");
-    }
-
-    void Worker::quit(Nimorak::Game& game)
-    {
-        game.evalModuleList.free();
-    }
-
-    void Worker::reinit(Nimorak::Game& game)
-    {
-        quit(game);
-        init(game);
+        if (game.config.eval.doMaterial) moduleMaterial(game);
+        if (game.config.eval.doPieceSquares) modulePST(game);
+        
+        return (game.turn == WHITE) ? this->eval : -this->eval;
     }
 }

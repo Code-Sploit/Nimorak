@@ -53,4 +53,11 @@ namespace Board {
     void skipTurn(Nimorak::Game& game);
     void undoSkipTurn(Nimorak::Game& game);
 
+    bool hasFullMaterial(Nimorak::Game& game, int color);
+    bool pawnChainsLocked(Nimorak::Game& game);
+
+    int countPieces(Nimorak::Game& game, PieceType type);
+    int hasPiece(Nimorak::Game& game, PieceType type, PieceColor color);
+    int totalMaterial(Nimorak::Game& game);
+
 } // namespace Board

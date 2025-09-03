@@ -66,10 +66,6 @@ namespace Nimorak {
 
             ZobristHash zobristKey;
 
-            Module::ModuleList evalModuleList; // keep pointer if managed externally
-
-            int eval;
-
             std::unique_ptr<State[]> history;
 
             // Constructor / Destructor
