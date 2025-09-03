@@ -1,23 +1,23 @@
 #include <storage/repetition.hpp>
-#include <string.h>
-#include <stdio.h>
+#include <iostream>
+#include <string>
+#include <cstring>
 
 namespace Repetition {
-
-    // Safe push with overflow check
-    void Table::push(ZobristHash hash)
-    {
+    // Push a new hash; overwrites oldest if full
+    void Table::push(ZobristHash hash) {
         if (count < REPETITION_SIZE) {
-            stack[count++] = hash;
+            stack[(start + count) % REPETITION_SIZE] = hash;
+            ++count;
         } else {
-            // Optional: print warning or handle overflow
-            fprintf(stderr, "Warning: Repetition table overflow!\n");
+            // Table is full; overwrite oldest
+            stack[start] = hash;
+            start = (start + 1) % REPETITION_SIZE;
         }
     }
 
-    // Safe pop with underflow check
-    void Table::pop()
-    {
+    // Pop the last hash
+    void Table::pop() {
         if (count > 0) {
             --count;
         } else {
@@ -26,19 +26,31 @@ namespace Repetition {
     }
 
     // Clear the table
-    void Table::clear()
-    {
-        memset(stack, 0, sizeof(ZobristHash) * REPETITION_SIZE);
+    void Table::clear() {
+        memset(stack, 0, sizeof(stack));
+        start = 0;
         count = 0;
     }
 
-    // Threefold repetition check
-    bool Table::checkThreefold(ZobristHash hash)
-    {
+    // Check threefold repetition
+    bool Table::checkThreefold(ZobristHash hash) {
         int matches = 0;
+        for (size_t i = 0; i < count; ++i) {
+            size_t idx = (start + i) % REPETITION_SIZE;
+            if (stack[idx] == hash) ++matches;
+            if (matches >= 3) return true;
+        }
+        return false;
+    }
 
-        for (int i = 0; i < count; i++) {
-            if (stack[i] == hash) {
+    // Check last `recentMoves` hashes only
+    bool Table::checkThreefoldRecent(size_t recentMoves) {
+        int matches = 0;
+        size_t movesToCheck = (recentMoves < count) ? recentMoves : count;
+
+        for (size_t i = count - movesToCheck; i < count; ++i) {
+            size_t idx = (start + i) % REPETITION_SIZE;
+            if (stack[idx] == stack[(start + count - 1) % REPETITION_SIZE]) {
                 ++matches;
                 if (matches >= 3) return true;
             }
@@ -46,21 +58,4 @@ namespace Repetition {
 
         return false;
     }
-
-    // Optional: check last two moves only (for efficiency)
-    bool Table::checkThreefoldRecent(int recentMoves)
-    {
-        int matches = 0;
-        int start = (count - recentMoves >= 0) ? count - recentMoves : 0;
-
-        for (int i = start; i < count; i++) {
-            if (stack[i] == stack[count - 1]) {
-                ++matches;
-                if (matches >= 3) return true;
-            }
-        }
-
-        return false;
-    }
-
 } // namespace Repetition

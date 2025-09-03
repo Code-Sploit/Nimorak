@@ -241,7 +241,10 @@ namespace Evaluation {
                 }
             };
 
-            int getPSTFor(Nimorak::Game& game, PieceType type, int square, GamePhase phase);
+            
+
+            int getPSTFor(PieceType type, int square, GamePhase phase);
+            int getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square);
 
             GamePhase getGamePhase(Nimorak::Game& game);
         public:
@@ -250,6 +253,7 @@ namespace Evaluation {
             // Evaluation modules
             void moduleMaterial(Nimorak::Game& game);
             void modulePST(Nimorak::Game& game);
+            void moduleMobility(Nimorak::Game& game);
 
             // Evaluate the current position
             int evaluate(Nimorak::Game& game);

@@ -2,6 +2,8 @@
 #include <core/board.hpp>
 #include <core/nimorak.hpp>
 
+#include <tables/magic.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
@@ -50,7 +52,7 @@ namespace Evaluation {
         return static_cast<GamePhase>(index);
     }
 
-    int Worker::getPSTFor(Nimorak::Game& game, PieceType type, int square, GamePhase phase)
+    int Worker::getPSTFor(PieceType type, int square, GamePhase phase)
     {
         const PieceSquareTable& table = pieceSquareTables[type - 1];
 
@@ -61,7 +63,7 @@ namespace Evaluation {
             case ENDGAME:     return table.endgameValue[square];
             default:          return 0;
         }
-}
+    }
 
     void Worker::moduleMaterial(Nimorak::Game& game)
     {
@@ -79,6 +81,26 @@ namespace Evaluation {
         }
 
         this->eval += moduleEval;
+    }
+
+    int Worker::getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square)
+    {
+        int score = 0;
+
+        int phasePerspective = (getGamePhase(game) == ENDGAME) ? -1 : 1;
+
+        switch (type)
+        {
+            case PAWN:   score += 5; break;
+            case KNIGHT: score += __builtin_popcountll(game.attackWorker.preComputed.getKnightAttacks(square)); break;
+            case BISHOP: score += __builtin_popcountll(Magic::getBishopAttacks(square, game.occupancy[BOTH])); break;
+            case ROOK:   score += __builtin_popcountll(Magic::getRookAttacks(square, game.occupancy[BOTH])); break;
+            case QUEEN:  score += __builtin_popcountll(Magic::getQueenAttacks(square, game.occupancy[BOTH])); break;
+            case KING:   score += __builtin_popcountll(game.attackWorker.preComputed.getKingAttacks(square)) * phasePerspective; break;
+            default: break;
+        }
+
+        return score;
     }
     
     void Worker::modulePST(Nimorak::Game& game)
@@ -103,7 +125,29 @@ namespace Evaluation {
             // Use mirrored square for black pieces
             int pstSquare = (color == WHITE) ? square : mirror[square];
 
-            moduleEval += getPSTFor(game, type, pstSquare, phase) * perspective;
+            moduleEval += getPSTFor(type, pstSquare, phase) * perspective;
+        }
+
+        this->eval += moduleEval;
+    }
+
+    void Worker::moduleMobility(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        Bitboard occupancy = game.occupancy[BOTH];
+
+        while (occupancy)
+        {
+            int square = Helpers::pop_lsb(occupancy);
+
+            Piece piece = game.boardGhost[square];
+
+            int type = Helpers::get_type(piece);
+            int color = Helpers::get_color(piece);
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            moduleEval += getMobilityScoreFor(game, type, square) * perspective;
         }
 
         this->eval += moduleEval;
@@ -116,6 +160,7 @@ namespace Evaluation {
 
         if (game.config.eval.doMaterial) moduleMaterial(game);
         if (game.config.eval.doPieceSquares) modulePST(game);
+        if (game.config.eval.doMobility) moduleMobility(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }

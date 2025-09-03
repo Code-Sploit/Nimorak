@@ -11,8 +11,8 @@ namespace Repetition {
         private:
             const static size_t REPETITION_SIZE = 16384;
             ZobristHash stack[REPETITION_SIZE];  // History of position hashes
-            int start;                             // Index of first valid hash
-            int count;                             // Number of stored hashes
+            size_t start = 0;                             // Index of first valid hash
+            size_t count = 0;                             // Number of stored hashes
 
         public:
             // Push a new position hash onto the stack
@@ -27,6 +27,6 @@ namespace Repetition {
             // Check if the current hash occurred three times
             bool checkThreefold(ZobristHash hash);
 
-            bool checkThreefoldRecent(int recentMoves);
+            bool checkThreefoldRecent(size_t recentMoves);
     };
 } // namespace Repetition
