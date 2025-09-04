@@ -251,20 +251,12 @@ namespace Evaluation {
             Bitboard getPassedPawnMask(int square, int color);
 
         public:
-            int PAWN_DOUBLED_PENALTY    = 20;   // stronger penalty for doubled pawns
-            int PAWN_BLOCKED_PENALTY    = 14;   // light-to-medium penalty for blocked pawns
-            int PAWN_ISOLATED_PENALTY   = 22;   // isolated pawn is now significant
-            int PAWN_BACKWARD_PENALTY   = 25;   // backward pawn stronger penalty
-            int PASSED_PAWN_BONUS       = 28;   // base bonus for passed pawn
-            int PASSED_PAWN_RANK_MULT   = 14;   // scaled by rank, so 7th rank = 30 + 7*12 = 114
-            int PAWN_CONNECTED_BONUS    = 10;    // connected pawns are encouraged
             int eval = 0; // Last evaluation score
 
             // Evaluation modules
             void moduleMaterial(Nimorak::Game& game);
             void modulePST(Nimorak::Game& game);
             void moduleMobility(Nimorak::Game& game);
-            void modulePawnStructure(Nimorak::Game& game);
 
             // Evaluate the current position
             int evaluate(Nimorak::Game& game);

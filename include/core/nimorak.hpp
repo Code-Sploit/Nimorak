@@ -10,7 +10,7 @@
 #include <core/eval.hpp>
 #include <core/board.hpp>
 #include <core/search.hpp>
-#include <core/tuning.hpp>
+#include <utils/tuning.hpp>
 #include <memory>   // for std::unique_ptr
 #include <string>
 

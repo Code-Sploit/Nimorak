@@ -284,7 +284,7 @@ namespace UCI {
                 game.config.search.doInfo = false;
                 baseline.config.search.doInfo = false;
 
-                game.tuningWorker.tunePawnWeights(game, baseline, 20, 40);
+                game.tuningWorker.tunePawnWeights(game, baseline, 25, 100);
             }
         }
     }

@@ -16,7 +16,7 @@ ELO range for Big Point 1: 800–1100
 
 Focus: Positional understanding and simple strategic concepts
 
-* [x] **ELO 1200** – Pawn structure features: passed pawns, backward pawns
+* [ ] **ELO 1200** – Pawn structure features: passed pawns, backward pawns
 * [ ] **ELO 1250** – King safety improvements (pawn shield, open files)
 * [ ] **ELO 1300** – Control of key squares and central influence
 * [ ] **ELO 1350** – Piece coordination: minor pieces working together
