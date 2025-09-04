@@ -60,4 +60,6 @@ namespace Board {
     int hasPiece(Nimorak::Game& game, PieceType type, PieceColor color);
     int totalMaterial(Nimorak::Game& game);
 
+    bool isGameOver(Nimorak::Game& game);
+
 } // namespace Board

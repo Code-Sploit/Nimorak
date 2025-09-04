@@ -259,7 +259,7 @@ namespace Search {
         thinkTime = thinkTimeMs;
         searchCancelled = false;
 
-        UCI::debug(__FILE__, "start with initialDepth=%d thinkTime=%d ms", initialDepth, thinkTimeMs);
+        if (game.config.search.doInfo) UCI::debug(__FILE__, "start with initialDepth=%d thinkTime=%d ms", initialDepth, thinkTimeMs);
 
         Move bestMoveSoFar = 0;
         Movegen::MoveList movelist;
@@ -325,7 +325,7 @@ namespace Search {
             bestMoveSoFar = bestThisDepth;
         }
 
-        UCI::debug(__FILE__, "timeUsed=%.0f ms\n", getElapsedTime());
+        if (game.config.search.doInfo) UCI::debug(__FILE__, "timeUsed=%.0f ms\n", getElapsedTime());
         return bestMoveSoFar;
     }
 } // namespace Search

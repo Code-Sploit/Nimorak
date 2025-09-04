@@ -58,4 +58,9 @@ namespace Repetition {
 
         return false;
     }
+
+    bool Table::checkFiftyMoveRule()
+    {
+        return this->fiftyMoveCounter >= 50;
+    }
 } // namespace Repetition

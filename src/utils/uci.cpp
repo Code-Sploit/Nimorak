@@ -275,6 +275,17 @@ namespace UCI {
             else if (strcmp(input, "atw") == 0) game.attackWorker.printTable(game, WHITE);
             else if (strcmp(input, "atb") == 0) game.attackWorker.printTable(game, BLACK);
             else if (strcmp(input, "eval") == 0) printf("Eval: %d\n", game.evalWorker.evaluate(game));
+            else if (strcmp(input, "learn") == 0)
+            {
+                std::cout << "Starting pawn structure tuning..." << std::endl;
+
+                Nimorak::Game baseline;
+
+                game.config.search.doInfo = false;
+                baseline.config.search.doInfo = false;
+
+                game.tuningWorker.tunePawnWeights(game, baseline, 20, 40);
+            }
         }
     }
 }

@@ -15,6 +15,8 @@ namespace Repetition {
             size_t count = 0;                             // Number of stored hashes
 
         public:
+            int fiftyMoveCounter = 0;
+            
             // Push a new position hash onto the stack
             void push(ZobristHash hash);
 
@@ -28,5 +30,7 @@ namespace Repetition {
             bool checkThreefold(ZobristHash hash);
 
             bool checkThreefoldRecent(size_t recentMoves);
+
+            bool checkFiftyMoveRule();
     };
 } // namespace Repetition

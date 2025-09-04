@@ -102,6 +102,44 @@ namespace Evaluation {
 
         return score;
     }
+
+    Bitboard Worker::getForwardPawnMask(int square, int color)
+    {
+        if (square < 0 || square > 63) return 0ULL;
+
+        Bitboard mask = 0ULL;
+        
+        int file = Helpers::file_of(square);
+        int rank = Helpers::rank_of(square);
+
+        if (color == WHITE)
+        {
+            // All ranks ahead
+            mask = FILE_MASKS[file] & (~0ULL << ((rank + 1) * 8));
+        }
+        else
+        {
+            // Black pawns move downward
+            mask = FILE_MASKS[file] & ((1ULL << (rank * 8)) - 1);
+        }
+
+        return mask;
+    }
+
+    Bitboard Worker::getIsolatedPawnMask(int square)
+    {
+        int file = Helpers::file_of(square);
+        int file_left  = std::max(0, file - 1);
+        int file_right = std::min(7, file + 1);
+
+        Bitboard mask = FILE_MASKS[file_left] | FILE_MASKS[file_right];
+        return mask;
+    }
+
+    Bitboard Worker::getPassedPawnMask(int square, int color)
+    {
+        return getForwardPawnMask(square - 1, color) | getForwardPawnMask(square, color) | getForwardPawnMask(square + 1, color);
+    }
     
     void Worker::modulePST(Nimorak::Game& game)
     {
@@ -153,6 +191,72 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
 
+    void Worker::modulePawnStructure(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        // Pawns bitboards for both colors
+        Bitboard pawns[2] = {game.board[WHITE][PAWN], game.board[BLACK][PAWN]};
+        Bitboard occupancy = game.occupancy[BOTH];
+
+        for (int color = WHITE; color <= BLACK; color++)
+        {
+            Bitboard pawnBitboard = pawns[color];
+            Bitboard enemyPawns = pawns[!color];
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            while (pawnBitboard)
+            {
+                int square = Helpers::pop_lsb(pawnBitboard);
+                int file = Helpers::file_of(square);
+                int rank = Helpers::rank_of(square);
+
+                Bitboard fileMask = FILE_MASKS[file];
+
+                // --- Doubled pawns ---
+                int pawnsOnFile = __builtin_popcountll(fileMask & pawns[color]);
+                if (pawnsOnFile > 1)
+                    moduleEval -= (pawnsOnFile - 1) * PAWN_DOUBLED_PENALTY * perspective;
+
+                // --- Forward mask / blocked pawn ---
+                Bitboard forwardMask = getForwardPawnMask(square, color);
+                bool blocked = (forwardMask & occupancy) != 0;
+                if (blocked)
+                    moduleEval -= PAWN_BLOCKED_PENALTY * perspective;
+
+                // --- Isolated pawn ---
+                Bitboard isolatedMask = getIsolatedPawnMask(square);
+                bool isolated = !(isolatedMask & pawns[color]);
+                if (isolated)
+                    moduleEval -= PAWN_ISOLATED_PENALTY * perspective;
+
+                // --- Backward pawn ---
+                bool backward = isolated && blocked; // simple heuristic: isolated + blocked = backward
+                if (backward)
+                    moduleEval -= PAWN_BACKWARD_PENALTY * perspective;
+
+                // --- Passed pawn ---
+                Bitboard passedMask = getPassedPawnMask(square, color);
+                bool isPassed = !(passedMask & enemyPawns);
+                if (isPassed)
+                {
+                    int rankBonus = (color == WHITE) ? rank : 7 - rank;
+                    moduleEval += (PASSED_PAWN_BONUS + rankBonus * PASSED_PAWN_RANK_MULT) * perspective;
+                }
+
+                // --- Connected pawns bonus ---
+                Bitboard connectedMask = 0ULL;
+                if (file > 0) connectedMask |= FILE_MASKS[file - 1];
+                if (file < 7) connectedMask |= FILE_MASKS[file + 1];
+                bool connected = (connectedMask & pawns[color] & forwardMask) != 0;
+                if (connected)
+                    moduleEval += PAWN_CONNECTED_BONUS * perspective;
+            }
+        }
+
+        this->eval += moduleEval;
+    }
+
     // --- Eval entry point ---
     int Worker::evaluate(Nimorak::Game& game)
     {
@@ -161,6 +265,7 @@ namespace Evaluation {
         if (game.config.eval.doMaterial) moduleMaterial(game);
         if (game.config.eval.doPieceSquares) modulePST(game);
         if (game.config.eval.doMobility) moduleMobility(game);
+        if (game.config.eval.doPawnStructure) modulePawnStructure(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }

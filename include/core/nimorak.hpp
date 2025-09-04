@@ -10,6 +10,7 @@
 #include <core/eval.hpp>
 #include <core/board.hpp>
 #include <core/search.hpp>
+#include <core/tuning.hpp>
 #include <memory>   // for std::unique_ptr
 #include <string>
 
@@ -32,6 +33,8 @@ namespace Nimorak {
             Bitboard occupancy[3];     // Side occupancy
 
             Piece boardGhost[64];      // Full piece array
+
+            int fiftyMoveCounter;
     };
 
     class Game {
@@ -63,10 +66,13 @@ namespace Nimorak {
             Movegen::Worker movegenWorker;
             Evaluation::Worker evalWorker;
             Search::Worker searchWorker;
+            Tuning::Worker tuningWorker;
 
             ZobristHash zobristKey;
 
             std::unique_ptr<State[]> history;
+
+            int winner;
 
             // Constructor / Destructor
             Game();

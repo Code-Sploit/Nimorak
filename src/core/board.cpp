@@ -310,6 +310,7 @@ namespace Board {
         s->capturedPiece    = captured;
         s->move             = move;
         s->turn             = game.turn;
+        s->fiftyMoveCounter = game.repetitionTable.fiftyMoveCounter;
 
         if (callType == MAKE_MOVE_FULL) s->zobristKey = game.zobristKey;
 
@@ -363,6 +364,9 @@ namespace Board {
 
         // Push repetition key
         if (callType == MAKE_MOVE_FULL) game.repetitionTable.push(game.zobristKey);
+
+        if (Helpers::get_type(piece) == PAWN) game.repetitionTable.fiftyMoveCounter = 0;
+        else game.repetitionTable.fiftyMoveCounter++;
     }
 
     void unmakeMove(Nimorak::Game& game, int callType)
@@ -435,6 +439,8 @@ namespace Board {
         memcpy(game.attackWorker.attackMapFull, s->attackMapFull, sizeof(game.attackWorker.attackMapFull));
 
         if (callType == MAKE_MOVE_FULL) game.repetitionTable.pop();
+
+        game.repetitionTable.fiftyMoveCounter = s->fiftyMoveCounter;
     }
 
     void makeNullMove(Nimorak::Game& game)
@@ -745,5 +751,22 @@ namespace Board {
             sum += 1 * __builtin_popcountll(game.board[color][PAWN]);
         }
         return sum;
+    }
+
+    bool isGameOver(Nimorak::Game& game)
+    {
+        Movegen::MoveList movelist;
+
+        game.movegenWorker.getLegalMoves(game, movelist, false);
+
+        if (movelist.size() == 0)
+        {
+            if (Board::isKingInCheck(game, game.turn)) game.winner = game.turn;
+            else game.winner = -1;
+
+            return true;
+        }
+
+        return false;
     }
 }
