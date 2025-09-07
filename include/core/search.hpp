@@ -24,11 +24,11 @@ namespace Search {
 
     class Worker {
         private:
-            const int SEARCH_PV_MOVE_SCORE = 1000000;
-            const int SEARCH_TT_MOVE_SCORE = 100000;
-            const int SEARCH_KILLER1_MOVE_SCORE = 90000;
-            const int SEARCH_KILLER2_MOVE_SCORE = 80000;
-            const int SEARCH_PROMO_MOVE_SCORE = 10000;
+            const int SEARCH_MOVE_KILLER_1_SCORE = 1000000;
+            const int SEARCH_MOVE_KILLER_2_SCORE = 900000;
+            const int SEARCH_MOVE_CHECK_SCORE    = 5000;
+            const int SEARCH_MOVE_PROMO_SCORE    = 4500;
+            const int SEARCH_MOVE_CAPTURE_SCORE  = 1500;
 
             const int DRAW_SCORE = 0;
 
@@ -62,13 +62,10 @@ namespace Search {
             double getTimer();
             double getElapsedTime();
 
-            int calculateFinalExtension(Nimorak::Game& game);
-            int calculateLMRReduction(Nimorak::Game& game, Move move, int currDepth, int index);
-            int calculateNMPReduction();
             int getMvvLvaScore(Nimorak::Game& game, Move move);
 
-            bool canDoNMP(Nimorak::Game& game, int currDepth);
-            bool canDoLMR(Nimorak::Game& game, Move move, int currDepth, int index);
+            bool predictCheck(Nimorak::Game& game, Move move);
+            bool predictRecapture(Nimorak::Game& game, Move move);
         public:
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);

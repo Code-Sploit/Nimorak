@@ -317,6 +317,9 @@ namespace Board {
         memcpy(s->attackMap, game.attackWorker.attackMap, sizeof(game.attackWorker.attackMap));
         memcpy(s->attackMapFull, game.attackWorker.attackMapFull, sizeof(game.attackWorker.attackMapFull));
 
+        // Zobrist update
+        if (callType == MAKE_MOVE_FULL) Zobrist::updateMove(game, move, *s);
+
         // Apply move
         setSquare(game, from, EMPTY);
 
@@ -359,13 +362,11 @@ namespace Board {
         // Switch turn
         game.turn ^= 1;
 
-        // Zobrist update
-        if (callType == MAKE_MOVE_FULL) Zobrist::updateMove(game, move, *s);
-
         // Push repetition key
         if (callType == MAKE_MOVE_FULL) game.repetitionTable.push(game.zobristKey);
 
         if (Helpers::get_type(piece) == PAWN) game.repetitionTable.fiftyMoveCounter = 0;
+
         else game.repetitionTable.fiftyMoveCounter++;
     }
 

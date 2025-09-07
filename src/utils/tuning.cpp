@@ -1,4 +1,4 @@
-#include <core/tuning.hpp>
+#include <utils/tuning.hpp>
 #include <core/nimorak.hpp>
 #include <future>
 #include <thread>
@@ -12,13 +12,13 @@ namespace Tuning {
 // -------------------------------
 void Worker::setPawnWeights(Nimorak::Game& game, const PawnWeights& weights)
 {
-    game.evalWorker.PAWN_DOUBLED_PENALTY  = weights.doubled;
-    game.evalWorker.PAWN_BLOCKED_PENALTY  = weights.blocked;
-    game.evalWorker.PAWN_ISOLATED_PENALTY = weights.isolated;
-    game.evalWorker.PAWN_BACKWARD_PENALTY = weights.backward;
-    game.evalWorker.PASSED_PAWN_BONUS     = weights.passedBase;
-    game.evalWorker.PASSED_PAWN_RANK_MULT = weights.passedRank;
-    game.evalWorker.PAWN_CONNECTED_BONUS  = weights.connected;
+    //game.evalWorker.PAWN_DOUBLED_PENALTY  = weights.doubled;
+    //game.evalWorker.PAWN_BLOCKED_PENALTY  = weights.blocked;
+    //game.evalWorker.PAWN_ISOLATED_PENALTY = weights.isolated;
+    //game.evalWorker.PAWN_BACKWARD_PENALTY = weights.backward;
+    //game.evalWorker.PASSED_PAWN_BONUS     = weights.passedBase;
+    //game.evalWorker.PASSED_PAWN_RANK_MULT = weights.passedRank;
+    //game.evalWorker.PAWN_CONNECTED_BONUS  = weights.connected;
 }
 
 // --- playSelfGameThreadSafe: enforce maxPlies, pass weights to search, minor defensive checks
