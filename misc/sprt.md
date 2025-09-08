@@ -4,9 +4,24 @@ Finished match
 Start: 15:40:51.47
 End:   15:59:46.63
 PS C:\Users\thart\chess_programming\Nimorak>
+
 Score of nimorak_nmp vs nimorak_alpha: 160 - 114 - 726  [0.523] 1000
 Elo difference: 16.0 +/- 11.2, LOS: 99.7 %, DrawRatio: 72.6 %
 Finished match
 Start: 17:42:22.65
 End:   18:04:06.79
+PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of nimorak_pvs vs nimorak_nmp: 301 - 44 - 655  [0.628] 1000
+Elo difference: 91.3 +/- 12.2, LOS: 100.0 %, DrawRatio: 65.5 %
+Finished match
+Start: 22:13:17.67
+End:   22:37:13.53
+PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of nimorak_quiescense vs nimorak_pvs: 293 - 70 - 637  [0.612] 1000
+Elo difference: 78.8 +/- 12.7, LOS: 100.0 %, DrawRatio: 63.7 %
+Finished match
+Start: 22:43:59.02
+End:   23:05:15.88
 PS C:\Users\thart\chess_programming\Nimorak>

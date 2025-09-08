@@ -75,9 +75,6 @@ namespace Search {
 
             bool isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist);
         public:
-            void updateHistory(Nimorak::Game& game, int side, int from, int to, int depth);
-            void updateCutoffHeuristics(Nimorak::Game& game, Move move, int depth, int ply, int side);
-            void decayHistory();
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
 

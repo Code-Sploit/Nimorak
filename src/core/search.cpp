@@ -149,11 +149,6 @@ namespace Search {
                 score += SEARCH_MOVE_PROMOTION;
             }
 
-            // 6. Killer moves (quiet moves that caused cutoff before)
-            if (m == killerMoves[ply][0] || m == killerMoves[ply][1]) {
-                score += SEARCH_MOVE_KILLER;
-            }
-
             scored.push_back({m, score});
         }
 
@@ -216,8 +211,9 @@ namespace Search {
     {
         if (depth == 0)
         {
-            int score = game.evalWorker.evaluate(game);
+            int score = (game.config.search.doQuiescense) ? quiescense(game, 0, alpha, beta, ply + 1) : game.evalWorker.evaluate(game);
 
+            // Mate distance pruning
             if (score > MATE_THRESHOLD) score -= ply;
             if (score < -MATE_THRESHOLD) score += ply;
             return score;
@@ -228,55 +224,71 @@ namespace Search {
         Move ttMove = 0;
         int ttScore = 0;
 
-        if (game.transpositionTable.probe(key, depth, alpha, beta, ply, ttScore, ttMove) && game.config.search.doTranspositions)
+        if (game.config.search.doTranspositions &&
+            game.transpositionTable.probe(key, depth, alpha, beta, ply, ttScore, ttMove))
+        {
             return ttScore;
+        }
 
-        // store ttMove so requestMoves can reorder
+        // Store TT move so requestMoves can reorder
         this->ttMove = ttMove;
 
         Movegen::MoveList movelist;
-
         requestMoves(game, movelist, ply, NEGAMAX);
 
-        if ((depth >= NULL_MOVE_PRUNE_REDUCTION + 1) && isNullMovePruneSafe(game, movelist))
+        // Null-move pruning
+        if (depth >= NULL_MOVE_PRUNE_REDUCTION + 1 && isNullMovePruneSafe(game, movelist))
         {
             Board::makeNullMove(game);
-
-            int score = -negamax(game, std::max((depth - 1 - NULL_MOVE_PRUNE_REDUCTION), 0), -beta, -beta + 1, ply + 1);
-
+            int score = -negamax(game,
+                                std::max(depth - 1 - NULL_MOVE_PRUNE_REDUCTION, 0),
+                                -beta, -beta + 1, ply + 1);
             Board::unmakeNullMove(game);
 
             if (score >= beta)
                 return beta;
         }
 
-        if (movelist.size() == 0) return Board::isKingInCheck(game, game.turn) ? -MATE_SCORE + ply : 0;
+        // No legal moves → mate or stalemate
+        if (movelist.size() == 0)
+            return Board::isKingInCheck(game, game.turn) ? -MATE_SCORE + ply : 0;
 
         int alphaOriginal = alpha;
         int bestEval = -INF;
         int flag = TT_ALPHA;
-
         Move bestMove = 0;
 
         for (int i = 0; i < movelist.size(); i++)
         {
             checkTimer();
-
             if (searchCancelled) break;
 
             Move move = movelist[i];
-
             Board::makeMove(game, move, MAKE_MOVE_FULL);
 
             int eval = 0;
-
             if (game.repetitionTable.checkThreefold(game.zobristKey))
             {
                 eval = DRAW_SCORE;
             }
             else
             {
-                eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1);
+                if (i == 0)
+                {
+                    // First move: full-window search
+                    eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1);
+                }
+                else
+                {
+                    // PVS: search with narrow window
+                    eval = -negamax(game, depth - 1, -alpha - 1, -alpha, ply + 1);
+
+                    // If it fails high, re-search with full window
+                    if (eval > alpha && eval < beta)
+                    {
+                        eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1);
+                    }
+                }
             }
 
             Board::unmakeMove(game, MAKE_MOVE_FULL);
@@ -287,18 +299,25 @@ namespace Search {
                 bestMove = move;
             }
 
-            if (eval > alpha) alpha = eval;
+            if (eval > alpha)
+            {
+                alpha = eval;
+                flag = TT_EXACT; // we found a better move
+            }
+
             if (alpha >= beta)
             {
                 flag = TT_BETA;
+
                 break;
             }
         }
 
         if (game.config.search.doTranspositions)
         {
-            if (bestEval > alphaOriginal && bestEval < beta) flag = TT_EXACT;
-            else if (bestEval <= alphaOriginal) flag = TT_ALPHA;
+            if (bestEval <= alphaOriginal) flag = TT_ALPHA;
+            else if (bestEval >= beta) flag = TT_BETA;
+            else flag = TT_EXACT;
 
             game.transpositionTable.store(key, depth, bestEval, flag, bestMove, ply);
         }
@@ -315,7 +334,8 @@ namespace Search {
         thinkTime = thinkTimeMs;
         searchCancelled = false;
 
-        if (game.config.search.doInfo) UCI::debug(__FILE__, "start with initialDepth=%d thinkTime=%d ms", initialDepth, thinkTimeMs);
+        if (game.config.search.doInfo)
+            UCI::debug(__FILE__, "start with initialDepth=%d thinkTime=%d ms", initialDepth, thinkTimeMs);
 
         Move bestMoveSoFar = 0;
         Movegen::MoveList movelist;
@@ -323,7 +343,6 @@ namespace Search {
         for (int depth = 1; depth <= initialDepth; depth++)
         {
             checkTimer();
-
             if (searchCancelled) break;
 
             Move bestThisDepth = 0;
@@ -331,8 +350,8 @@ namespace Search {
             bool completed = true;
 
             lastDepthStartedAt = Clock::now();
-            
-            // get root moves, reorder with ttMove if available
+
+            // Probe TT for PV move to reorder
             Move tmpBestMove = 0;
             int tmpScore = 0;
             if (game.config.search.doTranspositions) {
@@ -347,17 +366,26 @@ namespace Search {
             for (int i = 0; i < movelist.size(); i++)
             {
                 checkTimer();
-
                 if (searchCancelled) { completed = false; break; }
 
                 Move move = movelist[i];
-
                 Board::makeMove(game, move, MAKE_MOVE_FULL);
-                int score = -negamax(game, depth - 1, -INF, INF, 0);
+
+                int score;
+                if (i == 0) {
+                    // First move: full window
+                    score = -negamax(game, depth - 1, -INF, INF, 1);
+                } else {
+                    // PVS search
+                    score = -negamax(game, depth - 1, -evalThisDepth - 1, -evalThisDepth, 1);
+                    if (score > evalThisDepth) {
+                        score = -negamax(game, depth - 1, -INF, INF, 1);
+                    }
+                }
+
                 Board::unmakeMove(game, MAKE_MOVE_FULL);
 
-                if (score > evalThisDepth)
-                {
+                if (score > evalThisDepth) {
                     evalThisDepth = score;
                     bestThisDepth = move;
                 }
@@ -369,27 +397,25 @@ namespace Search {
             if (completed && game.config.search.doInfo)
             {
                 bool isMate = (std::abs(evalThisDepth) > MATE_THRESHOLD);
-
                 int score = evalThisDepth;
 
                 if (isMate)
                 {
                     int mateIn = (MATE_SCORE - std::abs(evalThisDepth) + 1) / 2;
-
                     mateIn = (mateIn == 0) ? 1 : mateIn;
-
                     if (evalThisDepth < 0) mateIn = -mateIn;
-
                     score = mateIn;
                 }
 
                 UCI::printSearchResult(depth, score, getTimer(), bestThisDepth, isMate);
-            } else if (!completed) break;
+            }
+            else if (!completed) break;
 
             bestMoveSoFar = bestThisDepth;
         }
 
-        if (game.config.search.doInfo) UCI::debug(__FILE__, "timeUsed=%.0f ms\n", getElapsedTime());
+        if (game.config.search.doInfo)
+            UCI::debug(__FILE__, "timeUsed=%.0f ms\n", getElapsedTime());
 
         return bestMoveSoFar;
     }
