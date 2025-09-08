@@ -24,20 +24,23 @@ namespace Transposition {
     bool Table::probe(ZobristHash key, int depth, int alpha, int beta, int ply, int& out_score, Move& bestMove) {
         TTEntry *entry = &this->table[key & (TT_SIZE - 1)];
 
-        if (entry->key == key && entry->depth >= depth) {
+        if (entry->key == key) {
+            // Always expose best move if available (for move ordering)
             bestMove = entry->best_move;
-            
-            int corrected = probeEval(entry->eval, ply);
 
-            if (entry->flag == TT_EXACT) {
-                out_score = corrected;
-                return true;
-            } else if (entry->flag == TT_ALPHA && corrected <= alpha) {
-                out_score = alpha;
-                return true;
-            } else if (entry->flag == TT_BETA && corrected >= beta) {
-                out_score = beta;
-                return true;
+            if (entry->depth >= depth) {
+                int corrected = probeEval(entry->eval, ply);
+
+                if (entry->flag == TT_EXACT) {
+                    out_score = corrected;
+                    return true;
+                } else if (entry->flag == TT_ALPHA && corrected <= alpha) {
+                    out_score = corrected; // return bound, not clamped
+                    return true;
+                } else if (entry->flag == TT_BETA && corrected >= beta) {
+                    out_score = corrected; // return bound, not clamped
+                    return true;
+                }
             }
         }
 
@@ -47,7 +50,7 @@ namespace Transposition {
     void Table::store(ZobristHash key, int depth, int eval, int flag, Move best_move, int ply) {
         TTEntry *entry = &this->table[key & (TT_SIZE - 1)];
 
-        if (entry->depth <= depth || entry->key != key) {
+        if (entry->key != key || depth >= entry->depth) {
             entry->key = key;
             entry->depth = depth;
             entry->eval = storeEval(eval, ply);
@@ -56,8 +59,7 @@ namespace Transposition {
         }
     }
 
-    void Table::clear()
-    {
+    void Table::clear() {
         std::fill(
             this->table,
             this->table + TT_SIZE,

@@ -28,6 +28,8 @@ namespace Attack {
 
         bool isSquareAttackedBy(int square, int color);
 
+        Bitboard getNewAttacksForMove(Nimorak::Game& game, Move move);
+
         PrecomputedTables::AttackTable preComputed;
     };
 

@@ -24,11 +24,12 @@ namespace Search {
 
     class Worker {
         private:
-            const int SEARCH_MOVE_KILLER_1_SCORE = 1000000;
-            const int SEARCH_MOVE_KILLER_2_SCORE = 900000;
-            const int SEARCH_MOVE_CHECK_SCORE    = 5000;
-            const int SEARCH_MOVE_PROMO_SCORE    = 4500;
-            const int SEARCH_MOVE_CAPTURE_SCORE  = 1500;
+            const int SEARCH_MOVE_TT             = 1000000;
+            const int SEARCH_MOVE_CAPTURE        = 900000;
+            const int SEARCH_MOVE_CHECK          = 50000;
+            const int SEARCH_MOVE_CAPTURE_BIAS   = 25000;
+            const int SEARCH_MOVE_PROMOTION      = 80000;
+            const int SEARCH_MOVE_KILLER         = 100000;
 
             const int DRAW_SCORE = 0;
 

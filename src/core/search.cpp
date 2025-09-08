@@ -46,120 +46,112 @@ namespace Search {
         ).count();
     }
 
-    int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
-    {
-        int from = Helpers::get_from(move);
-        int to = Helpers::get_to(move);
-
-        Piece fromPiece = game.boardGhost[from];
-        Piece toPiece = game.boardGhost[to];
-        
-        int victimType = std::clamp(Helpers::get_type(toPiece) - 1, 0, 4);
-        int attackerType = std::clamp(Helpers::get_type(fromPiece) - 1, 0, 4);
-        
-        return mvvLvaScores[victimType][attackerType];
-    }
+    // -------------------------
+    // Move ordering
+    // -------------------------
 
     bool Worker::predictCheck(Nimorak::Game& game, Move move)
     {
-        int from = Helpers::get_from(move);
-        int to = Helpers::get_to(move);
+        int enemyKingSquare = Board::findKing(game, !game.turn);
 
-        Piece piece = game.boardGhost[from];
+        Bitboard newAttacks = game.attackWorker.getNewAttacksForMove(game, move);
 
-        int type = Helpers::get_type(piece);
+        if ((newAttacks & (1ULL << enemyKingSquare)) != 0) return true;
 
-        if (type == KING) return false;
-
-        Bitboard newAttacks = 0ULL;
-
-        switch (type)
-        {
-            case BISHOP: newAttacks = Magic::getBishopAttacks(to, game.occupancy[BOTH]); break;
-            case ROOK: newAttacks = Magic::getRookAttacks(to, game.occupancy[BOTH]); break;
-            case QUEEN: newAttacks = Magic::getQueenAttacks(to, game.occupancy[BOTH]); break;
-            case KNIGHT: newAttacks = game.attackWorker.preComputed.getKnightAttacks(to); break;
-        }
-
-        int kingSquareEnemy = Board::findKing(game, !game.turn);
-
-        return (newAttacks & (1ULL << kingSquareEnemy)) != 0;
+        return false;
     }
 
     bool Worker::predictRecapture(Nimorak::Game& game, Move move)
     {
-        int to = Helpers::get_to(move);
+        int to   = Helpers::get_to(move);
 
         Bitboard enemyAttacks = game.attackWorker.attackMapFull[!game.turn];
 
-        return (enemyAttacks & (1ULL << to)) != 0;
+        if (enemyAttacks & (1ULL << to))
+            // Opponent can recapture
+            return true;
+        
+        return false;
     }
 
-    // -------------------------
-    // Move ordering
-    // -------------------------
+    int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
+    {
+        int from = Helpers::get_from(move);
+        int to   = Helpers::get_to(move);
+
+        Piece fPiece = game.boardGhost[from];
+        Piece tPiece = game.boardGhost[to];
+
+        int fType = Helpers::get_type(fPiece);
+        int tType = Helpers::get_type(tPiece);
+
+        return mvvLvaScores[fType - 1][tType - 1];
+    }
+
     void Worker::orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply)
     {
-        if (movelist.size() == 0) return;
+        // Temporary container for scored moves
+        std::vector<MoveScore> scored;
+        scored.reserve(movelist.size());
 
-        std::array<MoveScore, MAX_MOVES> scoredMoves{};
-        int count = movelist.size();
-
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < movelist.size(); i++)
         {
-            Move move = movelist[i];
+            Move m = movelist[i];
             int score = 0;
 
-            if (predictCheck(game, move))
-            {
-                score = SEARCH_MOVE_CHECK_SCORE;
-            }
-            else if (Helpers::is_capture(move))
-            {
-                score = getMvvLvaScore(game, move);
-                
-                if (Helpers::is_promo(move)) score += SEARCH_MOVE_PROMO_SCORE;
-                
-                score += SEARCH_MOVE_CAPTURE_SCORE * ((predictRecapture(game, move)) ? -1 : 1);
-            }
-            else if (move == killerMoves[ply][0] && game.config.search.doKillerMoves)
-            {
-                score = SEARCH_MOVE_KILLER_1_SCORE;
-            }
-            else if (move == killerMoves[ply][1] && game.config.search.doKillerMoves)
-            {
-                score = SEARCH_MOVE_KILLER_2_SCORE;
-            }
-            else if (game.config.search.doHeuristics)
-            {
-                score = historyHeuristic[Helpers::get_from(move)][Helpers::get_to(move)];
+            // 1. TT move bonus
+            if (m == this->ttMove) {
+                score += SEARCH_MOVE_TT;
             }
 
-            scoredMoves[i] = {move, score};
+            // 2. Captures, MVV-LVA
+            if (Helpers::is_capture(m)) {
+                score += SEARCH_MOVE_CAPTURE + getMvvLvaScore(game, m); // implement mvv_lva_value()
+            }
+
+            // 3. Check bonus
+            if (predictCheck(game, m)) {
+                score += SEARCH_MOVE_CHECK;
+            }
+
+            // 4. Good / bad capture heuristic
+            if (Helpers::is_capture(m)) {
+                if (!predictRecapture(game, m)) {
+                    score += SEARCH_MOVE_CAPTURE_BIAS; // good capture
+                } else {
+                    score -= SEARCH_MOVE_CAPTURE_BIAS; // bad capture
+                }
+            }
+
+            // 5. Promotion bonus
+            if (Helpers::is_promo(m)) {
+                score += SEARCH_MOVE_PROMOTION;
+            }
+
+            // 6. Killer moves (quiet moves that caused cutoff before)
+            if (m == killerMoves[ply][0] || m == killerMoves[ply][1]) {
+                score += SEARCH_MOVE_KILLER;
+            }
+
+            scored.push_back({m, score});
         }
 
-        // Insertion sort
-        for (int i = 1; i < count; i++)
-        {
-            MoveScore key = scoredMoves[i];
-            int j = i - 1;
-            while (j >= 0 && scoredMoves[j].score < key.score)
-            {
-                scoredMoves[j + 1] = scoredMoves[j];
-                j--;
-            }
-            scoredMoves[j + 1] = key;
-        }
+        // Sort scored moves by descending score
+        std::sort(scored.begin(), scored.end(), [](const MoveScore &a, const MoveScore &b) {
+            return a.score > b.score;
+        });
 
-        for (int i = 0; i < count; i++)
-            movelist[i] = scoredMoves[i].move;
+        // Rewrite movelist in new order
+        for (size_t i = 0; i < scored.size(); i++) {
+            movelist[i] = scored[i].move;
+        }
     }
 
     void Worker::requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType)
     {
         game.movegenWorker.getLegalMoves(game, movelist, requestType == QUIESCENSE);
 
-        if (movelist.size() > 1) orderMoves(game, movelist, ply);
+        orderMoves(game, movelist, ply);
     }
 
     // -------------------------
@@ -203,8 +195,8 @@ namespace Search {
     {
         if (depth == 0)
         {
-            int score = game.config.search.doQuiescense ? quiescense(game, 0, alpha, beta, ply)
-                                                        : game.evalWorker.evaluate(game);
+            int score = game.evalWorker.evaluate(game);
+
             if (score > MATE_THRESHOLD) score -= ply;
             if (score < -MATE_THRESHOLD) score += ply;
             return score;
@@ -217,6 +209,9 @@ namespace Search {
 
         if (game.transpositionTable.probe(key, depth, alpha, beta, ply, ttScore, ttMove) && game.config.search.doTranspositions)
             return ttScore;
+
+        // store ttMove so requestMoves can reorder
+        this->ttMove = ttMove;
 
         Movegen::MoveList movelist;
 
@@ -237,6 +232,7 @@ namespace Search {
             if (searchCancelled) break;
 
             Move move = movelist[i];
+
             Board::makeMove(game, move, MAKE_MOVE_FULL);
 
             int eval = 0;
@@ -262,14 +258,6 @@ namespace Search {
             if (alpha >= beta)
             {
                 flag = TT_BETA;
-                if (!Helpers::is_capture(move) && game.config.search.doKillerMoves)
-                {
-                    if (killerMoves[ply][0] != move)
-                    {
-                        killerMoves[ply][1] = killerMoves[ply][0];
-                        killerMoves[ply][0] = move;
-                    }
-                }
                 break;
             }
         }
@@ -278,6 +266,7 @@ namespace Search {
         {
             if (bestEval > alphaOriginal && bestEval < beta) flag = TT_EXACT;
             else if (bestEval <= alphaOriginal) flag = TT_ALPHA;
+
             game.transpositionTable.store(key, depth, bestEval, flag, bestMove, ply);
         }
 
@@ -310,6 +299,14 @@ namespace Search {
 
             lastDepthStartedAt = Clock::now();
             
+            // get root moves, reorder with ttMove if available
+            Move tmpBestMove = 0;
+            int tmpScore = 0;
+            if (game.config.search.doTranspositions) {
+                game.transpositionTable.probe(game.zobristKey, depth, -INF, INF, 0, tmpScore, tmpBestMove);
+                this->ttMove = tmpBestMove;
+            }
+
             requestMoves(game, movelist, 0, NEGAMAX);
 
             if (movelist.size() == 1) return movelist[0];
@@ -360,6 +357,7 @@ namespace Search {
         }
 
         if (game.config.search.doInfo) UCI::debug(__FILE__, "timeUsed=%.0f ms\n", getElapsedTime());
+
         return bestMoveSoFar;
     }
 } // namespace Search

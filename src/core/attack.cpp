@@ -315,4 +315,28 @@ namespace Attack {
     {
         return (this->attackMapFull[color] & (1ULL << square)) != 0;
     }
+
+    Bitboard Worker::getNewAttacksForMove(Nimorak::Game& game, Move move)
+    {
+        int from = Helpers::get_from(move);
+        int to   = Helpers::get_to(move);
+
+        Piece fPiece = game.boardGhost[from];
+
+        int type  = Helpers::get_type(fPiece);
+        int color = Helpers::get_color(fPiece);
+
+        switch (type)
+        {
+            case PAWN: return this->preComputed.getPawnAttacks(color, to); break;
+            case KNIGHT: return this->preComputed.getKnightAttacks(to); break;
+            case BISHOP: return Magic::getBishopAttacks(to, game.occupancy[BOTH]); break;
+            case ROOK: return Magic::getRookAttacks(to, game.occupancy[BOTH]); break;
+            case QUEEN: return Magic::getQueenAttacks(to, game.occupancy[BOTH]); break;
+            case KING: return this->preComputed.getKingAttacks(to); break;
+            default: return 0ULL; break;
+        }
+
+        return 0ULL;
+    }
 }
