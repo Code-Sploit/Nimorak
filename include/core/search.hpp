@@ -26,12 +26,17 @@ namespace Search {
         private:
             const int SEARCH_MOVE_TT             = 1000000;
             const int SEARCH_MOVE_CAPTURE        = 900000;
-            const int SEARCH_MOVE_CHECK          = 50000;
+            const int SEARCH_MOVE_CHECK          = 800000;
             const int SEARCH_MOVE_CAPTURE_BIAS   = 25000;
             const int SEARCH_MOVE_PROMOTION      = 80000;
             const int SEARCH_MOVE_KILLER         = 100000;
 
             const int DRAW_SCORE = 0;
+            
+            const int NULL_MOVE_PRUNE_REDUCTION = 2;
+
+            const int HISTORY_MAX       = 16000;
+            const int HISTORY_SCALE_DIV = 6;
 
             using Clock = std::chrono::steady_clock;
             using TimePoint = std::chrono::time_point<Clock>;
@@ -45,7 +50,7 @@ namespace Search {
             bool searchCancelled = false;
 
             std::array<std::array<Move, 2>, 64> killerMoves {};
-            std::array<std::array<int, 64>, 64> historyHeuristic {};
+            std::array<std::array<std::array<int, 64>, 64>, 2> historyHeuristic {};
 
             const int mvvLvaScores[5][5] = {
                 {900, 700, 680, 500, 100},
@@ -67,7 +72,12 @@ namespace Search {
 
             bool predictCheck(Nimorak::Game& game, Move move);
             bool predictRecapture(Nimorak::Game& game, Move move);
+
+            bool isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist);
         public:
+            void updateHistory(Nimorak::Game& game, int side, int from, int to, int depth);
+            void updateCutoffHeuristics(Nimorak::Game& game, Move move, int depth, int ply, int side);
+            void decayHistory();
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
 

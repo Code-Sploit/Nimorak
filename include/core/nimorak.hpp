@@ -38,10 +38,8 @@ namespace Nimorak {
     };
 
     class Game {
-        private:
-            const static size_t HISTORY_SIZE = 16384;
-
         public:
+            const static size_t HISTORY_SIZE = 16384;
             // Game state
             int turn;
             int enpassantSquare;

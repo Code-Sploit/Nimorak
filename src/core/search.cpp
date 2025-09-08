@@ -63,7 +63,7 @@ namespace Search {
 
     bool Worker::predictRecapture(Nimorak::Game& game, Move move)
     {
-        int to   = Helpers::get_to(move);
+        int to = Helpers::get_to(move);
 
         Bitboard enemyAttacks = game.attackWorker.attackMapFull[!game.turn];
 
@@ -72,6 +72,27 @@ namespace Search {
             return true;
         
         return false;
+    }
+
+    bool Worker::isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist)
+    {
+        // Disable NMP when in check
+        bool inCheck = Board::isKingInCheck(game, game.turn);
+
+        if (inCheck) return false;
+
+        // Disable NMP when we are in late endgame positions or we dont have a lot of moves
+        bool hasEnoughMoves = movelist.size() > 10;
+
+        if (!hasEnoughMoves) return false;
+
+        // Disable NMP when we only have pawns & kings
+        bool hasOnlyPawnKing = ((Board::countPieces(game, KNIGHT) + Board::countPieces(game, BISHOP) + Board::countPieces(game, ROOK) + Board::countPieces(game, QUEEN)) == 0);
+
+        if (hasOnlyPawnKing) return false;
+
+        // If we pass everything we enable NMP
+        return true;
     }
 
     int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
@@ -216,6 +237,18 @@ namespace Search {
         Movegen::MoveList movelist;
 
         requestMoves(game, movelist, ply, NEGAMAX);
+
+        if ((depth >= NULL_MOVE_PRUNE_REDUCTION + 1) && isNullMovePruneSafe(game, movelist))
+        {
+            Board::makeNullMove(game);
+
+            int score = -negamax(game, std::max((depth - 1 - NULL_MOVE_PRUNE_REDUCTION), 0), -beta, -beta + 1, ply + 1);
+
+            Board::unmakeNullMove(game);
+
+            if (score >= beta)
+                return beta;
+        }
 
         if (movelist.size() == 0) return Board::isKingInCheck(game, game.turn) ? -MATE_SCORE + ply : 0;
 
