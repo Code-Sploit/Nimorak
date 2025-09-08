@@ -39,7 +39,7 @@ namespace Nimorak {
 
     class Game {
         public:
-            const static size_t HISTORY_SIZE = 16384;
+            const static size_t HISTORY_SIZE = 32768;
             // Game state
             int turn;
             int enpassantSquare;
