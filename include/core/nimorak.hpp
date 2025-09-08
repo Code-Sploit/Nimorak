@@ -72,6 +72,8 @@ namespace Nimorak {
 
             int winner;
 
+            std::string pvLine;
+
             // Constructor / Destructor
             Game();
             ~Game(); // optional, default would work fine

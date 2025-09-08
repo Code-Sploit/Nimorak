@@ -11,6 +11,7 @@
 #include <iostream>
 #include <algorithm>
 #include <chrono>
+#include <vector>
 
 #define INF 1000000
 
@@ -173,45 +174,76 @@ namespace Search {
     // -------------------------
     // Quiescence search
     // -------------------------
-    int Worker::quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply)
+    int Worker::quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
     {
         if (depth >= game.config.search.maximumQuiescenseDepth)
             return game.evalWorker.evaluate(game);
 
         int standPat = game.evalWorker.evaluate(game);
 
+        // PV for stand-pat
+        pv.clear();
+
         if (standPat >= beta) return beta;
         if (standPat > alpha) alpha = standPat;
 
         Movegen::MoveList movelist;
-
         requestMoves(game, movelist, ply, QUIESCENSE);
+
+        std::vector<Move> bestChildPV;
+        Move bestMove = 0;
+        int bestScore = standPat;
 
         for (int i = 0; i < movelist.size(); i++)
         {
             checkTimer();
-
             if (searchCancelled) break;
 
-            Board::makeMove(game, movelist[i], MAKE_MOVE_LIGHT);
-            int score = -quiescense(game, depth + 1, -beta, -alpha, ply + 1);
+            Move move = movelist[i];
+
+            Board::makeMove(game, move, MAKE_MOVE_LIGHT);
+            std::vector<Move> childPV;
+
+            int score = -quiescense(game, depth + 1, -beta, -alpha, ply + 1, childPV);
+
             Board::unmakeMove(game, MAKE_MOVE_LIGHT);
 
-            if (score >= beta) return beta;
-            if (score > alpha) alpha = score;
+            if (score >= beta) 
+            {
+                // Beta cutoff: include the move in PV for info purposes
+                pv.clear();
+                pv.push_back(move);
+                return beta;
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestMove = move;
+                bestChildPV = childPV;
+                alpha = score;
+            }
         }
 
-        return alpha;
+        // Construct PV if a best move exists
+        if (bestMove != 0)
+        {
+            pv.clear();
+            pv.push_back(bestMove);
+            pv.insert(pv.end(), bestChildPV.begin(), bestChildPV.end());
+        }
+
+        return bestScore;
     }
 
     // -------------------------
     // Negamax
     // -------------------------
-    int Worker::negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply)
+    int Worker::negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
     {
         if (depth == 0)
         {
-            int score = (game.config.search.doQuiescense) ? quiescense(game, 0, alpha, beta, ply + 1) : game.evalWorker.evaluate(game);
+            int score = (game.config.search.doQuiescense) ? quiescense(game, 0, alpha, beta, ply + 1, pv) : game.evalWorker.evaluate(game);
 
             // Mate distance pruning
             if (score > MATE_THRESHOLD) score -= ply;
@@ -242,7 +274,7 @@ namespace Search {
             Board::makeNullMove(game);
             int score = -negamax(game,
                                 std::max(depth - 1 - NULL_MOVE_PRUNE_REDUCTION, 0),
-                                -beta, -beta + 1, ply + 1);
+                                -beta, -beta + 1, ply + 1, pv);
             Board::unmakeNullMove(game);
 
             if (score >= beta)
@@ -256,7 +288,10 @@ namespace Search {
         int alphaOriginal = alpha;
         int bestEval = -INF;
         int flag = TT_ALPHA;
+
         Move bestMove = 0;
+
+        std::vector<Move> bestChildPV;
 
         for (int i = 0; i < movelist.size(); i++)
         {
@@ -265,6 +300,8 @@ namespace Search {
 
             Move move = movelist[i];
             Board::makeMove(game, move, MAKE_MOVE_FULL);
+            
+            std::vector<Move> childPV;
 
             int eval = 0;
             if (game.repetitionTable.checkThreefold(game.zobristKey))
@@ -276,17 +313,17 @@ namespace Search {
                 if (i == 0)
                 {
                     // First move: full-window search
-                    eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1);
+                    eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1, childPV);
                 }
                 else
                 {
                     // PVS: search with narrow window
-                    eval = -negamax(game, depth - 1, -alpha - 1, -alpha, ply + 1);
+                    eval = -negamax(game, depth - 1, -alpha - 1, -alpha, ply + 1, childPV);
 
                     // If it fails high, re-search with full window
                     if (eval > alpha && eval < beta)
                     {
-                        eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1);
+                        eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1, childPV);
                     }
                 }
             }
@@ -297,6 +334,7 @@ namespace Search {
             {
                 bestEval = eval;
                 bestMove = move;
+                bestChildPV = childPV;
             }
 
             if (eval > alpha)
@@ -311,6 +349,14 @@ namespace Search {
 
                 break;
             }
+        }
+
+        pv.clear();
+
+        if (bestMove != 0)
+        {
+            pv.push_back(bestMove);
+            pv.insert(pv.end(), bestChildPV.begin(), bestChildPV.end());
         }
 
         if (game.config.search.doTranspositions)
@@ -339,10 +385,12 @@ namespace Search {
 
         Move bestMoveSoFar = 0;
         Movegen::MoveList movelist;
+        std::vector<Move> rootPV;
 
         for (int depth = 1; depth <= initialDepth; depth++)
         {
             checkTimer();
+            
             if (searchCancelled) break;
 
             Move bestThisDepth = 0;
@@ -361,25 +409,30 @@ namespace Search {
 
             requestMoves(game, movelist, 0, NEGAMAX);
 
+            std::vector<Move> bestPV;
+
             if (movelist.size() == 1) return movelist[0];
 
             for (int i = 0; i < movelist.size(); i++)
             {
                 checkTimer();
+
                 if (searchCancelled) { completed = false; break; }
 
                 Move move = movelist[i];
                 Board::makeMove(game, move, MAKE_MOVE_FULL);
 
+                std::vector<Move> childPV;
+
                 int score;
                 if (i == 0) {
                     // First move: full window
-                    score = -negamax(game, depth - 1, -INF, INF, 1);
+                    score = -negamax(game, depth - 1, -INF, INF, 1, childPV);
                 } else {
                     // PVS search
-                    score = -negamax(game, depth - 1, -evalThisDepth - 1, -evalThisDepth, 1);
+                    score = -negamax(game, depth - 1, -evalThisDepth - 1, -evalThisDepth, 1, childPV);
                     if (score > evalThisDepth) {
-                        score = -negamax(game, depth - 1, -INF, INF, 1);
+                        score = -negamax(game, depth - 1, -INF, INF, 1, childPV);
                     }
                 }
 
@@ -388,7 +441,19 @@ namespace Search {
                 if (score > evalThisDepth) {
                     evalThisDepth = score;
                     bestThisDepth = move;
+                    bestPV.clear();
+                    bestPV.push_back(move);
+                    bestPV.insert(bestPV.end(), childPV.begin(), childPV.end());
                 }
+            }
+
+            rootPV = bestPV;
+
+            game.pvLine.clear();
+
+            for (Move m : rootPV)
+            {
+                game.pvLine += Board::moveToString(m) + " ";
             }
 
             lastDepthFinishedAt = Clock::now();
@@ -407,7 +472,7 @@ namespace Search {
                     score = mateIn;
                 }
 
-                UCI::printSearchResult(depth, score, getTimer(), bestThisDepth, isMate);
+                UCI::printSearchResult(depth, score, getTimer(), bestThisDepth, isMate, game.pvLine);
             }
             else if (!completed) break;
 

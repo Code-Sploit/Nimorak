@@ -49,7 +49,7 @@ namespace UCI {
         std::cerr << std::endl;
     }
 
-    void printSearchResult(int depth, int score, int timeMs, int bestMove, bool isMate)
+    void printSearchResult(int depth, int score, int timeMs, int bestMove, bool isMate, std::string pvCurrent)
     {
         std::cout << "info depth " << depth << " score";
 
@@ -59,7 +59,7 @@ namespace UCI {
             std::cout << " cp " << score << " ";
         
         std::cout << "time " << static_cast<int>(timeMs) << " ";
-        std::cout << "pv " << Board::moveToString(bestMove) << std::endl;
+        std::cout << "pv " << pvCurrent << std::endl;
     }
 
     void uciLoop(Nimorak::Game& game)

@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <chrono>
+#include <vector>
 
 namespace Nimorak {
     class Game;
@@ -78,8 +79,8 @@ namespace Search {
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
 
-            int quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply);
-            int negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply);
+            int quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
+            int negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
 
             Move searchPosition(Nimorak::Game& game, int initialDepth, int thinkTimeMs);
     };
