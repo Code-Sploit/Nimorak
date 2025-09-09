@@ -51,6 +51,20 @@ namespace Search {
     // Move ordering
     // -------------------------
 
+    int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
+    {
+        int from = Helpers::get_from(move);
+        int to   = Helpers::get_to(move);
+
+        Piece fPiece = game.boardGhost[from];
+        Piece tPiece = game.boardGhost[to];
+
+        int fType = Helpers::get_type(fPiece);
+        int tType = Helpers::get_type(tPiece);
+
+        return mvvLvaScores[fType - 1][tType - 1];
+    }
+
     bool Worker::predictCheck(Nimorak::Game& game, Move move)
     {
         int enemyKingSquare = Board::findKing(game, !game.turn);
@@ -96,18 +110,31 @@ namespace Search {
         return true;
     }
 
-    int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
+    void Worker::addBetaCutoff(Move move, int depth, int turn)
     {
         int from = Helpers::get_from(move);
         int to   = Helpers::get_to(move);
 
-        Piece fPiece = game.boardGhost[from];
-        Piece tPiece = game.boardGhost[to];
+        long long inc = (long long) depth * (long long) depth;
 
-        int fType = Helpers::get_type(fPiece);
-        int tType = Helpers::get_type(tPiece);
+        betaCutoffHistory[turn][from][to] += (int) inc;
 
-        return mvvLvaScores[fType - 1][tType - 1];
+        if (betaCutoffHistory[turn][from][to] > HISTORY_MAX)
+            betaCutoffHistory[turn][from][to] = HISTORY_MAX;
+    }
+
+    void Worker::updateBetaCutoffHistory(int turn)
+    {
+        for (int side = WHITE; side <= BLACK; side++)
+        {
+            for (int from = 0; from < 64; from++)
+            {
+                for (int to = 0; to < 64; to++)
+                {
+                    betaCutoffHistory[side][from][to] >>= 1;
+                }
+            }
+        }
     }
 
     void Worker::orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply)
@@ -148,6 +175,15 @@ namespace Search {
             // 5. Promotion bonus
             if (Helpers::is_promo(m)) {
                 score += SEARCH_MOVE_PROMOTION;
+            }
+
+            // 6. Beta-cutoffs
+            if (game.config.search.doBetaCutoffHistory)
+            {
+                int from = Helpers::get_from(m);
+                int to   = Helpers::get_to(m);
+
+                score += betaCutoffHistory[game.turn][from][to];
             }
 
             scored.push_back({m, score});
@@ -347,6 +383,8 @@ namespace Search {
             {
                 flag = TT_BETA;
 
+                if (!Helpers::is_capture(move) && game.config.search.doBetaCutoffHistory) addBetaCutoff(move, depth, game.turn);
+
                 break;
             }
         }
@@ -392,6 +430,8 @@ namespace Search {
             checkTimer();
             
             if (searchCancelled) break;
+
+            if (game.config.search.doBetaCutoffHistory) updateBetaCutoffHistory(game.turn);
 
             Move bestThisDepth = 0;
             int evalThisDepth = -INF;

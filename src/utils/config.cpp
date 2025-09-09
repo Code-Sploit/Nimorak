@@ -34,26 +34,8 @@ namespace Config {
     void set_eval_piece_squares(Nimorak::Game& game, const char* value) {
         game.config.eval.doPieceSquares = std::atoi(value) != 0;
     }
-    void set_eval_endgame(Nimorak::Game& game, const char* value) {
-        game.config.eval.doEndgame = std::atoi(value) != 0;
-    }
-    void set_eval_king_safety(Nimorak::Game& game, const char* value) {
-        game.config.eval.doKingSafety = std::atoi(value) != 0;
-    }
-    void set_eval_pawn_structure(Nimorak::Game& game, const char* value) {
-        game.config.eval.doPawnStructure = std::atoi(value) != 0;
-    }
     void set_eval_mobility(Nimorak::Game& game, const char* value) {
         game.config.eval.doMobility = std::atoi(value) != 0;
-    }
-    void set_eval_rook_open_files(Nimorak::Game& game, const char* value) {
-        game.config.eval.doRookOpenFiles = std::atoi(value) != 0;
-    }
-    void set_eval_bishop_pair(Nimorak::Game& game, const char* value) {
-        game.config.eval.doBishopPair = std::atoi(value) != 0;
-    }
-    void set_eval_knight_outpost(Nimorak::Game& game, const char* value) {
-        game.config.eval.doKnightOutposts = std::atoi(value) != 0;
     }
 
     // --- Setters for search ---
@@ -63,11 +45,8 @@ namespace Config {
     void set_search_transpositions(Nimorak::Game& game, const char* value) {
         game.config.search.doTranspositions = std::atoi(value) != 0;
     }
-    void set_search_killer_moves(Nimorak::Game& game, const char* value) {
-        game.config.search.doKillerMoves = std::atoi(value) != 0;
-    }
-    void set_search_heuristics(Nimorak::Game& game, const char* value) {
-        game.config.search.doHeuristics = std::atoi(value) != 0;
+    void set_search_beta_cutoff_history(Nimorak::Game& game, const char* value) {
+        game.config.search.doBetaCutoffHistory = std::atoi(value) != 0;
     }
     void set_search_info(Nimorak::Game& game, const char* value) {
         game.config.search.doInfo = std::atoi(value) != 0;
@@ -91,19 +70,12 @@ namespace Config {
         // eval
         { "eval_do_material",       set_eval_material },
         { "eval_do_piece_squares",  set_eval_piece_squares },
-        { "eval_do_endgame",        set_eval_endgame },
         { "eval_do_mobility",       set_eval_mobility },
-        { "eval_do_pawn_structure", set_eval_pawn_structure },
-        { "eval_do_king_safety",    set_eval_king_safety },
-        { "eval_do_rook_open_files", set_eval_rook_open_files },
-        { "eval_do_bishop_pair",     set_eval_bishop_pair },
-        { "eval_do_knight_outpost",  set_eval_knight_outpost },
 
         // search
         { "search_do_quiescense",           set_search_quiescense },
         { "search_do_transpositions",       set_search_transpositions },
-        { "search_do_killer_moves",         set_search_killer_moves },
-        { "search_do_heuristics",           set_search_heuristics },
+        { "search_do_beta_cutoff_history",  set_search_beta_cutoff_history},
         { "search_do_info",                 set_search_info },
         { "search_initial_depth",           set_search_initial_depth },
         { "search_maximum_depth",           set_search_maximum_depth },

@@ -241,20 +241,13 @@ namespace UCI {
                 printf("Eval:\n");
                 printf("  doMaterial:           %d\n", game.config.eval.doMaterial);
                 printf("  doPieceSquares:       %d\n", game.config.eval.doPieceSquares);
-                printf("  doEndgame:            %d\n", game.config.eval.doEndgame);
                 printf("  doMobility:           %d\n", game.config.eval.doMobility);
-                printf("  doKingSafety:         %d\n", game.config.eval.doKingSafety);
-                printf("  doPawnStructure:      %d\n", game.config.eval.doPawnStructure);
-                printf("  doRookOpenFiles:      %d\n", game.config.eval.doRookOpenFiles);
-                printf("  doBishopPair:         %d\n", game.config.eval.doBishopPair);
-                printf("  doKnightOutposts:     %d\n", game.config.eval.doKnightOutposts);
 
                 // Search options
                 printf("Search:\n");
                 printf("  doQuiescense:         %d\n", game.config.search.doQuiescense);
                 printf("  doTranspositions:     %d\n", game.config.search.doTranspositions);
-                printf("  doKillerMoves:        %d\n", game.config.search.doKillerMoves);
-                printf("  doHeuristics:         %d\n", game.config.search.doHeuristics);
+                printf("  doBetaCutoffHistory:  %d\n", game.config.search.doBetaCutoffHistory);
                 printf("  doInfo:               %d\n", game.config.search.doInfo);
                 printf("  initialDepth:         %d\n", game.config.search.initialDepth);
                 printf("  maximumDepth:         %d\n", game.config.search.maximumDepth);

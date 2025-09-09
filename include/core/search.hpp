@@ -36,8 +36,8 @@ namespace Search {
             
             const int NULL_MOVE_PRUNE_REDUCTION = 2;
 
-            const int HISTORY_MAX       = 16000;
-            const int HISTORY_SCALE_DIV = 6;
+            const int HISTORY_MAX       = 160000;
+            const int HISTORY_SCALE_FAC = 8;
 
             using Clock = std::chrono::steady_clock;
             using TimePoint = std::chrono::time_point<Clock>;
@@ -51,7 +51,7 @@ namespace Search {
             bool searchCancelled = false;
 
             std::array<std::array<Move, 2>, 64> killerMoves {};
-            std::array<std::array<std::array<int, 64>, 64>, 2> historyHeuristic {};
+            std::array<std::array<std::array<int, 64>, 64>, 2> betaCutoffHistory {};
 
             const int mvvLvaScores[5][5] = {
                 {900, 700, 680, 500, 100},
@@ -75,6 +75,9 @@ namespace Search {
             bool predictRecapture(Nimorak::Game& game, Move move);
 
             bool isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist);
+
+            void addBetaCutoff(Move move, int depth, int turn);
+            void updateBetaCutoffHistory(int turn);
         public:
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);

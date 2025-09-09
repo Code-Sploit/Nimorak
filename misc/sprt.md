@@ -32,3 +32,10 @@ Finished match
 Start:  9:10:45.66
 End:    9:32:04.92
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of nimorak_bch vs nimorak_pst_fix: 378 - 155 - 467  [0.612] 1000
+Elo difference: 78.8 +/- 15.7, LOS: 100.0 %, DrawRatio: 46.7 %
+Finished match
+Start: 10:22:15.81
+End:   10:48:04.75
+PS C:\Users\thart\chess_programming\Nimorak>

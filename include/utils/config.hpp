@@ -23,13 +23,7 @@ namespace Config {
     struct EvalOptions {
         bool doMaterial = true;
         bool doPieceSquares = true;
-        bool doEndgame = true;
         bool doMobility = true;
-        bool doKingSafety = true;
-        bool doPawnStructure = true;
-        bool doRookOpenFiles = true;
-        bool doBishopPair = true;
-        bool doKnightOutposts = true;
     };
 
     // ----------------------------
@@ -38,8 +32,7 @@ namespace Config {
     struct SearchOptions {
         bool doQuiescense = true;
         bool doTranspositions = true;
-        bool doKillerMoves = true;
-        bool doHeuristics = true;
+        bool doBetaCutoffHistory = true;
         bool doInfo = true;
 
         int initialDepth = 6;
