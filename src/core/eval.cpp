@@ -191,6 +191,31 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
 
+    void Worker::moduleBishopPair(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        Bitboard whiteBishops = game.board[WHITE][BISHOP];
+        Bitboard blackBishops = game.board[BLACK][BISHOP];
+
+        int whiteBishopCount = __builtin_popcountll(whiteBishops);
+        int blackBishopCount = __builtin_popcountll(blackBishops);
+
+        if (whiteBishopCount >= 2)
+            moduleEval += EVAL_HAS_BISHOP_PAIR;
+        
+        if (blackBishopCount >= 2)
+            moduleEval -= EVAL_HAS_BISHOP_PAIR;
+        
+        int scaledModuleEval = moduleEval;
+
+        GamePhase gamePhase = getGamePhase(game);
+
+        if (gamePhase == OPENING || gamePhase == ENDGAME) scaledModuleEval = (int) (scaledModuleEval * 0.5);
+
+        this->eval += scaledModuleEval;
+    }
+
     // --- Eval entry point ---
     int Worker::evaluate(Nimorak::Game& game)
     {
@@ -199,6 +224,7 @@ namespace Evaluation {
         if (game.config.eval.doMaterial) moduleMaterial(game);
         if (game.config.eval.doPieceSquares) modulePST(game);
         if (game.config.eval.doMobility) moduleMobility(game);
+        if (game.config.eval.doBishopPair) moduleBishopPair(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }

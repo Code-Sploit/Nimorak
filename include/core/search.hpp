@@ -30,7 +30,6 @@ namespace Search {
             const int SEARCH_MOVE_CHECK          = 800000;
             const int SEARCH_MOVE_CAPTURE_BIAS   = 25000;
             const int SEARCH_MOVE_PROMOTION      = 80000;
-            const int SEARCH_MOVE_KILLER         = 100000;
 
             const int DRAW_SCORE = 0;
             
@@ -50,7 +49,6 @@ namespace Search {
 
             bool searchCancelled = false;
 
-            std::array<std::array<Move, 2>, 64> killerMoves {};
             std::array<std::array<std::array<int, 64>, 64>, 2> betaCutoffHistory {};
 
             const int mvvLvaScores[5][5] = {
@@ -77,7 +75,7 @@ namespace Search {
             bool isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist);
 
             void addBetaCutoff(Move move, int depth, int turn);
-            void updateBetaCutoffHistory(int turn);
+            void updateBetaCutoffHistory();
         public:
             void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);

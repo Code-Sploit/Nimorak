@@ -45,6 +45,7 @@ namespace Evaluation {
             };
 
             static constexpr int pieceValues[6] = {0, 100, 320, 335, 500, 900};
+            static constexpr int evalStackedPawnPenalties[5] = {0, 40, 60, 90, 140};
 
             static constexpr PieceSquareTable pieceSquareTables[6] = {
                 {
@@ -239,7 +240,9 @@ namespace Evaluation {
                         -50,-30,-30,-30,-30,-30,-30,-50
                     }
                 }
-            };  
+            };
+
+            static constexpr int EVAL_HAS_BISHOP_PAIR = 40;
 
             int getPSTFor(PieceType type, int square, GamePhase phase);
             int getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square);
@@ -257,6 +260,8 @@ namespace Evaluation {
             void moduleMaterial(Nimorak::Game& game);
             void modulePST(Nimorak::Game& game);
             void moduleMobility(Nimorak::Game& game);
+            void moduleBishopPair(Nimorak::Game& game);
+            void modulePawnStructure(Nimorak::Game& game);
 
             // Evaluate the current position
             int evaluate(Nimorak::Game& game);

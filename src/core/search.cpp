@@ -123,7 +123,7 @@ namespace Search {
             betaCutoffHistory[turn][from][to] = HISTORY_MAX;
     }
 
-    void Worker::updateBetaCutoffHistory(int turn)
+    void Worker::updateBetaCutoffHistory()
     {
         for (int side = WHITE; side <= BLACK; side++)
         {
@@ -384,7 +384,6 @@ namespace Search {
                 flag = TT_BETA;
 
                 if (!Helpers::is_capture(move) && game.config.search.doBetaCutoffHistory) addBetaCutoff(move, depth, game.turn);
-
                 break;
             }
         }
@@ -431,7 +430,7 @@ namespace Search {
             
             if (searchCancelled) break;
 
-            if (game.config.search.doBetaCutoffHistory) updateBetaCutoffHistory(game.turn);
+            if (game.config.search.doBetaCutoffHistory) updateBetaCutoffHistory();
 
             Move bestThisDepth = 0;
             int evalThisDepth = -INF;

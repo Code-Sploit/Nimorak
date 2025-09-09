@@ -37,6 +37,9 @@ namespace Config {
     void set_eval_mobility(Nimorak::Game& game, const char* value) {
         game.config.eval.doMobility = std::atoi(value) != 0;
     }
+    void set_eval_bishop_pair(Nimorak::Game& game, const char* value) {
+        game.config.eval.doBishopPair = std::atoi(value) != 0;
+    }
 
     // --- Setters for search ---
     void set_search_quiescense(Nimorak::Game& game, const char* value) {
@@ -71,11 +74,12 @@ namespace Config {
         { "eval_do_material",       set_eval_material },
         { "eval_do_piece_squares",  set_eval_piece_squares },
         { "eval_do_mobility",       set_eval_mobility },
+        { "eval_do_bishop_pair",    set_eval_bishop_pair },
 
         // search
         { "search_do_quiescense",           set_search_quiescense },
         { "search_do_transpositions",       set_search_transpositions },
-        { "search_do_beta_cutoff_history",  set_search_beta_cutoff_history},
+        { "search_do_beta_cutoff_history",  set_search_beta_cutoff_history },
         { "search_do_info",                 set_search_info },
         { "search_initial_depth",           set_search_initial_depth },
         { "search_maximum_depth",           set_search_maximum_depth },

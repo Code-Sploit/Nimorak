@@ -1,54 +1,72 @@
 # Chess Engine Evaluation Roadmap
 
-## Big Point 1: Basic Evaluation (ELO 800–1100)
+## 1. Material Evaluation
+- [x] Sum piece values (TODO: phase-specific weighting).
+- [ ] Include bishop pair bonus and knight vs. bishop dynamics.
+- [ ] Consider rook on open file bonus.
 
-Focus: Core material and basic positional awareness
+## 2. Piece-Square Tables (PST)
+- [x] Use PSTs for opening, middlegame, endgame.
+- [ ] Refine king, pawn, and piece tables.
+- [x] Mirror squares for black pieces.
 
-* [x] **ELO 800** – Material balance (simple piece values)
-* [x] **ELO 900** – Basic mobility: more moves = slightly better position
-* [x] **ELO 950** – Simple king safety evaluation (penalize exposed king)
-* [x] **ELO 1000** – Pawn structure basics: doubled and isolated pawns penalized
-* [x] **ELO 1100** – Piece-square tables for basic positioning
+## 3. Mobility
+- [x] Count pseudo-legal moves per piece.
+- [ ] Weight mobility by safety (avoid hanging pieces).
+- [x] Adjust king mobility for endgame activity.
 
-ELO range for Big Point 1: 800–1100
+## 4. Pawn Structure
+- [ ] Evaluate isolated pawns.
+- [ ] Penalize doubled pawns.
+- [ ] Reward passed pawns and connected pawns.
+- [ ] Weight by game phase.
 
-## Big Point 2: Intermediate Evaluation (ELO 1200–1600)
+## 5. King Safety
+- [ ] Evaluate pawn shield in front of king.
+- [ ] Consider open files near king.
+- [ ] Check attacking threats from opponent pieces.
+- [ ] Adjust king centralization in endgame.
 
-Focus: Positional understanding and simple strategic concepts
+## 6. Tactical Threats
+- [ ] Identify hanging or undefended pieces.
+- [ ] Detect potential forks, skewers, pins.
+- [ ] Include threats against king (checks, attacks).
 
-* [ ] **ELO 1200** – Pawn structure features: passed pawns, backward pawns
-* [ ] **ELO 1250** – King safety improvements (pawn shield, open files)
-* [ ] **ELO 1300** – Control of key squares and central influence
-* [ ] **ELO 1350** – Piece coordination: minor pieces working together
-* [ ] **ELO 1400** – Rook activity and open/semi-open files
-* [ ] **ELO 1450** – Minor piece outposts (advanced knight/bishop positioning)
-* [ ] **ELO 1500** – Evaluating threats: attacking high-value targets
-* [ ] **ELO 1550** – Mobility and flexibility evaluation (more options = better)
-* [ ] **ELO 1600** – Endgame awareness: king activity, pawn promotion potential
+## 7. Game Phase Awareness
+- [x] Compute continuous game phase (opening → endgame).
+- [ ] Interpolate piece values, PSTs, and evaluation weights dynamically.
 
-ELO range for Big Point 2: 1200–1600
+## 8. Rook Activity
+- [ ] Reward rooks on open or semi-open files.
+- [ ] Penalize passive rooks blocked by own pawns.
 
-## Big Point 3: Advanced Evaluation (ELO 1700–2100)
+## 9. Knight Outposts
+- [ ] Reward knights on protected central squares.
+- [ ] Penalize knights on rim or poorly supported squares.
 
-Focus: Long-term positional evaluation, strategic imbalances
+## 10. Bishop Pair
+- [ ] Give bonus for having both bishops.
+- [ ] Scale bonus by game phase (middlegame emphasis).
 
-* [ ] **ELO 1700** – Strategic imbalances: pawn structure, bishop pairs, color weaknesses
-* [ ] **ELO 1750** – Rook and queen coordination on key files/ranks
-* [ ] **ELO 1800** – King safety in more complex positions (pawn storms, opposite-side castling)
-* [ ] **ELO 1850** – Pawn majority evaluation and potential breakthroughs
-* [ ] **ELO 1900** – Positional threats: prophylaxis and long-term planning
-* [ ] **ELO 2000** – Piece activity evaluation in complex middlegames
-* [ ] **ELO 2100** – Advanced positional evaluation: exchange sacrifices, weak squares, outposts
+## 11. Center Control
+- [x] Reward control of central squares (e4, d4, e5, d5).
+- [ ] Include influence over surrounding squares.
 
-ELO range for Big Point 3: 1700–2100
+## 12. Passed Pawn Potential
+- [ ] Evaluate distance of passed pawns from promotion.
+- [ ] Reward connected and supported advancement.
+- [ ] Penalize blocked passed pawns.
 
-## Big Point 4: Neural Network Evaluation (NNUE) (ELO 2200–2600)
+## 13. King Activity in Endgame
+- [ ] Reward king centralization.
+- [ ] Consider active king participation in pawn races.
 
-Focus: Using neural networks to combine positional features automatically
+## 14. Positional Weaknesses
+- [ ] Detect backward pawns.
+- [ ] Penalize weak squares and holes.
+- [ ] Reward strong outposts and pawn chains.
 
-* [ ] **ELO 2200** – NNUE integration for static evaluation
-* [ ] **ELO 2300** – NNUE learns complex positional patterns beyond handcrafted rules
-* [ ] **ELO 2400** – NNUE handles king safety, piece activity, pawn structures dynamically
-* [ ] **ELO 2600** – NNUE optimized: integrates strategic planning, imbalances, and positional understanding automatically
-
-ELO range for Big Point 4: 2200–2600
+## 15. Evaluation Integration
+- [x] Modular design: enable/disable each module.
+- [ ] Weight each module dynamically based on game phase.
+- [ ] Allow tuning via self-play or test suites.

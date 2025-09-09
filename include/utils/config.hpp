@@ -24,6 +24,7 @@ namespace Config {
         bool doMaterial = true;
         bool doPieceSquares = true;
         bool doMobility = true;
+        bool doBishopPair = true;
     };
 
     // ----------------------------
@@ -34,6 +35,7 @@ namespace Config {
         bool doTranspositions = true;
         bool doBetaCutoffHistory = true;
         bool doInfo = true;
+        bool doKillerMoves = true;
 
         int initialDepth = 6;
         int maximumDepth = 32;
