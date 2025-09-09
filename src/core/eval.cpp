@@ -65,24 +65,6 @@ namespace Evaluation {
         }
     }
 
-    void Worker::moduleMaterial(Nimorak::Game& game)
-    {
-        int moduleEval = 0;
-
-        for (int color = WHITE; color <= BLACK; color++)
-        {
-            int perspective = (color == WHITE) ? 1 : -1;
-
-            moduleEval += perspective *  pieceValues[PAWN]   * __builtin_popcountll(game.board[color][PAWN]);
-            moduleEval += perspective *  pieceValues[KNIGHT] * __builtin_popcountll(game.board[color][KNIGHT]);
-            moduleEval += perspective *  pieceValues[BISHOP] * __builtin_popcountll(game.board[color][BISHOP]);
-            moduleEval += perspective *  pieceValues[ROOK]   * __builtin_popcountll(game.board[color][ROOK]);
-            moduleEval += perspective *  pieceValues[QUEEN]  * __builtin_popcountll(game.board[color][QUEEN]);
-        }
-
-        this->eval += moduleEval;
-    }
-
     int Worker::getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square)
     {
         int score = 0;
@@ -140,6 +122,24 @@ namespace Evaluation {
     {
         return getForwardPawnMask(square - 1, color) | getForwardPawnMask(square, color) | getForwardPawnMask(square + 1, color);
     }
+
+    void Worker::moduleMaterial(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        for (int color = WHITE; color <= BLACK; color++)
+        {
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            moduleEval += perspective *  pieceValues[PAWN]   * __builtin_popcountll(game.board[color][PAWN]);
+            moduleEval += perspective *  pieceValues[KNIGHT] * __builtin_popcountll(game.board[color][KNIGHT]);
+            moduleEval += perspective *  pieceValues[BISHOP] * __builtin_popcountll(game.board[color][BISHOP]);
+            moduleEval += perspective *  pieceValues[ROOK]   * __builtin_popcountll(game.board[color][ROOK]);
+            moduleEval += perspective *  pieceValues[QUEEN]  * __builtin_popcountll(game.board[color][QUEEN]);
+        }
+
+        this->eval += moduleEval;
+    }
     
     void Worker::modulePST(Nimorak::Game& game)
     {
@@ -161,7 +161,7 @@ namespace Evaluation {
             int perspective = (color == WHITE) ? 1 : -1;
 
             // Use mirrored square for black pieces
-            int pstSquare = (color == WHITE) ? square : mirror[square];
+            int pstSquare = (color == BLACK) ? square : mirror[square];
 
             moduleEval += getPSTFor(type, pstSquare, phase) * perspective;
         }

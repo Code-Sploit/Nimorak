@@ -25,3 +25,10 @@ Finished match
 Start: 22:43:59.02
 End:   23:05:15.88
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of nimorak_pst_fix vs nimorak_pv_debug: 308 - 65 - 627  [0.622] 1000
+Elo difference: 86.2 +/- 12.8, LOS: 100.0 %, DrawRatio: 62.7 %
+Finished match
+Start:  9:10:45.66
+End:    9:32:04.92
+PS C:\Users\thart\chess_programming\Nimorak>
