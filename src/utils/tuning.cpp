@@ -1,5 +1,5 @@
 #include <utils/tuning.hpp>
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 #include <future>
 #include <thread>
 #include <vector>
@@ -10,7 +10,7 @@ namespace Tuning {
 // -------------------------------
 // Apply pawn weights to engine
 // -------------------------------
-void Worker::setPawnWeights(Nimorak::Game& game, const PawnWeights& weights)
+void Worker::setPawnWeights(Rune::Game& game, const PawnWeights& weights)
 {
     //game.evalWorker.PAWN_DOUBLED_PENALTY  = weights.doubled;
     //game.evalWorker.PAWN_BLOCKED_PENALTY  = weights.blocked;
@@ -26,7 +26,7 @@ int Worker::playSelfGameThreadSafe(const PawnWeights& weights,
                                    const std::string& fen,
                                    int maxPlies)
 {
-    Nimorak::Game whiteGame, blackGame, thirdParty;
+    Rune::Game whiteGame, blackGame, thirdParty;
 
     Board::loadFen(whiteGame, fen);
     Board::loadFen(blackGame, fen);
@@ -136,8 +136,8 @@ double Worker::evaluateWeightsParallel(const PawnWeights& weights,
 // -------------------------------
 // Main pawn weight tuner
 // -------------------------------
-void Worker::tunePawnWeights(Nimorak::Game& game,
-                             Nimorak::Game& baseline,
+void Worker::tunePawnWeights(Rune::Game& game,
+                             Rune::Game& baseline,
                              int epochs,
                              int gamesPerEval)
 {

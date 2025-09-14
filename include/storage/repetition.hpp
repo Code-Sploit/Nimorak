@@ -2,7 +2,7 @@
 
 #include <tables/constants.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 

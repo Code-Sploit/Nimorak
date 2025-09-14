@@ -3,7 +3,7 @@
 #include <cstddef>  // for size_t 
 #include <string>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -52,7 +52,7 @@ namespace Config {
         SearchOptions search;
     };
 
-    int setOption(Nimorak::Game& game, const std::string& name, const std::string& value);
-    void handleInput(Nimorak::Game& game, const std::string& input);
+    int setOption(Rune::Game& game, const std::string& name, const std::string& value);
+    void handleInput(Rune::Game& game, const std::string& input);
 
 } // namespace Config

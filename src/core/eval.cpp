@@ -1,6 +1,6 @@
 #include <core/eval.hpp>
 #include <core/board.hpp>
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 
 #include <tables/magic.hpp>
 
@@ -11,12 +11,12 @@
 #include <cstdio>
 #include <iostream>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
 namespace Evaluation {
-    Worker::GamePhase Worker::getGamePhase(Nimorak::Game& game)
+    Worker::GamePhase Worker::getGamePhase(Rune::Game& game)
     {
         int scores[3] = {0, 0, 0}; // [OPENING, MIDDLEGAME, ENDGAME]
 
@@ -65,7 +65,7 @@ namespace Evaluation {
         }
     }
 
-    int Worker::getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square)
+    int Worker::getMobilityScoreFor(Rune::Game& game, PieceType type, int square)
     {
         int score = 0;
 
@@ -98,7 +98,7 @@ namespace Evaluation {
         return passedPawnMask;
     }
 
-    void Worker::modulePawnStructure(Nimorak::Game& game)
+    void Worker::modulePawnStructure(Rune::Game& game)
     {
         int moduleEval = 0;
 
@@ -137,7 +137,7 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
 
-    void Worker::moduleMaterial(Nimorak::Game& game)
+    void Worker::moduleMaterial(Rune::Game& game)
     {
         int moduleEval = 0;
 
@@ -155,7 +155,7 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
     
-    void Worker::modulePST(Nimorak::Game& game)
+    void Worker::modulePST(Rune::Game& game)
     {
         int moduleEval = 0;
 
@@ -183,7 +183,7 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
 
-    void Worker::moduleMobility(Nimorak::Game& game)
+    void Worker::moduleMobility(Rune::Game& game)
     {
         int moduleEval = 0;
 
@@ -205,7 +205,7 @@ namespace Evaluation {
         this->eval += moduleEval;
     }
 
-    void Worker::moduleBishopPair(Nimorak::Game& game)
+    void Worker::moduleBishopPair(Rune::Game& game)
     {
         int moduleEval = 0;
 
@@ -231,7 +231,7 @@ namespace Evaluation {
     }
 
     // --- Eval entry point ---
-    int Worker::evaluate(Nimorak::Game& game)
+    int Worker::evaluate(Rune::Game& game)
     {
         this->eval = 0;
 

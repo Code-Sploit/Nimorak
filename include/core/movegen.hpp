@@ -4,7 +4,7 @@
 #include <tables/constants.hpp>
 #include <string>
 
-namespace Nimorak {
+namespace Rune {
     class Game; // forward declaration
 }
 
@@ -51,18 +51,18 @@ namespace Movegen {
         bool canCastleThroughBitboard(int square, Bitboard occupancy, Bitboard enemyAttacks);
 
         // Piece move generators
-        void getPawnMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures);
-        void getKnightMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures);
-        void getKingMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures);
-        void getSlidingMoves(Nimorak::Game& game, MoveList& moves, PieceType type, bool onlyCaptures);
+        void getPawnMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures);
+        void getKnightMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures);
+        void getKingMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures);
+        void getSlidingMoves(Rune::Game& game, MoveList& moves, PieceType type, bool onlyCaptures);
 
         // Castling
-        bool canCastleThrough(Nimorak::Game& game, int square, Bitboard occupancy, Bitboard enemyAttacks);
-        void getCastleMoves(Nimorak::Game& game, MoveList& moves);
+        bool canCastleThrough(Rune::Game& game, int square, Bitboard occupancy, Bitboard enemyAttacks);
+        void getCastleMoves(Rune::Game& game, MoveList& moves);
 
         // Full move generation
-        void getPseudoMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures);
-        void getLegalMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures);
+        void getPseudoMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures);
+        void getLegalMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures);
     };
 
 } // namespace Movegen

@@ -4,7 +4,7 @@
 #include <tables/table.hpp>   // PrecomputedTables::AttackTable
 #include <tables/helpers.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game; // forward declaration
 }
 
@@ -15,20 +15,20 @@ namespace Attack {
         Bitboard attackMapFull[2];     
         Bitboard attackMapIncludes;
 
-        void generatePawns(Nimorak::Game& game, PieceColor color);
-        void generateKnights(Nimorak::Game& game, PieceColor color);
-        void generateKing(Nimorak::Game& game, PieceColor color);
-        void generateSliding(Nimorak::Game& game, PieceColor color, PieceType type);
+        void generatePawns(Rune::Game& game, PieceColor color);
+        void generateKnights(Rune::Game& game, PieceColor color);
+        void generateKing(Rune::Game& game, PieceColor color);
+        void generateSliding(Rune::Game& game, PieceColor color, PieceType type);
 
-        void generateTable(Nimorak::Game& game, int side);
-        void printTable(Nimorak::Game& game, int side);
+        void generateTable(Rune::Game& game, int side);
+        void printTable(Rune::Game& game, int side);
 
-        void generateAll(Nimorak::Game& game);
-        void update(Nimorak::Game& game, Move move);
+        void generateAll(Rune::Game& game);
+        void update(Rune::Game& game, Move move);
 
         bool isSquareAttackedBy(int square, int color);
-
-        Bitboard getNewAttacksForMove(Nimorak::Game& game, Move move);
+        
+        Bitboard getNewAttacksForMove(Rune::Game& game, Move move);
 
         PrecomputedTables::AttackTable preComputed;
     };

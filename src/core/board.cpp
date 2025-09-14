@@ -11,12 +11,12 @@
 #include <cstring>
 #include <cctype>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
 namespace Board {
-    std::string generateFen(Nimorak::Game& game)
+    std::string generateFen(Rune::Game& game)
     {
         std::string fen_string;
 
@@ -74,7 +74,7 @@ namespace Board {
         return fen_string;
     }
 
-    void loadFen(Nimorak::Game& game, std::string fenString)
+    void loadFen(Rune::Game& game, std::string fenString)
     {
         // Clear board
         std::fill(&game.board[0][0], &game.board[0][0] + 2*7*64, 0);
@@ -166,7 +166,7 @@ namespace Board {
         game.isFirstLoad = 0;
     }
 
-    std::string getCheckers(Nimorak::Game& game)
+    std::string getCheckers(Rune::Game& game)
     {
         std::string buffer;  // single string to accumulate positions
 
@@ -246,7 +246,7 @@ namespace Board {
         return buffer;
     }
 
-    void print(Nimorak::Game& game)
+    void print(Rune::Game& game)
     {
         const char piece_chars[7] = {'.', 'P', 'N', 'B', 'R', 'Q', 'K'};
 
@@ -290,7 +290,7 @@ namespace Board {
         std::cout << "Checkers: " << getCheckers(game) << "\n\n";
     }
 
-    void makeMove(Nimorak::Game& game, Move move, int callType)
+    void makeMove(Rune::Game& game, Move move, int callType)
     {
         const int from = Helpers::get_from(move);
         const int to   = Helpers::get_to(move);
@@ -303,7 +303,7 @@ namespace Board {
         const Piece captured    = game.boardGhost[isEp ? epCaptureSq : to];
 
         // Save state
-        Nimorak::State *s = &game.history[game.historyCount++];
+        Rune::State *s = &game.history[game.historyCount++];
 
         s->castlingRights   = game.castlingRights;
         s->enpassantSquare  = game.enpassantSquare;
@@ -370,7 +370,7 @@ namespace Board {
         else game.repetitionTable.fiftyMoveCounter++;
     }
 
-    void unmakeMove(Nimorak::Game& game, int callType)
+    void unmakeMove(Rune::Game& game, int callType)
     {
         if (game.historyCount <= 0)
         {
@@ -379,7 +379,7 @@ namespace Board {
             exit(EXIT_FAILURE);
         }
 
-        Nimorak::State *s = &game.history[--game.historyCount];
+        Rune::State *s = &game.history[--game.historyCount];
 
         Move move = s->move;
 
@@ -444,10 +444,10 @@ namespace Board {
         game.repetitionTable.fiftyMoveCounter = s->fiftyMoveCounter;
     }
 
-    void makeNullMove(Nimorak::Game& game)
+    void makeNullMove(Rune::Game& game)
     {
         // Save state
-        Nimorak::State *s = &game.history[game.historyCount++];
+        Rune::State *s = &game.history[game.historyCount++];
 
         s->castlingRights  = game.castlingRights;
         s->enpassantSquare = game.enpassantSquare;
@@ -464,14 +464,14 @@ namespace Board {
         Zobrist::updateMove(game, 0, *s);
     }
 
-    void unmakeNullMove(Nimorak::Game& game)
+    void unmakeNullMove(Rune::Game& game)
     {
         if (game.historyCount <= 0) {
             fprintf(stderr, "Error: unmake_move with empty history!\n");
             exit(EXIT_FAILURE);
         }
 
-        Nimorak::State *s = &game.history[--game.historyCount];
+        Rune::State *s = &game.history[--game.historyCount];
 
         // Undo turn flip first (since make_move flips at the end)
         game.turn = s->turn;
@@ -534,7 +534,7 @@ namespace Board {
         return moveStr;
     }
 
-    Move parseMove(Nimorak::Game& game, const std::string& moveStr)
+    Move parseMove(Rune::Game& game, const std::string& moveStr)
     {
         if (moveStr.size() < 4)
             return Move{}; // null move
@@ -593,7 +593,7 @@ namespace Board {
         return Helpers::move(fromSq, toSq, promoFlag, capture, isPromo, enpassant, 0, doublePush, castle);
     }
 
-    inline void setSquare(Nimorak::Game& game, int square, Piece piece)
+    inline void setSquare(Rune::Game& game, int square, Piece piece)
     {
         const uint64_t bit = 1ULL << square;
 
@@ -621,7 +621,7 @@ namespace Board {
         game.occupancy[BOTH] = game.occupancy[WHITE] | game.occupancy[BLACK];
     }
 
-    bool hasCastlingRights(Nimorak::Game& game, int side)
+    bool hasCastlingRights(Rune::Game& game, int side)
     {
         static const int castlingMasks[2] = {
             WHITE_KINGSIDE | WHITE_QUEENSIDE,
@@ -631,7 +631,7 @@ namespace Board {
         return (game.castlingRights & castlingMasks[side]) != 0;
     }
 
-    bool hasCastlingRightsSide(Nimorak::Game& game, int side)
+    bool hasCastlingRightsSide(Rune::Game& game, int side)
     {
         return (game.castlingRights & side) != 0;
     }
@@ -659,7 +659,7 @@ namespace Board {
         }
     }
 
-    int findKing(Nimorak::Game& game, int color)
+    int findKing(Rune::Game& game, int color)
     {
         Bitboard king = game.board[color][KING];
 
@@ -673,14 +673,14 @@ namespace Board {
         return kingSquare;
     }
 
-    bool isKingInCheck(Nimorak::Game& game, int color)
+    bool isKingInCheck(Rune::Game& game, int color)
     {
         int kingSquare = findKing(game, color);
 
         return (kingSquare < 0) ? false : (game.attackWorker.isSquareAttackedBy(kingSquare, !color));
     }
 
-    bool moveGivesCheck(Nimorak::Game& game, Move move)
+    bool moveGivesCheck(Rune::Game& game, Move move)
     {
         makeMove(game, move, MAKE_MOVE_LIGHT);
 
@@ -691,56 +691,56 @@ namespace Board {
         return check;
     }
 
-    Bitboard getSlidingPiecesBitboard(Nimorak::Game& game, int color)
+    Bitboard getSlidingPiecesBitboard(Rune::Game& game, int color)
     {
         return game.board[color][BISHOP] | game.board[color][ROOK] | game.board[color][QUEEN];
     }
 
-    bool hasNonPawnMaterial(Nimorak::Game& game, int color)
+    bool hasNonPawnMaterial(Rune::Game& game, int color)
     {
         return (game.board[color][KNIGHT] != 0 || game.board[color][BISHOP] != 0 ||
                 game.board[color][ROOK] != 0 || game.board[color][QUEEN] != 0);
     }
 
-    void skipTurn(Nimorak::Game& game)
+    void skipTurn(Rune::Game& game)
     {
         game.turn ^= 1;
 
         Zobrist::updateBoard(game);
     }
 
-    void undoSkipTurn(Nimorak::Game& game)
+    void undoSkipTurn(Rune::Game& game)
     {
         game.turn ^= 1;
 
         Zobrist::updateBoard(game);
     }
 
-    bool hasFullMaterial(Nimorak::Game& game, int color)
+    bool hasFullMaterial(Rune::Game& game, int color)
     {
         Bitboard occupancy = game.occupancy[color];
 
         return (__builtin_popcountll(occupancy) == 20);
     }
 
-    bool pawnChainsLocked(Nimorak::Game& game)
+    bool pawnChainsLocked(Rune::Game& game)
     {
         return (countPieces(game, PAWN) > 11);
     }
 
-    int countPieces(Nimorak::Game& game, PieceType type)
+    int countPieces(Rune::Game& game, PieceType type)
     {
         Bitboard occupancy = game.board[WHITE][type] | game.board[BLACK][type];
 
         return (__builtin_popcountll(occupancy));
     }
 
-    int hasPiece(Nimorak::Game& game, PieceType type, PieceColor color)
+    int hasPiece(Rune::Game& game, PieceType type, PieceColor color)
     {
         return (game.board[color][type] != 0);
     }
 
-    int totalMaterial(Nimorak::Game &game)
+    int totalMaterial(Rune::Game &game)
     {
         int sum = 0;
         for (int color = 0; color < 2; ++color)
@@ -754,7 +754,7 @@ namespace Board {
         return sum;
     }
 
-    bool isGameOver(Nimorak::Game& game)
+    bool isGameOver(Rune::Game& game)
     {
         Movegen::MoveList movelist;
 

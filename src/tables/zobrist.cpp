@@ -8,7 +8,7 @@
 #include <iostream>
 #include <bitset>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -28,7 +28,7 @@ namespace Zobrist {
     // ----------------------------
     // Compute full hash
     // ----------------------------
-    ZobristHash compute(Nimorak::Game& game) {
+    ZobristHash compute(Rune::Game& game) {
         ZobristHash hash = 0ULL;
 
         Bitboard occupancy = game.occupancy[BOTH];
@@ -69,7 +69,7 @@ namespace Zobrist {
     // ----------------------------
     // Update hash after a move
     // ----------------------------
-    void updateMove(Nimorak::Game& game, Move move, Nimorak::State& oldState) {
+    void updateMove(Rune::Game& game, Move move, Rune::State& oldState) {
         int from  = Helpers::get_from(move);
         int to    = Helpers::get_to(move);
         int color = game.turn; // side before making move
@@ -144,7 +144,7 @@ namespace Zobrist {
     // ----------------------------
     // Full recompute (for safety)
     // ----------------------------
-    void updateBoard(Nimorak::Game& game) {
+    void updateBoard(Rune::Game& game) {
         game.zobristKey = compute(game);
     }
 

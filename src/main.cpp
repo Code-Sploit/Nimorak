@@ -5,7 +5,7 @@ int main()
 {
     srand(1234);
 
-    Nimorak::Game game;
+    Rune::Game game;
 
     UCI::uciLoop(game);
 

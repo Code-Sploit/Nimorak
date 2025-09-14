@@ -1,7 +1,7 @@
 #include <core/movegen.hpp>
 #include <core/board.hpp>
 #include <core/perft.hpp>
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 
 #include <cstdio>
 #include <cstdlib>
@@ -11,7 +11,7 @@
 namespace Perft {
 
     // Recursive perft: counts all leaf nodes
-    long long perft(Nimorak::Game& game, int depth)
+    long long perft(Rune::Game& game, int depth)
     {
         if (depth == 0)
             return 1;
@@ -38,7 +38,7 @@ namespace Perft {
     }
 
     // Divide function: prints per-move node counts at root
-    void root(Nimorak::Game& game, int depth)
+    void root(Rune::Game& game, int depth)
     {
         if (depth <= 0)
         {
@@ -80,7 +80,7 @@ namespace Perft {
     }
 
     // Automated perft tests
-    void runTests(Nimorak::Game& game)
+    void runTests(Rune::Game& game)
     {
         // You can expand this number if you add more tests
         constexpr int PERFT_TEST_COUNT = 8;

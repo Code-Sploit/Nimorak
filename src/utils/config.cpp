@@ -1,4 +1,4 @@
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 #include <utils/config.hpp>
 #include <core/eval.hpp>
 
@@ -7,12 +7,12 @@
 #include <cstdlib>
 #include <sstream>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
 namespace Config {
-    using OptionSetter = void (*)(Nimorak::Game& game, const char* value);
+    using OptionSetter = void (*)(Rune::Game& game, const char* value);
 
     struct OptionHandler {
         const char* name;
@@ -20,50 +20,50 @@ namespace Config {
     };
 
     // --- Setters for movegen ---
-    void set_movegen_legal(Nimorak::Game& game, const char* value) {
+    void set_movegen_legal(Rune::Game& game, const char* value) {
         game.config.moveGen.doLegalMoveFiltering = std::atoi(value) != 0;
     }
-    void set_movegen_captures(Nimorak::Game& game, const char* value) {
+    void set_movegen_captures(Rune::Game& game, const char* value) {
         game.config.moveGen.doOnlyCaptures = std::atoi(value) != 0;
     }
 
     // --- Setters for eval ---
-    void set_eval_material(Nimorak::Game& game, const char* value) {
+    void set_eval_material(Rune::Game& game, const char* value) {
         game.config.eval.doMaterial = std::atoi(value) != 0;
     }
-    void set_eval_piece_squares(Nimorak::Game& game, const char* value) {
+    void set_eval_piece_squares(Rune::Game& game, const char* value) {
         game.config.eval.doPieceSquares = std::atoi(value) != 0;
     }
-    void set_eval_mobility(Nimorak::Game& game, const char* value) {
+    void set_eval_mobility(Rune::Game& game, const char* value) {
         game.config.eval.doMobility = std::atoi(value) != 0;
     }
-    void set_eval_bishop_pair(Nimorak::Game& game, const char* value) {
+    void set_eval_bishop_pair(Rune::Game& game, const char* value) {
         game.config.eval.doBishopPair = std::atoi(value) != 0;
     }
-    void set_eval_pawn_structure(Nimorak::Game& game, const char* value) {
+    void set_eval_pawn_structure(Rune::Game& game, const char* value) {
         game.config.eval.doPawnStructure = std::atoi(value) != 0;
     }
 
     // --- Setters for search ---
-    void set_search_quiescense(Nimorak::Game& game, const char* value) {
+    void set_search_quiescense(Rune::Game& game, const char* value) {
         game.config.search.doQuiescense = std::atoi(value) != 0;
     }
-    void set_search_transpositions(Nimorak::Game& game, const char* value) {
+    void set_search_transpositions(Rune::Game& game, const char* value) {
         game.config.search.doTranspositions = std::atoi(value) != 0;
     }
-    void set_search_beta_cutoff_history(Nimorak::Game& game, const char* value) {
+    void set_search_beta_cutoff_history(Rune::Game& game, const char* value) {
         game.config.search.doBetaCutoffHistory = std::atoi(value) != 0;
     }
-    void set_search_info(Nimorak::Game& game, const char* value) {
+    void set_search_info(Rune::Game& game, const char* value) {
         game.config.search.doInfo = std::atoi(value) != 0;
     }
-    void set_search_initial_depth(Nimorak::Game& game, const char* value) {
+    void set_search_initial_depth(Rune::Game& game, const char* value) {
         game.config.search.initialDepth = std::atoi(value);
     }
-    void set_search_maximum_depth(Nimorak::Game& game, const char* value) {
+    void set_search_maximum_depth(Rune::Game& game, const char* value) {
         game.config.search.maximumDepth = std::atoi(value);
     }
-    void set_search_quiescense_depth(Nimorak::Game& game, const char* value) {
+    void set_search_quiescense_depth(Rune::Game& game, const char* value) {
         game.config.search.maximumQuiescenseDepth = std::atoi(value);
     }
 
@@ -93,7 +93,7 @@ namespace Config {
     };
 
     // --- Main dispatcher ---
-    int setOption(Nimorak::Game& game, const std::string& name, const std::string& value) {
+    int setOption(Rune::Game& game, const std::string& name, const std::string& value) {
         for (int i = 0; option_table[i].name; i++) {
             if (name == option_table[i].name) {  // no more strcmp
                 option_table[i].setter(game, value.c_str());  // still need c_str for your setter funcs
@@ -105,7 +105,7 @@ namespace Config {
     }
 
     // --- Example input parser ---
-    void handleInput(Nimorak::Game& game, const std::string& input) {
+    void handleInput(Rune::Game& game, const std::string& input) {
         std::istringstream iss(input);
         std::string command, name, value;
 

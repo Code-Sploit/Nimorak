@@ -2,7 +2,7 @@
 
 #include <tables/constants.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game; // forward declaration
 }
 
@@ -245,9 +245,9 @@ namespace Evaluation {
             static constexpr int EVAL_HAS_BISHOP_PAIR = 40;
 
             int getPSTFor(PieceType type, int square, GamePhase phase);
-            int getMobilityScoreFor(Nimorak::Game& game, PieceType type, int square);
+            int getMobilityScoreFor(Rune::Game& game, PieceType type, int square);
 
-            GamePhase getGamePhase(Nimorak::Game& game);
+            GamePhase getGamePhase(Rune::Game& game);
 
             Bitboard getPassedPawnMask(int square, int color);
 
@@ -255,14 +255,14 @@ namespace Evaluation {
             int eval = 0; // Last evaluation score
 
             // Evaluation modules
-            void moduleMaterial(Nimorak::Game& game);
-            void modulePST(Nimorak::Game& game);
-            void moduleMobility(Nimorak::Game& game);
-            void moduleBishopPair(Nimorak::Game& game);
-            void modulePawnStructure(Nimorak::Game& game);
+            void moduleMaterial(Rune::Game& game);
+            void modulePST(Rune::Game& game);
+            void moduleMobility(Rune::Game& game);
+            void moduleBishopPair(Rune::Game& game);
+            void modulePawnStructure(Rune::Game& game);
 
             // Evaluate the current position
-            int evaluate(Nimorak::Game& game);
+            int evaluate(Rune::Game& game);
     };
 
 } // namespace Evaluation

@@ -14,7 +14,7 @@
 #include <core/board.hpp>
 #include <core/perft.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -62,7 +62,7 @@ namespace UCI {
         std::cout << "pv " << pvCurrent << std::endl;
     }
 
-    void uciLoop(Nimorak::Game& game)
+    void uciLoop(Rune::Game& game)
     {
         char input[4096];
 
@@ -73,7 +73,7 @@ namespace UCI {
 
             if (strcmp(input, "uci") == 0)
             {
-                printf("id name Nimorak\n");
+                printf("id name Rune\n");
                 printf("id author Samuel 't Hart\n");
                 printf("uciok\n");
                 fflush(stdout);
@@ -272,7 +272,7 @@ namespace UCI {
             {
                 std::cout << "Starting pawn structure tuning..." << std::endl;
 
-                Nimorak::Game baseline;
+                Rune::Game baseline;
 
                 game.config.search.doInfo = false;
                 baseline.config.search.doInfo = false;

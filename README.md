@@ -1,2 +1,2 @@
-# Nimorak
+# Rune
 Standalone UCI Chess Engine

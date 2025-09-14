@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -19,7 +19,7 @@ namespace Movegen {
         moves.add(Helpers::move(from, to, KNIGHT, isCapture, 1, 0, 0, 0, 0));
     }
 
-    void Worker::getPawnMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures)
+    void Worker::getPawnMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures)
     {
         int color = game.turn;
 
@@ -101,7 +101,7 @@ namespace Movegen {
         }
     }
 
-    void Worker::getKnightMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures)
+    void Worker::getKnightMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures)
     {
         int color = game.turn;
 
@@ -135,7 +135,7 @@ namespace Movegen {
         }
     }
 
-    void Worker::getKingMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures)
+    void Worker::getKingMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures)
     {
         int color = game.turn;
 
@@ -179,7 +179,7 @@ namespace Movegen {
         }
     }
 
-    void Worker::getSlidingMoves(Nimorak::Game& game, MoveList& moves, PieceType type, bool onlyCaptures)
+    void Worker::getSlidingMoves(Rune::Game& game, MoveList& moves, PieceType type, bool onlyCaptures)
     {
         int color = game.turn;
         
@@ -245,7 +245,7 @@ namespace Movegen {
         return !((occupancy >> square) & 1ULL) && !((enemyAttacks >> square) & 1ULL);
     }
 
-    void Worker::getCastleMoves(Nimorak::Game& game, MoveList& moves)
+    void Worker::getCastleMoves(Rune::Game& game, MoveList& moves)
     {
         int color = game.turn;
         
@@ -291,7 +291,7 @@ namespace Movegen {
         }
     }
 
-    void Worker::getPseudoMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures)
+    void Worker::getPseudoMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures)
     {
         moves.clear();
 
@@ -306,7 +306,7 @@ namespace Movegen {
         if (!onlyCaptures) getCastleMoves(game, moves);
     }
 
-    void Worker::getLegalMoves(Nimorak::Game& game, MoveList& moves, bool onlyCaptures)
+    void Worker::getLegalMoves(Rune::Game& game, MoveList& moves, bool onlyCaptures)
     {
         moves.clear();
         

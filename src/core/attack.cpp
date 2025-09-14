@@ -22,7 +22,7 @@ static inline Bitboard attackGetSlider(PieceType type, int square, Bitboard occu
 }
 
 namespace Attack {
-    void Worker::generatePawns(Nimorak::Game& game, PieceColor color)
+    void Worker::generatePawns(Rune::Game& game, PieceColor color)
     {
         Bitboard pawns   = game.board[color][PAWN];
 
@@ -38,7 +38,7 @@ namespace Attack {
         }
     }
 
-    void Worker::generateKnights(Nimorak::Game& game, PieceColor color)
+    void Worker::generateKnights(Rune::Game& game, PieceColor color)
     {
         Bitboard knights = game.board[color][KNIGHT];
 
@@ -54,7 +54,7 @@ namespace Attack {
         }
     }
 
-    void Worker::generateKing(Nimorak::Game& game, PieceColor color)
+    void Worker::generateKing(Rune::Game& game, PieceColor color)
     {
         Bitboard king = game.board[color][KING];
 
@@ -69,7 +69,7 @@ namespace Attack {
         }
     }
 
-    void Worker::generateSliding(Nimorak::Game& game, PieceColor color, PieceType type)
+    void Worker::generateSliding(Rune::Game& game, PieceColor color, PieceType type)
     {
         Bitboard sliders = game.board[color][type];
         Bitboard occupancy = game.occupancy[BOTH];
@@ -92,7 +92,7 @@ namespace Attack {
         }
     }
 
-    void Worker::generateTable(Nimorak::Game& game, int side)
+    void Worker::generateTable(Rune::Game& game, int side)
     {
         // Clear any previous per-square data for this side
         std::fill(&this->attackMap[side][0], &this->attackMap[side][0] + 64, 0ULL);
@@ -112,7 +112,7 @@ namespace Attack {
         }
     }
 
-    void Worker::printTable(Nimorak::Game& game, int side)
+    void Worker::printTable(Rune::Game& game, int side)
     {
         std::cout << std::endl;
 
@@ -146,7 +146,7 @@ namespace Attack {
         std::cout << std::endl;
     }
 
-    void Worker::generateAll(Nimorak::Game& game)
+    void Worker::generateAll(Rune::Game& game)
     {
         // Full occupancy must be preserved for every call to Magic::get*Attacks
         Bitboard fullOcc = game.occupancy[BOTH];
@@ -201,7 +201,7 @@ namespace Attack {
         }
     }
 
-    void Worker::update(Nimorak::Game& game, Move move)
+    void Worker::update(Rune::Game& game, Move move)
     {
         const int from = Helpers::get_from(move);
         const int to   = Helpers::get_to(move);
@@ -316,7 +316,7 @@ namespace Attack {
         return (this->attackMapFull[color] & (1ULL << square)) != 0;
     }
 
-    Bitboard Worker::getNewAttacksForMove(Nimorak::Game& game, Move move)
+    Bitboard Worker::getNewAttacksForMove(Rune::Game& game, Move move)
     {
         int from = Helpers::get_from(move);
         int to   = Helpers::get_to(move);

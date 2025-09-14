@@ -3,7 +3,7 @@
 #include <storage/repetition.hpp>
 #include <core/movegen.hpp>
 #include <core/board.hpp>
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 #include <core/eval.hpp>
 #include <utils/uci.hpp>
 #include <tables/magic.hpp>
@@ -15,7 +15,7 @@
 
 #define INF 1000000
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -51,7 +51,7 @@ namespace Search {
     // Move ordering
     // -------------------------
 
-    int Worker::getMvvLvaScore(Nimorak::Game& game, Move move)
+    int Worker::getMvvLvaScore(Rune::Game& game, Move move)
     {
         int from = Helpers::get_from(move);
         int to   = Helpers::get_to(move);
@@ -65,7 +65,7 @@ namespace Search {
         return mvvLvaScores[fType - 1][tType - 1];
     }
 
-    bool Worker::predictCheck(Nimorak::Game& game, Move move)
+    bool Worker::predictCheck(Rune::Game& game, Move move)
     {
         int enemyKingSquare = Board::findKing(game, !game.turn);
 
@@ -76,7 +76,7 @@ namespace Search {
         return false;
     }
 
-    bool Worker::predictRecapture(Nimorak::Game& game, Move move)
+    bool Worker::predictRecapture(Rune::Game& game, Move move)
     {
         int to = Helpers::get_to(move);
 
@@ -89,7 +89,7 @@ namespace Search {
         return false;
     }
 
-    bool Worker::isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist)
+    bool Worker::isNullMovePruneSafe(Rune::Game& game, Movegen::MoveList& movelist)
     {
         // Disable NMP when in check
         bool inCheck = Board::isKingInCheck(game, game.turn);
@@ -137,7 +137,7 @@ namespace Search {
         }
     }
 
-    void Worker::orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply)
+    void Worker::orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply)
     {
         // Temporary container for scored moves
         std::vector<MoveScore> scored;
@@ -200,7 +200,7 @@ namespace Search {
         }
     }
 
-    void Worker::requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType)
+    void Worker::requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType)
     {
         game.movegenWorker.getLegalMoves(game, movelist, requestType == QUIESCENSE);
 
@@ -210,7 +210,7 @@ namespace Search {
     // -------------------------
     // Quiescence search
     // -------------------------
-    int Worker::quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
+    int Worker::quiescense(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
     {
         if (depth >= game.config.search.maximumQuiescenseDepth)
             return game.evalWorker.evaluate(game);
@@ -275,7 +275,7 @@ namespace Search {
     // -------------------------
     // Negamax
     // -------------------------
-    int Worker::negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
+    int Worker::negamax(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv)
     {
         if (depth == 0)
         {
@@ -411,7 +411,7 @@ namespace Search {
     // -------------------------
     // Entry point
     // -------------------------
-    Move Worker::searchPosition(Nimorak::Game& game, int initialDepth, int thinkTimeMs)
+    Move Worker::searchPosition(Rune::Game& game, int initialDepth, int thinkTimeMs)
     {
         startTime = Clock::now();
         thinkTime = thinkTimeMs;

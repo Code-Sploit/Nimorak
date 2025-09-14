@@ -1,5 +1,5 @@
 #include <storage/transposition.hpp>
-#include <core/nimorak.hpp>
+#include <core/rune.hpp>
 
 #include <stdbool.h>
 #include <string.h>

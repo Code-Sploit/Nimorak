@@ -1,10 +1,10 @@
 #pragma once
 
 #include <string>
-#include <core/nimorak.hpp>  // assumes Game, Move, ZobristHash, etc. are defined here
+#include <core/rune.hpp>  // assumes Game, Move, ZobristHash, etc. are defined here
 #include <core/board.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game; // forward declaration
 }
 
@@ -16,13 +16,13 @@ namespace Zobrist {
     constexpr int NUM_ENPASSANT   = 8;
 
     // Compute the Zobrist hash of the current position
-    ZobristHash compute(Nimorak::Game& game);
+    ZobristHash compute(Rune::Game& game);
 
     // Update hash after a board change
-    void updateBoard(Nimorak::Game& game);
+    void updateBoard(Rune::Game& game);
 
     // Update hash after a move
-    void updateMove(Nimorak::Game& game, Move move, Nimorak::State& oldState);
+    void updateMove(Rune::Game& game, Move move, Rune::State& oldState);
 
     // Initialize Zobrist random keys
     void init();

@@ -8,12 +8,12 @@
 
 #include <core/board.hpp>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
 namespace UCI {
     void debug(const char* file, const char* format, ...);
     void printSearchResult(int depth, int score, int timeMs, int bestMove, bool isMate, std::string pvCurrent);
-    void uciLoop(Nimorak::Game& game);
+    void uciLoop(Rune::Game& game);
 }

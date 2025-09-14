@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -54,13 +54,13 @@ namespace Tuning {
             // -------------------------------
             // Apply pawn weights to engine
             // -------------------------------
-            void setPawnWeights(Nimorak::Game& game, const PawnWeights& weights);
+            void setPawnWeights(Rune::Game& game, const PawnWeights& weights);
 
             // -------------------------------
             // Self-play evaluation (single-thread)
             // -------------------------------
-            int playSelfGame(Nimorak::Game& game,
-                            Nimorak::Game& baseline,
+            int playSelfGame(Rune::Game& game,
+                            Rune::Game& baseline,
                             int maxPlies,
                             const std::string& fen);
 
@@ -84,8 +84,8 @@ namespace Tuning {
             // -------------------------------
             // Main pawn weight tuner
             // -------------------------------
-            void tunePawnWeights(Nimorak::Game& game,
-                                Nimorak::Game& baseline,
+            void tunePawnWeights(Rune::Game& game,
+                                Rune::Game& baseline,
                                 int epochs,
                                 int gamesPerEval);
     };

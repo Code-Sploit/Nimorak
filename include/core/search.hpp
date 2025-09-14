@@ -8,7 +8,7 @@
 #include <chrono>
 #include <vector>
 
-namespace Nimorak {
+namespace Rune {
     class Game;
 }
 
@@ -67,22 +67,22 @@ namespace Search {
             double getTimer();
             double getElapsedTime();
 
-            int getMvvLvaScore(Nimorak::Game& game, Move move);
+            int getMvvLvaScore(Rune::Game& game, Move move);
 
-            bool predictCheck(Nimorak::Game& game, Move move);
-            bool predictRecapture(Nimorak::Game& game, Move move);
+            bool predictCheck(Rune::Game& game, Move move);
+            bool predictRecapture(Rune::Game& game, Move move);
 
-            bool isNullMovePruneSafe(Nimorak::Game& game, Movegen::MoveList& movelist);
+            bool isNullMovePruneSafe(Rune::Game& game, Movegen::MoveList& movelist);
 
             void addBetaCutoff(Move move, int depth, int turn);
             void updateBetaCutoffHistory();
         public:
-            void orderMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply);
-            void requestMoves(Nimorak::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
+            void orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply);
+            void requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
 
-            int quiescense(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
-            int negamax(Nimorak::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
+            int quiescense(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
+            int negamax(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
 
-            Move searchPosition(Nimorak::Game& game, int initialDepth, int thinkTimeMs);
+            Move searchPosition(Rune::Game& game, int initialDepth, int thinkTimeMs);
     };
 } // namespace Search
