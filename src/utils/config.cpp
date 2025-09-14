@@ -40,6 +40,9 @@ namespace Config {
     void set_eval_bishop_pair(Nimorak::Game& game, const char* value) {
         game.config.eval.doBishopPair = std::atoi(value) != 0;
     }
+    void set_eval_pawn_structure(Nimorak::Game& game, const char* value) {
+        game.config.eval.doPawnStructure = std::atoi(value) != 0;
+    }
 
     // --- Setters for search ---
     void set_search_quiescense(Nimorak::Game& game, const char* value) {
@@ -75,6 +78,7 @@ namespace Config {
         { "eval_do_piece_squares",  set_eval_piece_squares },
         { "eval_do_mobility",       set_eval_mobility },
         { "eval_do_bishop_pair",    set_eval_bishop_pair },
+        { "eval_do_pawn_structure", set_eval_pawn_structure },
 
         // search
         { "search_do_quiescense",           set_search_quiescense },

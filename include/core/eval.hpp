@@ -249,8 +249,6 @@ namespace Evaluation {
 
             GamePhase getGamePhase(Nimorak::Game& game);
 
-            Bitboard getForwardPawnMask(int square, int color);
-            Bitboard getIsolatedPawnMask(int square);
             Bitboard getPassedPawnMask(int square, int color);
 
         public:

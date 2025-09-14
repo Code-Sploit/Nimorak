@@ -2,6 +2,8 @@
 
 #include <tables/constants.hpp>
 
+#include <iostream>
+
 namespace Helpers {
 
     // Bitboard / move helpers
@@ -66,5 +68,35 @@ namespace Helpers {
         if (a >= b && a >= c) return 0;
         if (b >= a && b >= c) return 1;
         return 2; // otherwise c is largest
+    }
+
+    inline void visualiseBitboard(Bitboard board)
+    {
+        std::cout << std::endl;
+
+        for (int rank = 7; rank >= 0; rank--)
+        {
+            std::cout << " +---+---+---+---+---+---+---+---+" << std::endl << " ";
+
+            for (int file = 0; file < 8; file++)
+            {
+                int square = rank * 8 + file;
+
+                if ((board & (1ULL << square)) == 0)
+                {
+                    std::cout << "|   ";
+                }
+                else
+                {
+                    std::cout << "| X ";
+                }
+            }
+
+            std::cout << "| " << rank + 1 << "  " << std::endl;
+        }
+
+        std::cout << " +---+---+---+---+---+---+---+---+  " << std::endl;
+        std::cout << "  a   b   c   d   e   f   g   h " << std::endl;
+        std::cout << std::endl;
     }
 } // namespace Helpers

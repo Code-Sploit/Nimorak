@@ -25,6 +25,7 @@ namespace Config {
         bool doPieceSquares = true;
         bool doMobility = true;
         bool doBishopPair = true;
+        bool doPawnStructure = true;
     };
 
     // ----------------------------

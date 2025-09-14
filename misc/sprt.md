@@ -46,3 +46,10 @@ Finished match
 Start: 17:34:00.73
 End:   17:59:08.29
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of nimorak_ps vs nimorak_v1: 304 - 245 - 451  [0.529] 1000
+Elo difference: 20.5 +/- 15.9, LOS: 99.4 %, DrawRatio: 45.1 %
+Finished match
+Start: 11:12:11.58
+End:   11:38:32.14
+PS C:\Users\thart\chess_programming\Nimorak>

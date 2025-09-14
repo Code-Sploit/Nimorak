@@ -85,42 +85,56 @@ namespace Evaluation {
         return score;
     }
 
-    Bitboard Worker::getForwardPawnMask(int square, int color)
-    {
-        if (square < 0 || square > 63) return 0ULL;
-
-        Bitboard mask = 0ULL;
-        
-        int file = Helpers::file_of(square);
-        int rank = Helpers::rank_of(square);
-
-        if (color == WHITE)
-        {
-            // All ranks ahead
-            mask = FILE_MASKS[file] & (~0ULL << ((rank + 1) * 8));
-        }
-        else
-        {
-            // Black pawns move downward
-            mask = FILE_MASKS[file] & ((1ULL << (rank * 8)) - 1);
-        }
-
-        return mask;
-    }
-
-    Bitboard Worker::getIsolatedPawnMask(int square)
-    {
-        int file = Helpers::file_of(square);
-        int file_left  = std::max(0, file - 1);
-        int file_right = std::min(7, file + 1);
-
-        Bitboard mask = FILE_MASKS[file_left] | FILE_MASKS[file_right];
-        return mask;
-    }
-
     Bitboard Worker::getPassedPawnMask(int square, int color)
     {
-        return getForwardPawnMask(square - 1, color) | getForwardPawnMask(square, color) | getForwardPawnMask(square + 1, color);
+        int rank = Helpers::rank_of(square);
+        int file = Helpers::file_of(square);
+        int realRank = (color == WHITE) ? rank : (7 - rank);
+        Bitboard maxValue = ~0ULL;
+        Bitboard forwardMask = (color == WHITE) ? maxValue << (8 * (realRank + 1)) : maxValue >> (8 * (realRank + 1));
+        Bitboard surroundingMask = FILE_MASKS[std::max(0, file - 1)] | FILE_MASKS[file] | FILE_MASKS[std::min(7, file + 1)];
+        Bitboard passedPawnMask = forwardMask & surroundingMask;
+
+        return passedPawnMask;
+    }
+
+    void Worker::modulePawnStructure(Nimorak::Game& game)
+    {
+        int moduleEval = 0;
+
+        // Passed pawn bonuses by rank (white perspective)
+        int passedBonuses[8]   = {0, 15, 15, 30, 40, 60, 90, 0};
+
+        // Isolated pawn penalties by rank (white perspective)
+        // Worse the further advanced they are
+        int isolatedPenalties[8] = {0, 10, 15, 20, 25, 35, 45, 0};
+
+        for (int color = WHITE; color <= BLACK; color++)
+        {
+            Bitboard friendlyPawns = game.board[color][PAWN];
+            Bitboard enemyPawns    = game.board[!color][PAWN];
+
+            int perspective = (color == WHITE) ? 1 : -1;
+
+            while (friendlyPawns)
+            {
+                int square   = Helpers::pop_lsb(friendlyPawns);
+                int rank     = Helpers::rank_of(square);
+                int realRank = (color == WHITE) ? rank : (7 - rank);
+
+                bool isPassed   = false;
+
+                // ----- Passed pawn check -----
+                Bitboard passedPawnMask = getPassedPawnMask(square, color);
+                if ((passedPawnMask & enemyPawns) == 0)
+                {
+                    moduleEval += passedBonuses[realRank] * perspective;
+                    isPassed = true;
+                }
+            }
+        }
+
+        this->eval += moduleEval;
     }
 
     void Worker::moduleMaterial(Nimorak::Game& game)
@@ -225,6 +239,7 @@ namespace Evaluation {
         if (game.config.eval.doPieceSquares) modulePST(game);
         if (game.config.eval.doMobility) moduleMobility(game);
         if (game.config.eval.doBishopPair) moduleBishopPair(game);
+        if (game.config.eval.doPawnStructure) modulePawnStructure(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }
