@@ -237,9 +237,9 @@ namespace Evaluation {
 
         if (game.config.eval.doMaterial) moduleMaterial(game);
         if (game.config.eval.doPieceSquares) modulePST(game);
-        if (game.config.eval.doMobility) moduleMobility(game);
-        if (game.config.eval.doBishopPair) moduleBishopPair(game);
-        if (game.config.eval.doPawnStructure) modulePawnStructure(game);
+        //if (game.config.eval.doMobility) moduleMobility(game);
+        //if (game.config.eval.doBishopPair) moduleBishopPair(game);
+        //if (game.config.eval.doPawnStructure) modulePawnStructure(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }
