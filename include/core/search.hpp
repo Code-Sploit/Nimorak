@@ -76,6 +76,9 @@ namespace Search {
 
             void addBetaCutoff(Move move, int depth, int turn);
             void updateBetaCutoffHistory();
+
+            int evaluateStaticExchange(Rune::Game& game, int to);
+            int getLeastValuablePiece(Rune::Game& game, Bitboard options);
         public:
             void orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply);
             void requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);

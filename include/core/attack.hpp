@@ -29,7 +29,7 @@ namespace Attack {
         bool isSquareAttackedBy(int square, int color);
         
         Bitboard getNewAttacksForMove(Rune::Game& game, Move move);
-        Bitboard getAttackersForSquare(Rune::Game& game, int square);
+        Bitboard getAttackersForSquare(Rune::Game& game, int color, int square);
 
         PrecomputedTables::AttackTable preComputed;
     };

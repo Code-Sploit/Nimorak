@@ -59,3 +59,11 @@ Elo difference: 23.0 +/- 16.2, LOS: 99.7 %, DrawRatio: 43.2 %
 Finished match
 Start: 18:32:23.44
 End:   18:58:29.54
+PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of rune_see.exe vs rune_latemovereductions.exe: 305 - 269 - 426  [0.518] 1000
+Elo difference: 12.5 +/- 16.3, LOS: 93.4 %, DrawRatio: 42.6 %
+Finished match
+Start: 19:15:23.24
+End:   19:42:29.16
+PS C:\Users\thart\chess_programming\Nimorak>

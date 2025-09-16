@@ -137,9 +137,76 @@ namespace Search {
         }
     }
 
+    int Worker::evaluateStaticExchange(Rune::Game& game, int to)
+    {
+        int gain[16]; // usually enough
+        Piece captured = game.boardGhost[to];
+        if (captured == EMPTY) return 0;
+
+        gain[0] = game.evalWorker.pieceValues[Helpers::get_type(captured)];
+
+        Bitboard occupancy = game.occupancy[BOTH];
+        Bitboard colorAttackers[2];
+        colorAttackers[WHITE] = game.attackWorker.getAttackersForSquare(game, WHITE, to);
+        colorAttackers[BLACK] = game.attackWorker.getAttackersForSquare(game, BLACK, to);
+
+        int numCaptures = 0;
+        int side = game.turn;
+
+        while (colorAttackers[side])
+        {
+            int from = getLeastValuablePiece(game, colorAttackers[side]);
+            Piece piece = game.boardGhost[from];
+            numCaptures++;
+
+            gain[numCaptures] = game.evalWorker.pieceValues[Helpers::get_type(piece)] - gain[numCaptures - 1];
+
+            if (std::max(-gain[numCaptures - 1], gain[numCaptures]) < 0)
+                break;
+
+            occupancy ^= (1ULL << from);
+            colorAttackers[side] &= ~(1ULL << from); // remove this attacker
+            side ^= 1;
+        }
+
+        int bestGain = gain[0];
+        for (int i = 1; i <= numCaptures; i++)
+            bestGain = std::max(-gain[i], bestGain);
+
+        return bestGain;
+    }
+
+    int Worker::getLeastValuablePiece(Rune::Game& game, Bitboard options)
+    {
+        int bestOption = -1;
+        int bestValue = INF;
+
+        while (options)
+        {
+            int square = Helpers::pop_lsb(options);
+
+            Piece piece = game.boardGhost[square];
+
+            int type = Helpers::get_type(piece);
+            int value = game.evalWorker.pieceValues[type];
+
+            if (value < bestValue)
+            {
+                bestValue = value;
+                bestOption = square;
+            }
+        }
+
+        return bestOption;
+    }
+
     void Worker::orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply)
     {
-        // Temporary container for scored moves
+        struct MoveScore {
+            Move move;
+            int score;
+        };
+
         std::vector<MoveScore> scored;
         scored.reserve(movelist.size());
 
@@ -148,56 +215,68 @@ namespace Search {
             Move m = movelist[i];
             int score = 0;
 
-            // 1. TT move bonus
-            if (m == this->ttMove) {
+            int from = Helpers::get_from(m);
+            int to   = Helpers::get_to(m);
+
+            // ----------------------------
+            // 1. Transposition Table move
+            // ----------------------------
+            if (m == this->ttMove)
                 score += SEARCH_MOVE_TT;
-            }
 
-            // 2. Captures, MVV-LVA
-            if (Helpers::is_capture(m)) {
-                score += SEARCH_MOVE_CAPTURE + getMvvLvaScore(game, m); // implement mvv_lva_value()
-            }
-
-            // 3. Check bonus
-            if (predictCheck(game, m)) {
-                score += SEARCH_MOVE_CHECK;
-            }
-
-            // 4. Good / bad capture heuristic
-            if (Helpers::is_capture(m)) {
-                if (!predictRecapture(game, m)) {
-                    score += SEARCH_MOVE_CAPTURE_BIAS; // good capture
-                } else {
-                    score -= SEARCH_MOVE_CAPTURE_BIAS; // bad capture
-                }
-            }
-
-            // 5. Promotion bonus
-            if (Helpers::is_promo(m)) {
-                score += SEARCH_MOVE_PROMOTION;
-            }
-
-            // 6. Beta-cutoffs
-            if (game.config.search.doBetaCutoffHistory)
+            // ----------------------------
+            // 2. Captures: SEE + MVV-LVA
+            // ----------------------------
+            if (Helpers::is_capture(m))
             {
-                int from = Helpers::get_from(m);
-                int to   = Helpers::get_to(m);
+                // Static Exchange Evaluation: expected material gain
+                int seeValue = evaluateStaticExchange(game, to);
+                score += SEARCH_MOVE_CAPTURE + seeValue;
 
-                score += betaCutoffHistory[game.turn][from][to];
+                // MVV-LVA tie-breaker (optional small fraction)
+                score += getMvvLvaScore(game, m) / 10;
+
+                // Good / bad capture bias
+                if (!predictRecapture(game, m))
+                    score += SEARCH_MOVE_CAPTURE_BIAS;  // good capture
+                else
+                    score -= SEARCH_MOVE_CAPTURE_BIAS;  // bad capture
             }
 
-            scored.push_back({m, score});
+            // ----------------------------
+            // 3. Check bonus
+            // ----------------------------
+            if (predictCheck(game, m))
+                score += SEARCH_MOVE_CHECK;
+
+            // ----------------------------
+            // 4. Promotion bonus
+            // ----------------------------
+            if (Helpers::is_promo(m))
+                score += SEARCH_MOVE_PROMOTION;
+
+            // ----------------------------
+            // 5. Beta-cutoff history
+            // ----------------------------
+            if (game.config.search.doBetaCutoffHistory)
+                score += betaCutoffHistory[game.turn][from][to];
+
+            // Store move + score
+            scored.push_back({ m, score });
         }
 
-        // Sort scored moves by descending score
+        // ----------------------------
+        // 6. Sort moves descending by score
+        // ----------------------------
         std::sort(scored.begin(), scored.end(), [](const MoveScore &a, const MoveScore &b) {
             return a.score > b.score;
         });
 
-        // Rewrite movelist in new order
-        for (size_t i = 0; i < scored.size(); i++) {
+        // ----------------------------
+        // 7. Rewrite movelist in order
+        // ----------------------------
+        for (size_t i = 0; i < scored.size(); i++)
             movelist[i] = scored[i].move;
-        }
     }
 
     void Worker::requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType)
