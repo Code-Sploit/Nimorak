@@ -339,4 +339,21 @@ namespace Attack {
 
         return 0ULL;
     }
+
+    Bitboard Worker::getAttackersForSquare(Rune::Game& game, int target)
+    {
+        Bitboard attackers = 0;
+        Bitboard squareMask = (1ULL << target);
+        Bitboard occupancy = game.occupancy[BOTH];
+
+        while (occupancy)
+        {
+            int sq = Helpers::pop_lsb(occupancy);
+
+            if (attackMap[Helpers::get_color(game.boardGhost[sq])][sq] & squareMask)
+                attackers |= (1ULL << sq);
+        }
+        
+        return attackers;
+    }
 }

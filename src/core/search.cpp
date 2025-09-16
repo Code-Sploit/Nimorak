@@ -220,6 +220,7 @@ namespace Search {
         // PV for stand-pat
         pv.clear();
 
+        // Alpha-beta stand pat checks
         if (standPat >= beta) return beta;
         if (standPat > alpha) alpha = standPat;
 
@@ -246,7 +247,7 @@ namespace Search {
 
             if (score >= beta) 
             {
-                // Beta cutoff: include the move in PV for info purposes
+                // Beta cutoff: include the move in PV for info
                 pv.clear();
                 pv.push_back(move);
                 return beta;
@@ -340,6 +341,8 @@ namespace Search {
             std::vector<Move> childPV;
 
             int eval = 0;
+            int newDepth = depth - 1;
+
             if (game.repetitionTable.checkThreefold(game.zobristKey))
             {
                 eval = DRAW_SCORE;
@@ -349,17 +352,30 @@ namespace Search {
                 if (i == 0)
                 {
                     // First move: full-window search
-                    eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1, childPV);
+                    eval = -negamax(game, newDepth, -beta, -alpha, ply + 1, childPV);
                 }
                 else
                 {
-                    // PVS: search with narrow window
-                    eval = -negamax(game, depth - 1, -alpha - 1, -alpha, ply + 1, childPV);
+                    bool isQuietMove = !Helpers::is_capture(move) &&
+                                    !Helpers::is_promo(move) &&
+                                    !predictCheck(game, move);
 
-                    // If it fails high, re-search with full window
-                    if (eval > alpha && eval < beta)
+                    int reduction = 0;
+
+                    if (depth >= 3 && i >= 4 && isQuietMove)
                     {
-                        eval = -negamax(game, depth - 1, -beta, -alpha, ply + 1, childPV);
+                        reduction = 1;
+                        if (depth >= 5 && i >= 10) reduction++;
+                        if (depth >= 7 && i >= 15) reduction++;
+                    }
+
+                    // First try reduced depth null-window search (LMR + PVS combined)
+                    eval = -negamax(game, newDepth - reduction, -alpha - 1, -alpha, ply + 1, childPV);
+
+                    // Re-search if needed
+                    if ((reduction > 0 && eval > alpha) || (eval > alpha && eval < beta))
+                    {
+                        eval = -negamax(game, newDepth, -beta, -alpha, ply + 1, childPV);
                     }
                 }
             }

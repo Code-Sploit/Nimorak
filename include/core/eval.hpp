@@ -44,7 +44,6 @@ namespace Evaluation {
                 0, 1, 2, 3, 4, 5, 6, 7
             };
 
-            static constexpr int pieceValues[6] = {0, 100, 320, 335, 500, 900};
             static constexpr int evalStackedPawnPenalties[5] = {0, 40, 60, 90, 140};
 
             static constexpr PieceSquareTable pieceSquareTables[6] = {
@@ -243,6 +242,7 @@ namespace Evaluation {
             };
 
             static constexpr int EVAL_HAS_BISHOP_PAIR = 40;
+            static constexpr int EVAL_HAS_ROOK_PAIR   = 30;
 
             int getPSTFor(PieceType type, int square, GamePhase phase);
             int getMobilityScoreFor(Rune::Game& game, PieceType type, int square);
@@ -254,11 +254,13 @@ namespace Evaluation {
         public:
             int eval = 0; // Last evaluation score
 
+            static constexpr int pieceValues[6] = {0, 100, 320, 335, 500, 900};
+
             // Evaluation modules
             void moduleMaterial(Rune::Game& game);
             void modulePST(Rune::Game& game);
             void moduleMobility(Rune::Game& game);
-            void moduleBishopPair(Rune::Game& game);
+            void modulePiecePairs(Rune::Game& game);
             void modulePawnStructure(Rune::Game& game);
 
             // Evaluate the current position

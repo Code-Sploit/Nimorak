@@ -53,3 +53,9 @@ Finished match
 Start: 11:12:11.58
 End:   11:38:32.14
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of rune_latemovereductions.exe vs rune_v1.exe: 317 - 251 - 432  [0.533] 1000
+Elo difference: 23.0 +/- 16.2, LOS: 99.7 %, DrawRatio: 43.2 %
+Finished match
+Start: 18:32:23.44
+End:   18:58:29.54

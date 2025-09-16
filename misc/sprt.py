@@ -63,13 +63,11 @@ def compute_stats_games(games, eng1, eng2):
         white = g.headers.get("White", "")
         black = g.headers.get("Black", "")
         if res == "1-0":
-            # White won
             if white == eng1:
                 wins1 += 1
             elif white == eng2:
                 wins2 += 1
         elif res == "0-1":
-            # Black won
             if black == eng1:
                 wins1 += 1
             elif black == eng2:
@@ -96,13 +94,11 @@ def compute_elo_stats(games, eng1, eng2):
     los = 100.0 * (0.5 * (1.0 + math.erf(elo / (math.sqrt(2.0) * sigma)))) if sigma > 0 else 50.0
     return elo, sigma, los
 
-# Elo over time: compute per-prefix
 def elo_over_time_df(games, eng1, eng2):
     rows = []
     for i in range(1, len(games) + 1):
         prefix = games[:i]
         elo, sigma, los = compute_elo_stats(prefix, eng1, eng2)
-        # replace infinities with None so chart doesn't try to plot huge values
         if math.isinf(elo):
             elo_val = None
         else:
@@ -161,7 +157,6 @@ def stop_cutechess():
 # Render last legal position of a Game (safely)
 # -------------------------
 def render_game_svg(game, size=200):
-    # build a board and apply moves until an illegal move occurs, then stop
     board = game.board()
     for mv in game.mainline_moves():
         try:
@@ -190,13 +185,20 @@ def small_gauge(title, value, max_val=100, height=110):
     return fig
 
 # -------------------------
+# Detect available engines
+# -------------------------
+def detect_rune_engines():
+    # keep full filenames, not .stem
+    exe_files = Path(".").glob("rune_*.exe")
+    return [f.name for f in exe_files]
+
+# -------------------------
 # Session state defaults
 # -------------------------
 if "console_lines" not in st.session_state:
     st.session_state.console_lines = []
 if "selected_engines" not in st.session_state:
     st.session_state.selected_engines = ("Engine1", "Engine2")
-# keep board move counts if you want per-board incremental display later
 if "board_move_counts" not in st.session_state:
     st.session_state.board_move_counts = [0] * NUM_BOARDS
 
@@ -208,14 +210,16 @@ st.title("♟️ Live SPRT Dashboard")
 
 with st.sidebar:
     st.subheader("⚙️ Controls")
-    # adjust available engines list as you like
-    available_engines = ["rune_v1", "rune_lmr", "stockfish", "leela"]
-    engine1_name = st.selectbox("Engine 1", available_engines, index=0)
-    engine2_name = st.selectbox("Engine 2", available_engines, index=1)
+
+    detected_runes = detect_rune_engines()
+    available_engines = detected_runes + ["stockfish", "leela"]
+
+    engine1_name = st.selectbox("Engine 1", available_engines, index=0 if available_engines else None)
+    engine2_name = st.selectbox("Engine 2", available_engines, index=1 if len(available_engines) > 1 else 0)
     num_games = st.number_input("Number of games", min_value=1, max_value=2000, value=100)
+
     col_start, col_stop = st.columns(2)
     if col_start.button("▶️ Start"):
-        # clear file to avoid loading old results
         try:
             PGN_FILE.write_text("")
         except Exception:
@@ -238,10 +242,8 @@ if len(games) == 0:
     st.warning("No games found in results.pgn yet. Waiting for first game...")
     st.stop()
 
-# Prefer selected engine names from sidebar (or fall back to first game's White/Black)
 eng1, eng2 = st.session_state.selected_engines
 if eng1 == "Engine1" and eng2 == "Engine2":
-    # initialize from first game headers if user didn't pick
     try:
         g0 = games[0]
         eng1 = g0.headers.get("White", eng1)
@@ -250,14 +252,11 @@ if eng1 == "Engine1" and eng2 == "Engine2":
     except Exception:
         pass
 
-# compute stats
 wins1, wins2, draws = compute_stats_games(games, eng1, eng2)
 elo, sigma, los = compute_elo_stats(games, eng1, eng2)
 
-# layout
 col_summary, col_elo, col_stats = st.columns([1.2, 3.0, 0.9])
 
-# Summary column (left)
 with col_summary:
     st.subheader("📊 Match Summary")
     st.metric("Games played", len(games))
@@ -265,7 +264,6 @@ with col_summary:
     st.metric(f"{eng2} wins", wins2)
     st.metric("Draws", draws)
 
-    # Console collapsible
     with st.expander("🖥 Console Output (latest games)", expanded=False):
         lines = []
         for idx, g in enumerate(games, start=1):
@@ -276,16 +274,12 @@ with col_summary:
             lines.append(f"Game {idx}: {white} vs {black} → {res} ({term})")
         st.text("\n".join(lines[-50:]))
 
-# Elo chart (middle)
 with col_elo:
     st.subheader("📈 Elo Δ Over Time")
     df_elo = elo_over_time_df(games, eng1, eng2)
-    # prepare display columns: cap values to avoid giant numbers
     if not df_elo.empty:
         df_plot = df_elo.copy()
-        # Elo None -> NaN, then clip
         df_plot["Elo_plot"] = df_plot["Elo"].astype(float).clip(-ELO_AXIS_RANGE, ELO_AXIS_RANGE)
-        # use shared y-scale to avoid jumps
         y_scale = alt.Scale(domain=[-ELO_AXIS_RANGE, ELO_AXIS_RANGE])
         line = alt.Chart(df_plot).mark_line(color="blue").encode(
             x=alt.X("Game:Q"),
@@ -295,16 +289,13 @@ with col_elo:
     else:
         st.write("Not enough data for Elo chart yet.")
 
-# small stacked gauges (right)
 with col_stats:
     st.subheader("📌 Live Stats")
     st.plotly_chart(small_gauge("Elo Δ", round(elo, 1) if (elo is not None and not math.isinf(elo)) else 0, 100), use_container_width=True)
     st.plotly_chart(small_gauge("Uncertainty σ", round(sigma, 1), 50), use_container_width=True)
     st.plotly_chart(small_gauge("LOS %", round(los, 1), 100), use_container_width=True)
 
-# Boards: render last NUM_BOARDS full games
 st.subheader("🎮 Latest Boards (last full games)")
-# get last full game objects
 latest_games = games[-NUM_BOARDS:]
 cols_boards = st.columns(NUM_BOARDS)
 for idx, (col, game_obj) in enumerate(zip(cols_boards, latest_games)):
@@ -313,10 +304,7 @@ for idx, (col, game_obj) in enumerate(zip(cols_boards, latest_games)):
         header_black = game_obj.headers.get("Black", "?")
         st.markdown(f"**{header_white}** vs **{header_black}**")
         svg, move_count = render_game_svg(game_obj, size=BOARD_SIZE)
-        # display SVG
-        # using components.html shows properly; image with _repr_svg_ can be used too.
         st.components.v1.html(svg, height=BOARD_SIZE + 20, scrolling=False)
 
-# footer: quick metrics
-st.write("")  # spacer
+st.write("")
 st.caption("Dashboard auto-refreshes every 2s. Start resets results.pgn. Stop kills the running cutechess process (if started from this UI).")
