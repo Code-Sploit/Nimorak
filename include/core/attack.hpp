@@ -30,6 +30,7 @@ namespace Attack {
         
         Bitboard getNewAttacksForMove(Rune::Game& game, Move move);
         Bitboard getAttackersForSquare(Rune::Game& game, int color, int square);
+        Bitboard getAttackersForZone(Rune::Game& game, Bitboard zone, int color, int type);
 
         PrecomputedTables::AttackTable preComputed;
     };

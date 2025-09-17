@@ -356,4 +356,19 @@ namespace Attack {
         
         return attackers;
     }
+
+    Bitboard Worker::getAttackersForZone(Rune::Game& game, Bitboard zone, int color, int type)
+    {
+        Bitboard attackers = 0;
+        Bitboard pieces = game.board[color][type]; // all pieces of this type
+
+        while (pieces) {
+            int sq = Helpers::pop_lsb(pieces);
+
+            if (attackMap[color][sq] & zone)  // piece attacks zone
+                attackers |= (1ULL << sq);
+        }
+
+        return attackers; // squares of attacking pieces
+    }
 }

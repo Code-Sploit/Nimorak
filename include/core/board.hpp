@@ -11,6 +11,16 @@ namespace Rune {
 }
 
 namespace Board {
+    static constexpr Bitboard FILE_MASKS[8] = {
+                0x0101010101010101ULL,
+                0x0202020202020202ULL,
+                0x0404040404040404ULL,
+                0x0808080808080808ULL,
+                0x1010101010101010ULL,
+                0x2020202020202020ULL,
+                0x4040404040404040ULL,
+                0x8080808080808080ULL
+    };
     // ----------------------------
     // FEN & Board helpers
     // ----------------------------
@@ -61,5 +71,10 @@ namespace Board {
     int totalMaterial(Rune::Game& game);
 
     bool isGameOver(Rune::Game& game);
+
+    bool isFileOpen(Rune::Game& game, int file);
+    bool isFileSemiOpen(Rune::Game& game, int file, int color);
+
+    int getPhase(Rune::Game& game);
 
 } // namespace Board

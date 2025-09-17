@@ -71,6 +71,9 @@ namespace Rune {
             std::unique_ptr<State[]> history;
 
             int winner;
+            int ply;
+
+            bool hasCastled[2];
 
             std::string pvLine;
 

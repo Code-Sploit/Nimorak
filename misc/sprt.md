@@ -67,3 +67,10 @@ Finished match
 Start: 19:15:23.24
 End:   19:42:29.16
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of rune_kingsafety.exe vs rune_v1.exe: 314 - 262 - 424  [0.526] 1000
+Elo difference: 18.1 +/- 16.3, LOS: 98.5 %, DrawRatio: 42.4 %
+Finished match
+Start: 11:28:17.52
+End:   11:52:28.13
+PS C:\Users\thart\chess_programming\Nimorak>

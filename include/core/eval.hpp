@@ -250,6 +250,8 @@ namespace Evaluation {
             GamePhase getGamePhase(Rune::Game& game);
 
             Bitboard getPassedPawnMask(int square, int color);
+            Bitboard getPawnShield(int kingSquare, int side);
+            Bitboard getKingZone(Rune::Game& game, int kingSquare, int side);
 
         public:
             int eval = 0; // Last evaluation score
@@ -262,6 +264,7 @@ namespace Evaluation {
             void moduleMobility(Rune::Game& game);
             void modulePiecePairs(Rune::Game& game);
             void modulePawnStructure(Rune::Game& game);
+            void moduleKingSafety(Rune::Game& game);
 
             // Evaluate the current position
             int evaluate(Rune::Game& game);

@@ -348,6 +348,8 @@ namespace Board {
             Piece rook = game.boardGhost[rookFrom];
             setSquare(game, rookFrom, EMPTY);
             setSquare(game, rookTo, rook);
+
+            game.hasCastled[color] = true;
         }
 
         // Update castling rights
@@ -361,6 +363,9 @@ namespace Board {
 
         // Switch turn
         game.turn ^= 1;
+
+        // Increase ply
+        game.ply++;
 
         // Push repetition key
         if (callType == MAKE_MOVE_FULL) game.repetitionTable.push(game.zobristKey);
@@ -428,6 +433,8 @@ namespace Board {
 
             setSquare(game, rookTo, EMPTY);
             setSquare(game, rookFrom, rook);
+
+            game.hasCastled[color] = false;
         }
 
         // Restore castling rights, en passant, zobrist key, and attack tables
@@ -442,6 +449,8 @@ namespace Board {
         if (callType == MAKE_MOVE_FULL) game.repetitionTable.pop();
 
         game.repetitionTable.fiftyMoveCounter = s->fiftyMoveCounter;
+
+        game.ply--;
     }
 
     void makeNullMove(Rune::Game& game)
@@ -769,5 +778,44 @@ namespace Board {
         }
 
         return false;
+    }
+
+    bool isFileOpen(Rune::Game& game, int file)
+    {
+        Bitboard pawns = game.board[WHITE][PAWN] | game.board[BLACK][PAWN];
+        Bitboard fileMask = FILE_MASKS[file];
+
+        return !(fileMask & pawns);
+    }
+
+    bool isFileSemiOpen(Rune::Game& game, int file, int color)
+    {
+        Bitboard fileMask = FILE_MASKS[file];
+        Bitboard friendlyPawns = game.board[color][PAWN];
+        Bitboard enemyPawns = game.board[!color][PAWN];
+
+        return !(fileMask & friendlyPawns) && (fileMask & enemyPawns);
+    }
+
+    int getPhase(Rune::Game& game)
+    {
+        // Piece indices: 0=P,1=N,2=B,3=R,4=Q
+        const int piecePhase[5] = {0, 1, 1, 2, 4};
+        int totalPhase = 0;
+
+        for (int color = WHITE; color <= BLACK; color++) {
+            for (int piece = KNIGHT; piece <= QUEEN; piece++) {
+                int count = __builtin_popcountll(game.board[color][piece]);
+                totalPhase += count * piecePhase[piece - 1];
+            }
+        }
+
+        // Maximum phase in starting position = 16 (N/B/R/Q only)
+        const int maxPhase = 16; 
+        // Clamp to 0–maxPhase
+        if (totalPhase > maxPhase) totalPhase = maxPhase;
+        if (totalPhase < 0) totalPhase = 0;
+
+        return totalPhase;
     }
 }
