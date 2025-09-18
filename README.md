@@ -1,6 +1,6 @@
 # Rune Chess Engine
 
-![Rune Engine Logo](misc/mdpicture.jpg)
+<img src="misc/mdpicture.jpg" alt="Rune Engine Logo" width="200"/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Code-Sploit/Rune)](https://github.com/Code-Sploit/Rune/releases)
