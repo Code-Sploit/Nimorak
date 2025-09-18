@@ -2,7 +2,6 @@
 
 #include <string>
 #include <core/rune.hpp>
-#include <tables/constants.hpp>
 #include <tables/helpers.hpp>
 #include <core/attack.hpp>
 
@@ -26,6 +25,31 @@ namespace Board {
     // ----------------------------
     std::string generateFen(Rune::Game& game);
     void loadFen(Rune::Game& game, const std::string fenString);
+
+    inline std::string squareToString(int square)
+    {
+        int file = Helpers::file_of(square); // 0-7
+        int rank = Helpers::rank_of(square); // 0-7
+
+        std::string s;
+        s += static_cast<char>('a' + file);    // file letter
+        s += static_cast<char>('1' + rank);    // rank number
+
+        return s;
+    }
+
+    inline int pieceTypeFromChar(char c)
+    {
+        switch (c)
+        {
+            case 'N': return KNIGHT;
+            case 'B': return BISHOP;
+            case 'R': return ROOK;
+            case 'Q': return QUEEN;
+            case 'K': return KING;
+            default: return EMPTY;
+        }
+    }
 
     std::string getCheckers(Rune::Game& game);
     void print(Rune::Game& game);
@@ -69,8 +93,6 @@ namespace Board {
     int countPieces(Rune::Game& game, PieceType type);
     int hasPiece(Rune::Game& game, PieceType type, PieceColor color);
     int totalMaterial(Rune::Game& game);
-
-    bool isGameOver(Rune::Game& game);
 
     bool isFileOpen(Rune::Game& game, int file);
     bool isFileSemiOpen(Rune::Game& game, int file, int color);

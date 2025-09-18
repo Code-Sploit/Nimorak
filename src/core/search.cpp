@@ -1,6 +1,7 @@
 #include <core/search.hpp>
 #include <storage/transposition.hpp>
 #include <storage/repetition.hpp>
+#include <storage/openingbook.hpp>
 #include <core/movegen.hpp>
 #include <core/board.hpp>
 #include <core/rune.hpp>
@@ -200,7 +201,7 @@ namespace Search {
         return bestOption;
     }
 
-    void Worker::orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply)
+    void Worker::orderMoves(Rune::Game& game, Movegen::MoveList& movelist)
     {
         struct MoveScore {
             Move move;
@@ -279,11 +280,11 @@ namespace Search {
             movelist[i] = scored[i].move;
     }
 
-    void Worker::requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType)
+    void Worker::requestMoves(Rune::Game& game, Movegen::MoveList& movelist, MoveRequestType requestType)
     {
         game.movegenWorker.getLegalMoves(game, movelist, requestType == QUIESCENSE);
 
-        orderMoves(game, movelist, ply);
+        orderMoves(game, movelist);
     }
 
     // -------------------------
@@ -304,7 +305,7 @@ namespace Search {
         if (standPat > alpha) alpha = standPat;
 
         Movegen::MoveList movelist;
-        requestMoves(game, movelist, ply, QUIESCENSE);
+        requestMoves(game, movelist, QUIESCENSE);
 
         std::vector<Move> bestChildPV;
         Move bestMove = 0;
@@ -382,7 +383,7 @@ namespace Search {
         this->ttMove = ttMove;
 
         Movegen::MoveList movelist;
-        requestMoves(game, movelist, ply, NEGAMAX);
+        requestMoves(game, movelist, NEGAMAX);
 
         // Null-move pruning
         if (depth >= NULL_MOVE_PRUNE_REDUCTION + 1 && isNullMovePruneSafe(game, movelist))
@@ -514,6 +515,19 @@ namespace Search {
 
         if (game.config.search.doInfo)
             UCI::debug(__FILE__, "start with initialDepth=%d thinkTime=%d ms", initialDepth, thinkTimeMs);
+        
+        Move bookMove = 0;
+        
+        if (game.config.search.doOpeningBook) bookMove = OpeningBook::tryBookMove(game);
+
+        if (bookMove && game.ply <= 12 && !game.outOfOpeningBook)
+        {
+            return bookMove;
+        }
+        else if (game.config.search.doOpeningBook)
+        {
+            game.outOfOpeningBook = true;
+        }
 
         Move bestMoveSoFar = 0;
         Movegen::MoveList movelist;
@@ -541,7 +555,7 @@ namespace Search {
                 this->ttMove = tmpBestMove;
             }
 
-            requestMoves(game, movelist, 0, NEGAMAX);
+            requestMoves(game, movelist, NEGAMAX);
 
             std::vector<Move> bestPV;
 
@@ -606,7 +620,7 @@ namespace Search {
                     score = mateIn;
                 }
 
-                UCI::printSearchResult(depth, score, getTimer(), bestThisDepth, isMate, game.pvLine);
+                UCI::printSearchResult(depth, score, getTimer(), isMate, game.pvLine);
             }
             else if (!completed) break;
 

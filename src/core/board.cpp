@@ -10,6 +10,7 @@
 #include <string>
 #include <cstring>
 #include <cctype>
+#include <algorithm>
 
 namespace Rune {
     class Game;
@@ -761,23 +762,6 @@ namespace Board {
             sum += 1 * __builtin_popcountll(game.board[color][PAWN]);
         }
         return sum;
-    }
-
-    bool isGameOver(Rune::Game& game)
-    {
-        Movegen::MoveList movelist;
-
-        game.movegenWorker.getLegalMoves(game, movelist, false);
-
-        if (movelist.size() == 0)
-        {
-            if (Board::isKingInCheck(game, game.turn)) game.winner = game.turn;
-            else game.winner = -1;
-
-            return true;
-        }
-
-        return false;
     }
 
     bool isFileOpen(Rune::Game& game, int file)

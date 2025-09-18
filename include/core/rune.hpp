@@ -1,84 +1,95 @@
 #pragma once
 
+// --- Standard Library ---
+#include <memory>   // std::unique_ptr
+#include <string>
+
+// --- Tables & Utilities ---
 #include <tables/constants.hpp>
 #include <tables/helpers.hpp>
 #include <utils/config.hpp>
 #include <storage/transposition.hpp>
 #include <storage/repetition.hpp>
+
+// --- Core Modules ---
+#include <core/board.hpp>
 #include <core/movegen.hpp>
 #include <core/attack.hpp>
 #include <core/eval.hpp>
-#include <core/board.hpp>
 #include <core/search.hpp>
-#include <utils/tuning.hpp>
-#include <memory>   // for std::unique_ptr
-#include <string>
 
 namespace Rune {
+
+    // --- Snapshot of game state for history / undo ---
     class State {
-        public:
-            CastlingRights castlingRights;
-            ZobristHash zobristKey;
+    public:
+        // Board & pieces
+        Bitboard board[3][7];      // Pieces per type/side
+        Bitboard occupancy[3];     // Side occupancy
+        Piece boardGhost[64];      // Full piece array
 
-            Piece capturedPiece;
-            Move move;
+        // Turn & move info
+        int turn;
+        int enpassantSquare;
+        CastlingRights castlingRights;
+        Piece capturedPiece;
+        Move move;
 
-            Bitboard attackMapFull[2];
-            Bitboard attackMap[2][64];
+        // Attack maps
+        Bitboard attackMapFull[2];
+        Bitboard attackMap[2][64];
 
-            int enpassantSquare;
-            int turn;
-
-            Bitboard board[3][7];      // Pieces per type/side
-            Bitboard occupancy[3];     // Side occupancy
-
-            Piece boardGhost[64];      // Full piece array
-
-            int fiftyMoveCounter;
+        // Misc
+        ZobristHash zobristKey;
+        int fiftyMoveCounter;
     };
 
+    // --- Main game class ---
     class Game {
-        public:
-            const static size_t HISTORY_SIZE = 32768;
-            // Game state
-            int turn;
-            int enpassantSquare;
-            int historyCount;
-            int isFirstLoad;
+    public:
+        static constexpr size_t HISTORY_SIZE = 32768;
 
-            CastlingRights castlingRights;
+        // Board & pieces
+        Bitboard board[3][7];       // Pieces by type/side
+        Bitboard occupancy[3];      // Side occupancy
+        Piece boardGhost[64];
 
-            Bitboard board[3][7];       // Pieces by type/side
-            Bitboard occupancy[3];      // Side occupancy
+        // Turn & move info
+        int turn;
+        int enpassantSquare;
+        CastlingRights castlingRights;
+        int ply;
+        bool hasCastled[2];
 
-            Movegen::MoveList movelist;
+        // Move generation
+        Movegen::MoveList movelist;
 
-            Piece boardGhost[64];
+        // Tables
+        Transposition::Table transpositionTable;
+        Repetition::Table repetitionTable;
 
-            Transposition::Table transpositionTable;
-            Repetition::Table repetitionTable;
+        // Workers
+        Attack::Worker attackWorker;
+        Movegen::Worker movegenWorker;
+        Evaluation::Worker evalWorker;
+        Search::Worker searchWorker;
 
-            Config::Configuration config;
+        // Configuration
+        Config::Configuration config;
 
-            Attack::Worker attackWorker;
-            Movegen::Worker movegenWorker;
-            Evaluation::Worker evalWorker;
-            Search::Worker searchWorker;
-            Tuning::Worker tuningWorker;
+        // History
+        int historyCount;
+        bool isFirstLoad;
+        std::unique_ptr<State[]> history;
 
-            ZobristHash zobristKey;
+        // Misc
+        bool outOfOpeningBook;
+        ZobristHash zobristKey;
+        std::string pvLine;
 
-            std::unique_ptr<State[]> history;
-
-            int winner;
-            int ply;
-
-            bool hasCastled[2];
-
-            std::string pvLine;
-
-            // Constructor / Destructor
-            Game();
-            ~Game(); // optional, default would work fine
+        // Constructor / Destructor
+        Game();
+        ~Game();
     };
+
 } // namespace Rune

@@ -312,7 +312,7 @@ namespace Movegen {
         
         getPseudoMoves(game, moves, onlyCaptures || game.config.moveGen.doOnlyCaptures);
 
-        //if (!game.config.moveGen.doLegalMoveFiltering) return;
+        if (!game.config.moveGen.doLegalMoveFiltering) return;
 
         int legalMoveCount = 0;
 

@@ -44,8 +44,6 @@ namespace Evaluation {
                 0, 1, 2, 3, 4, 5, 6, 7
             };
 
-            static constexpr int evalStackedPawnPenalties[5] = {0, 40, 60, 90, 140};
-
             static constexpr PieceSquareTable pieceSquareTables[6] = {
                 {
                     {
@@ -244,6 +242,17 @@ namespace Evaluation {
             static constexpr int EVAL_HAS_BISHOP_PAIR = 40;
             static constexpr int EVAL_HAS_ROOK_PAIR   = 30;
 
+            static constexpr int EVAL_PAWN_MOBILITY_SCORE = 5;
+
+            static constexpr int EVAL_KING_SAFETY_MISSING_PAWN = 40;
+            static constexpr int EVAL_KING_SAFETY_FULL_SHIELD = 50;
+            static constexpr int EVAL_KING_SAFETY_OPEN_FILE = 60;
+            static constexpr int EVAL_KING_SAFETY_SEMI_OPEN_FILE = 30;
+            static constexpr int EVAL_KING_SAFETY_CENTRAL_KING = 40;
+
+            static constexpr int kingSafetyPieceDanger[6] = {0, 5, 10, 10, 15, 25}; // P, N, B, R, Q
+            static constexpr int evalStackedPawnPenalties[5] = {0, 40, 60, 90, 140};
+
             int getPSTFor(PieceType type, int square, GamePhase phase);
             int getMobilityScoreFor(Rune::Game& game, PieceType type, int square);
 
@@ -251,7 +260,7 @@ namespace Evaluation {
 
             Bitboard getPassedPawnMask(int square, int color);
             Bitboard getPawnShield(int kingSquare, int side);
-            Bitboard getKingZone(Rune::Game& game, int kingSquare, int side);
+            Bitboard getKingZone(Rune::Game& game, int kingSquare);
 
         public:
             int eval = 0; // Last evaluation score

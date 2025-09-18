@@ -1,2 +1,3 @@
 # Rune
-Standalone UCI Chess Engine
+
+A standalone UCI chess engine

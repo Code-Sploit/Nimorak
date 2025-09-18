@@ -43,6 +43,9 @@ namespace Config {
     void set_eval_pawn_structure(Rune::Game& game, const char* value) {
         game.config.eval.doPawnStructure = std::atoi(value) != 0;
     }
+    void set_eval_king_safety(Rune::Game& game, const char* value) {
+        game.config.eval.doKingSafety = std::atoi(value) != 0;
+    }
 
     // --- Setters for search ---
     void set_search_quiescense(Rune::Game& game, const char* value) {
@@ -66,28 +69,33 @@ namespace Config {
     void set_search_quiescense_depth(Rune::Game& game, const char* value) {
         game.config.search.maximumQuiescenseDepth = std::atoi(value);
     }
+    void set_search_opening_book(Rune::Game& game, const char* value) {
+        game.config.search.doOpeningBook = std::atoi(value) != 0;
+    }
 
     // --- Option registry ---
     OptionHandler option_table[] = {
         // movegen
-        { "movegen_do_legal_move_filtering", set_movegen_legal },
-        { "movegen_do_only_captures",        set_movegen_captures },
+        { "movegenDoLegalMoveFiltering", set_movegen_legal },
+        { "movegenDoOnlyCaptures",        set_movegen_captures },
 
         // eval
-        { "eval_do_material",       set_eval_material },
-        { "eval_do_piece_squares",  set_eval_piece_squares },
-        { "eval_do_mobility",       set_eval_mobility },
-        { "eval_do_bishop_pair",    set_eval_bishop_pair },
-        { "eval_do_pawn_structure", set_eval_pawn_structure },
+        { "evalDoMaterial",       set_eval_material },
+        { "evalDoPieceSquares",  set_eval_piece_squares },
+        { "evalDoMobility",       set_eval_mobility },
+        { "evalDoBishopPair",    set_eval_bishop_pair },
+        { "evalDoPawnStructure", set_eval_pawn_structure },
+        { "evalDoKingSafety",    set_eval_king_safety },
 
         // search
-        { "search_do_quiescense",           set_search_quiescense },
-        { "search_do_transpositions",       set_search_transpositions },
-        { "search_do_beta_cutoff_history",  set_search_beta_cutoff_history },
-        { "search_do_info",                 set_search_info },
-        { "search_initial_depth",           set_search_initial_depth },
-        { "search_maximum_depth",           set_search_maximum_depth },
-        { "search_maximum_quiescense_depth",set_search_quiescense_depth },
+        { "searchDoQuiescense",           set_search_quiescense },
+        { "searchDoTranspositions",       set_search_transpositions },
+        { "searchDoBetaCutoffHistory",  set_search_beta_cutoff_history },
+        { "searchDoInfo",                 set_search_info },
+        { "searchInitialDepth",           set_search_initial_depth },
+        { "searchMaximumDepth",           set_search_maximum_depth },
+        { "searchMaximumQuiescenseDepth",set_search_quiescense_depth },
+        { "searchDoOpeningBook",         set_search_opening_book },
 
         { nullptr, nullptr }
     };
@@ -98,6 +106,7 @@ namespace Config {
             if (name == option_table[i].name) {  // no more strcmp
                 option_table[i].setter(game, value.c_str());  // still need c_str for your setter funcs
                 std::cout << "info string set " << name << " = " << value << "\n";
+                
                 return 0;
             }
         }

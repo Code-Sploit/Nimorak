@@ -79,9 +79,12 @@ namespace Search {
 
             int evaluateStaticExchange(Rune::Game& game, int to);
             int getLeastValuablePiece(Rune::Game& game, Bitboard options);
+        
         public:
-            void orderMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply);
-            void requestMoves(Rune::Game& game, Movegen::MoveList& movelist, int ply, MoveRequestType requestType);
+            const int maximumSearchTime = 1000000;
+
+            void orderMoves(Rune::Game& game, Movegen::MoveList& movelist);
+            void requestMoves(Rune::Game& game, Movegen::MoveList& movelist, MoveRequestType requestType);
 
             int quiescense(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);
             int negamax(Rune::Game& game, int depth, int alpha, int beta, int ply, std::vector<Move>& pv);

@@ -26,6 +26,7 @@ namespace Config {
         bool doMobility = true;
         bool doBishopPair = true;
         bool doPawnStructure = true;
+        bool doKingSafety = true;
     };
 
     // ----------------------------
@@ -36,11 +37,12 @@ namespace Config {
         bool doTranspositions = true;
         bool doBetaCutoffHistory = true;
         bool doInfo = true;
-        bool doKillerMoves = true;
 
-        int initialDepth = 6;
+        int initialDepth = 9;
         int maximumDepth = 32;
         int maximumQuiescenseDepth = 16;
+
+        bool doOpeningBook = false;
     };
 
     // ----------------------------

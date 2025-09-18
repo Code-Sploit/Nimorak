@@ -54,8 +54,10 @@ namespace Evaluation {
 
     int Worker::getPSTFor(PieceType type, int square, GamePhase phase)
     {
+        // Look up the table
         const PieceSquareTable& table = pieceSquareTables[type - 1];
 
+        // Return table->phaseValues
         switch (phase)
         {
             case OPENING:     return table.openingValue[square];
@@ -69,16 +71,18 @@ namespace Evaluation {
     {
         int score = 0;
 
+        // For the king, it should be penalized to move if not in endgame
         int phasePerspective = (getGamePhase(game) == ENDGAME) ? -1 : 1;
 
         switch (type)
         {
-            case PAWN:   score += 5; break;
+            case PAWN:   score += EVAL_PAWN_MOBILITY_SCORE; break;
             case KNIGHT: score += __builtin_popcountll(game.attackWorker.preComputed.getKnightAttacks(square)); break;
             case BISHOP: score += __builtin_popcountll(Magic::getBishopAttacks(square, game.occupancy[BOTH])); break;
             case ROOK:   score += __builtin_popcountll(Magic::getRookAttacks(square, game.occupancy[BOTH])); break;
             case QUEEN:  score += __builtin_popcountll(Magic::getQueenAttacks(square, game.occupancy[BOTH])); break;
             case KING:   score += __builtin_popcountll(game.attackWorker.preComputed.getKingAttacks(square)) * phasePerspective; break;
+
             default: break;
         }
 
@@ -89,10 +93,19 @@ namespace Evaluation {
     {
         int rank = Helpers::rank_of(square);
         int file = Helpers::file_of(square);
+
         int realRank = (color == WHITE) ? rank : (7 - rank);
+        
+        // Max value (all bits set to 1)
         Bitboard maxValue = ~0ULL;
+        
+        // Only keep ranks in front of the pawn
         Bitboard forwardMask = (color == WHITE) ? maxValue << (8 * (realRank + 1)) : maxValue >> (8 * (realRank + 1));
+        
+        // Include files surrounding the pawn
         Bitboard surroundingMask = FILE_MASKS[std::max(0, file - 1)] | FILE_MASKS[file] | FILE_MASKS[std::min(7, file + 1)];
+        
+        // Combine both
         Bitboard passedPawnMask = forwardMask & surroundingMask;
 
         return passedPawnMask;
@@ -106,7 +119,7 @@ namespace Evaluation {
         int fileLeft  = std::max(0, file - 1);
         int fileRight = std::min(7, file + 1);
 
-        // All candidate files
+        // All surrounding files
         Bitboard fileMask = FILE_MASKS[file] | FILE_MASKS[fileLeft] | FILE_MASKS[fileRight];
 
         // Select 3 ranks depending on side
@@ -123,20 +136,15 @@ namespace Evaluation {
         return fileMask & rankMask;
     }
 
-    Bitboard Worker::getKingZone(Rune::Game& game, int kingSquare, int side)
+    Bitboard Worker::getKingZone(Rune::Game& game, int kingSquare)
     {
         Bitboard zone = 0ULL;
 
+        // King attacks is the same as a 3x3 box around the king
         zone |= game.attackWorker.preComputed.getKingAttacks(kingSquare);
+        
+        // Add king square itself
         zone |= (1ULL << kingSquare);
-
-        int dir = (side == WHITE) ? 8 : -8;
-        int forwardSquare = kingSquare + dir;
-
-        if (kingSquare >= 0 && kingSquare < 64)
-        {
-            zone |= game.attackWorker.preComputed.getKingAttacks(kingSquare);
-        }
 
         return zone;
     }
@@ -146,11 +154,7 @@ namespace Evaluation {
         int moduleEval = 0;
 
         // Passed pawn bonuses by rank (white perspective)
-        int passedBonuses[8]   = {0, 15, 15, 30, 40, 60, 90, 0};
-
-        // Isolated pawn penalties by rank (white perspective)
-        // Worse the further advanced they are
-        int isolatedPenalties[8] = {0, 10, 15, 20, 25, 35, 45, 0};
+        int passedBonuses[8] = {0, 15, 15, 30, 40, 60, 90, 0};
 
         for (int color = WHITE; color <= BLACK; color++)
         {
@@ -163,16 +167,16 @@ namespace Evaluation {
             {
                 int square   = Helpers::pop_lsb(friendlyPawns);
                 int rank     = Helpers::rank_of(square);
+                
+                // Flip rank depending on color to play
                 int realRank = (color == WHITE) ? rank : (7 - rank);
-
-                bool isPassed   = false;
 
                 // ----- Passed pawn check -----
                 Bitboard passedPawnMask = getPassedPawnMask(square, color);
+
                 if ((passedPawnMask & enemyPawns) == 0)
                 {
                     moduleEval += passedBonuses[realRank] * perspective;
-                    isPassed = true;
                 }
             }
         }
@@ -209,12 +213,13 @@ namespace Evaluation {
 
         while (occupancy)
         {
-            int square = Helpers::pop_lsb(occupancy); // removes LSB
+            int square = Helpers::pop_lsb(occupancy);
 
             Piece piece = game.boardGhost[square];
 
             int type  = Helpers::get_type(piece);
             int color = Helpers::get_color(piece);
+
             int perspective = (color == WHITE) ? 1 : -1;
 
             // Use mirrored square for black pieces
@@ -240,6 +245,7 @@ namespace Evaluation {
 
             int type = Helpers::get_type(piece);
             int color = Helpers::get_color(piece);
+
             int perspective = (color == WHITE) ? 1 : -1;
 
             moduleEval += getMobilityScoreFor(game, type, square) * perspective;
@@ -277,57 +283,65 @@ namespace Evaluation {
     {
         int kingSafety[2] = {0, 0}; // store per color
 
-        for (int color = WHITE; color <= BLACK; color++) {
+        for (int color = WHITE; color <= BLACK; color++)
+        {
             int kingSq = Board::findKing(game, color);
-            int perspective = (color == WHITE) ? 1 : -1;
 
             // --- Expanded king zone ---
-            Bitboard kingZone = getKingZone(game, kingSq, color); 
-            // Typically 1-square radius + 1 rank forward
+            Bitboard kingZone = getKingZone(game, kingSq);
 
             int safety = 0;
 
             // --- Pawn shield (only if castled) ---
-            if (game.hasCastled[color]) {
+            if (game.hasCastled[color])
+            {
                 Bitboard pawnShield = getPawnShield(kingSq, color);
+
                 int shieldCount = __builtin_popcountll(pawnShield & game.board[color][PAWN]);
 
-                if (shieldCount < 3) {
+                if (shieldCount < 3)
+                {
                     int missing = 3 - shieldCount;
-                    safety -= 40 * missing; // penalty per missing pawn
+                    safety -= EVAL_KING_SAFETY_MISSING_PAWN * missing; // penalty per missing pawn
                 }
 
                 // Safe king bonus
                 if (shieldCount == 3)
-                    safety += 50; // stronger bonus for full shield
+                    safety += EVAL_KING_SAFETY_FULL_SHIELD; // stronger bonus for full shield
             }
 
             // --- Open / semi-open file near king ---
             int file = Helpers::file_of(kingSq);
+
             if (Board::isFileOpen(game, file))
-                safety -= 60;
+                safety -= EVAL_KING_SAFETY_OPEN_FILE;
             else if (Board::isFileSemiOpen(game, file, color))
-                safety -= 30;
+                safety -= EVAL_KING_SAFETY_SEMI_OPEN_FILE;
 
             // --- Enemy attacks into king zone ---
             int attackScore = 0;
-            const int pieceDanger[6] = {0, 5, 10, 10, 15, 25}; // P, N, B, R, Q
 
-            for (int piece = PAWN; piece <= QUEEN; piece++) {
+            for (int piece = PAWN; piece <= QUEEN; piece++)
+            {
                 Bitboard attackers = game.attackWorker.getAttackersForZone(game, kingZone, !color, piece);
+
                 int count = __builtin_popcountll(attackers);
-                attackScore += pieceDanger[piece] * count;
+                
+                attackScore += kingSafetyPieceDanger[piece] * count;
             }
 
             // Nonlinear scaling (soft cap)
             int danger = std::min(attackScore * attackScore / 4, 200);
+
             safety -= danger;
 
             // --- Penalize king in center if not castled by midgame ---
-            if (!game.hasCastled[color] && game.ply > 20) {
+            if (!game.hasCastled[color] && game.ply > 20)
+            {
                 int rank = Helpers::rank_of(kingSq);
+
                 if (rank > 1 && rank < 6) // king still central
-                    safety -= 40;
+                    safety -= EVAL_KING_SAFETY_CENTRAL_KING;
             }
 
             kingSafety[color] = safety;
@@ -336,6 +350,7 @@ namespace Evaluation {
         // --- Relative evaluation, phase scaling ---
         int phase = Board::getPhase(game); // 0=endgame, 24=opening
         int relativeSafety = kingSafety[WHITE] - kingSafety[BLACK];
+
         this->eval += relativeSafety * phase / 24;
     }
 
@@ -349,7 +364,7 @@ namespace Evaluation {
         if (game.config.eval.doMobility) moduleMobility(game);
         if (game.config.eval.doBishopPair) modulePiecePairs(game);
         if (game.config.eval.doPawnStructure) modulePawnStructure(game);
-        moduleKingSafety(game);
+        if (game.config.eval.doKingSafety) moduleKingSafety(game);
         
         return (game.turn == WHITE) ? this->eval : -this->eval;
     }
