@@ -137,6 +137,8 @@ namespace UCI {
             {
                 char *ptr = input + 9;
 
+                game.repetitionTable.clear();
+
                 if (strncmp(ptr, "startpos", 8) == 0)
                 {
                     Board::loadFen(game, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

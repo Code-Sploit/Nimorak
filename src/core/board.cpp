@@ -369,7 +369,12 @@ namespace Board {
         game.ply++;
 
         // Push repetition key
-        if (callType == MAKE_MOVE_FULL) game.repetitionTable.push(game.zobristKey);
+        if (callType == MAKE_MOVE_FULL)
+        {
+            Zobrist::updateBoard(game);
+         
+            game.repetitionTable.push(game.zobristKey);
+        }
 
         if (Helpers::get_type(piece) == PAWN) game.repetitionTable.fiftyMoveCounter = 0;
 

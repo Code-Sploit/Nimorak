@@ -74,3 +74,10 @@ Finished match
 Start: 11:28:17.52
 End:   11:52:28.13
 PS C:\Users\thart\chess_programming\Nimorak>
+
+Score of rune_threefoldfix.exe vs rune_v1.exe: 393 - 324 - 283  [0.534] 1000
+Elo difference: 24.0 +/- 18.3, LOS: 99.5 %, DrawRatio: 28.3 %
+Finished match
+Start: 22:43:50.46
+End:   23:14:32.44
+PS C:\Users\thart\chess_programming\Nimorak>

@@ -35,9 +35,13 @@ namespace Repetition {
     // Check threefold repetition
     bool Table::checkThreefold(ZobristHash hash) {
         int matches = 0;
+
         for (size_t i = 0; i < count; ++i) {
             size_t idx = (start + i) % REPETITION_SIZE;
-            if (stack[idx] == hash) ++matches;
+            if (stack[idx] == hash)
+            {
+                ++matches;
+            }
             if (matches >= 3) return true;
         }
         return false;
